@@ -1,0 +1,12 @@
+{
+  "navbar": {
+    "home": "Home",
+    "device_setting": "Device settings",
+    "device_upgrade": "Device upgrade",
+    "flash": "Flash",
+    "setting": "Settings",
+    "about": "About",
+    "collapse_menu": "Collapse menu",
+    "device_required": "Please connect the device first"
+  }
+}

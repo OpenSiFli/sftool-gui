@@ -1,0 +1,12 @@
+{
+  "navbar": {
+    "home": "主页",
+    "device_setting": "设备设置",
+    "device_upgrade": "设备升级",
+    "flash": "烧录",
+    "setting": "设置",
+    "about": "关于",
+    "collapse_menu": "收起菜单",
+    "device_required": "请先连接设备"
+  }
+}
