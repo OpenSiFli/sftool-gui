@@ -8,5 +8,11 @@
     "about": "About",
     "collapse_menu": "Collapse menu",
     "device_required": "Please connect the device first"
+  },
+  "about": {
+    "version": "Version",
+    "license": "License",
+    "repository": "Repository",
+    "copyright_info": "Copyright Information"
   }
 }

@@ -8,5 +8,11 @@
     "about": "关于",
     "collapse_menu": "收起菜单",
     "device_required": "请先连接设备"
+  },
+  "about": {
+    "version": "版本",
+    "license": "开源协议",
+    "repository": "代码仓库",
+    "copyright_info": "版权信息"
   }
 }
