@@ -9,6 +9,10 @@ export default {
   },
   plugins: [require("daisyui")],
   daisyui: {
-    themes: ["light", "dark"], // 添加您想使用的主题
+    themes: ["light", "dark", "cupcake"], // 添加更多主题选项
+    darkTheme: "dark",
+    base: true,
+    styled: true,
+    utils: true,
   },
 }
