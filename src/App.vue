@@ -4,7 +4,7 @@
     <main class="flex-1 overflow-auto">
       <router-view />
     </main>
-    <DeviceConnection v-if="!isSettingsPage" class="h-screen bg-base-200 overflow-auto py-6 px-4" />
+    <DeviceConnection v-if="isDisplatDeviceConnection" class="h-screen bg-base-200 overflow-auto py-6 px-4" />
   </div>
 </template>
 
@@ -24,8 +24,14 @@ export default {
     const route = useRoute();
 
     // 根据当前路由判断是否为设置页面
-    const isSettingsPage = computed(() => {
-      return route.path === '/setting';
+    const isDisplatDeviceConnection = computed(() => {
+      switch (route.path) {
+        case '/setting':
+        case '/about':
+          return false;
+        default:
+          return true;
+      }
     });
 
     // 监听导航栏折叠状态变化
@@ -49,7 +55,7 @@ export default {
 
     return {
       isNavbarCollapsed,
-      isSettingsPage
+      isDisplatDeviceConnection
     };
   }
 };
