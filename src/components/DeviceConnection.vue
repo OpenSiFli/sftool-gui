@@ -578,7 +578,7 @@ const connectDevice = async () => {
         connectParams.baudRate = parseInt(baudRateInput.value);
       }
       
-      const success = await invoke<boolean>('connect_to_device', connectParams);
+      const success = await invoke<boolean>('connect_device', connectParams);
       
       isConnected.value = success;
       if (!success) {
