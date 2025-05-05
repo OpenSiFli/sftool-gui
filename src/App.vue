@@ -4,19 +4,29 @@
     <main class="flex-1 overflow-auto">
       <router-view />
     </main>
+    <DeviceConnection v-if="!isSettingsPage" class="h-screen bg-base-200 overflow-auto py-6 px-4" />
   </div>
 </template>
 
 <script>
 import Navbar from './components/Navbar.vue';
-import { ref, onMounted, onUnmounted } from 'vue';
+import DeviceConnection from './components/DeviceConnection.vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 
 export default {
   components: {
     Navbar,
+    DeviceConnection
   },
   setup() {
     const isNavbarCollapsed = ref(false);
+    const route = useRoute();
+
+    // 根据当前路由判断是否为设置页面
+    const isSettingsPage = computed(() => {
+      return route.path === '/setting';
+    });
 
     // 监听导航栏折叠状态变化
     const updateNavbarState = () => {
@@ -38,7 +48,8 @@ export default {
     });
 
     return {
-      isNavbarCollapsed
+      isNavbarCollapsed,
+      isSettingsPage
     };
   }
 };
