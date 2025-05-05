@@ -14,5 +14,26 @@
     "license": "开源协议",
     "repository": "代码仓库",
     "copyright_info": "版权信息"
+  },
+  "setting": {
+    "title": "应用设置",
+    "appearance": "外观设置",
+    "theme": "主题",
+    "theme_options": {
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
+    },
+    "language": "语言",
+    "feedback_applied": "已应用",
+    "language_selector": "选择语言",
+    "search_language": "搜索语言...",
+    "no_language_match": "未找到匹配的语言",
+    "menu": "菜单设置",
+    "menu_collapsed": "默认折叠菜单",
+    "menu_collapsed_desc": "启用后，应用启动时菜单将默认处于折叠状态",
+    "save_settings": "保存设置",
+    "settings_saved": "设置已保存",
+    "restart_required": "部分设置需要重启应用后生效"
   }
 }
