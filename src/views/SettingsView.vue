@@ -102,26 +102,6 @@ const themeIcons: Record<string, string> = {
   'dark': '🌙',
   'system': '💻',
 };
-
-// 获取国家/地区代码（用于显示）
-const getCountryCode = (langCode: string) => {
-  const language = getLanguageByCode(langCode);
-  const emoji = language?.flagEmoji || '';
-
-  // 国旗emoji是两个Unicode区域指示符字符，提取对应的字母作为国家代码
-  // 例如：🇨🇳 = 区域指示符C + 区域指示符N = CN
-  if (emoji && emoji.length === 2 && emoji !== '🌐') {
-    // 提取字符的码点并转换为国家代码字母
-    const codePoints = Array.from(emoji).map(char => char.codePointAt(0) as number);
-    if (codePoints.length === 2) {
-      const firstLetter = String.fromCodePoint(codePoints[0] - 127397);
-      const secondLetter = String.fromCodePoint(codePoints[1] - 127397);
-      return firstLetter + secondLetter;
-    }
-  }
-
-  return '??';
-};
 </script>
 
 <template>
@@ -181,13 +161,11 @@ const getCountryCode = (langCode: string) => {
         <div class="relative z-10 w-full">
           <!-- 语言选择器 -->
           <div class="language-selector" @click="toggleLanguageDropdown">
-            <div class="flex items-center">
-              <div class="flag-container mr-3">
-                <div class="flag">
-                  <span class="flag-emoji">{{ currentLanguage.flagEmoji }}</span>
-                  <span class="country-code">{{ getCountryCode(currentLanguage.code) }}</span>
+            <div class="flex items-center">                <div class="lang-char-container mr-3">
+                  <div class="lang-char">
+                    <span class="lang-char-text">{{ currentLanguage.langChar }}</span>
+                  </div>
                 </div>
-              </div>
               <div class="language-info flex-grow">
                 <div class="language-name font-medium">{{ currentLanguage.nativeName }}</div>
                 <div class="language-english text-sm text-base-content/70">{{ currentLanguage.englishName }}</div>
@@ -221,10 +199,9 @@ const getCountryCode = (langCode: string) => {
               <div class="dropdown-items">
                 <div v-for="language in filteredLanguages" :key="language.code" class="dropdown-item"
                   :class="{ 'active': activeLanguage === language.code }" @click="updateLanguage(language.code)">
-                  <div class="flag-container mr-3">
-                    <div class="flag">
-                      <span class="flag-emoji">{{ language.flagEmoji }}</span>
-                      <span class="country-code">{{ getCountryCode(language.code) }}</span>
+                  <div class="lang-char-container mr-3">
+                    <div class="lang-char">
+                      <span class="lang-char-text">{{ language.langChar }}</span>
                     </div>
                   </div>
                   <div class="language-info flex-grow">
@@ -435,63 +412,34 @@ const getCountryCode = (langCode: string) => {
   transition: transform 0.3s;
 }
 
-/* 新的国旗样式 - 使用emoji */
-.flag-container {
+/* 新的语言字符样式 */
+.lang-char-container {
   width: 24px;
   height: 24px;
   position: relative;
   overflow: hidden;
 }
 
-.flag {
+.lang-char {
   width: 100%;
   height: 100%;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px;
+  border-radius: 4px;
+  background-color: hsl(var(--p) / 0.1);
+  color: hsl(var(--p));
 }
 
-/* Emoji 样式 */
-.flag-emoji {
-  font-size: 1.2rem;
+.lang-char-text {
+  font-size: 1rem;
+  font-weight: bold;
   line-height: 1;
-  font-family: var(--emoji-font);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-}
-
-/* 国家代码样式，当emoji不可用时显示 */
-.country-code {
-  font-size: 0.7rem;
-  font-weight: bold;
-  color: transparent;
-  z-index: 0;
-  position: absolute;
-}
-
-/* 当emoji加载失败时显示国家代码 */
-.flag-emoji:not(:defined)~.country-code,
-.flag-emoji.failed~.country-code {
-  color: hsl(var(--bc));
-  background-color: hsl(var(--b2));
-}
-
-/* 删除旧的国旗样式 */
-.zh-flag,
-.en-flag,
-.other-flag,
-.zh-flag::before,
-.zh-flag::after,
-.en-flag::before,
-.en-flag::after,
-.other-flag::before {
-  background: none;
-  background-color: transparent;
-  content: none;
 }
 
 /* 动画效果 */
@@ -548,7 +496,7 @@ const getCountryCode = (langCode: string) => {
 .theme-card,
 .theme-info,
 .theme-icon,
-.flag-container,
+.lang-char-container,
 .language-info,
 .language-name,
 .language-english,

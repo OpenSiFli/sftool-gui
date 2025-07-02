@@ -20,7 +20,7 @@ export interface Language {
   code: string;        // 语言代码
   nativeName: string;  // 当地语言名称
   englishName: string; // 英文名称
-  flagEmoji: string;   // 国旗emoji
+  langChar: string;    // 语言典型字符
 }
 
 // 支持的所有语言
@@ -29,13 +29,13 @@ export const availableLanguages: Language[] = [
     code: 'zh',
     nativeName: '简体中文',
     englishName: 'Simplified Chinese',
-    flagEmoji: '🇨🇳'
+    langChar: '文'
   },
   {
     code: 'en',
     nativeName: 'English',
     englishName: 'English',
-    flagEmoji: '🇬🇧'
+    langChar: 'A'
   }
 ];
 
