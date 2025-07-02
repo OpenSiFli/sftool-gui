@@ -318,17 +318,17 @@ const isLoadingPorts = ref(false);
 const isConnected = ref(false);
 const isConnecting = ref(false);
 
-// 芯片下拉框状态
+// 芯片下拉框状态 - 默认设置为 SF32LB52
 const showChipDropdown = ref(false);
-const chipSearchInput = ref('');
-const selectedChip = ref<ChipModel | null>(null);
-const tempChipInput = ref(''); // 保存临时输入，用于恢复搜索状态
+const chipSearchInput = ref('SF32LB52');
+const selectedChip = ref<ChipModel | null>(CHIP_MODELS.find(chip => chip.id === 'SF32LB52') || null);
+const tempChipInput = ref('SF32LB52'); // 保存临时输入，用于恢复搜索状态
 
-// 存储器类型
+// 存储器类型 - 默认设置为 NOR
 const showMemoryTypeDropdown = ref(false);
-const memoryTypeInput = ref('');
-const selectedMemoryType = ref<string | null>(null);
-const tempMemoryTypeInput = ref('');
+const memoryTypeInput = ref('NOR');
+const selectedMemoryType = ref<string | null>('NOR');
+const tempMemoryTypeInput = ref('NOR');
 
 // 芯片与存储器映射
 const chipMemoryTypes = {
