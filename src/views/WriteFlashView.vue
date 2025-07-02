@@ -151,7 +151,21 @@
         <!-- 日志区域 -->
         <div class="mt-6">
           <div class="flex justify-between items-center mb-2">
-            <span class="font-medium">{{ $t('writeFlash.log') }}</span>
+            <div class="flex items-center gap-2">
+              <span class="font-medium">{{ $t('writeFlash.log') }}</span>
+              <button 
+                class="btn btn-xs btn-circle btn-ghost"
+                @click="isLogExpanded = !isLogExpanded"
+                title="展开/折叠日志"
+              >
+                <svg v-if="isLogExpanded" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
             <button 
               class="btn btn-xs btn-ghost"
               @click="clearLog"
@@ -160,8 +174,27 @@
               {{ $t('writeFlash.clearLog') }}
             </button>
           </div>
-          <div class="bg-base-200 p-4 rounded-lg h-32 overflow-auto font-mono text-sm">
-            <pre>{{ logMessages.join('\n') }}</pre>
+          
+          <!-- 日志容器 - 使用单一容器进行过渡 -->
+          <div 
+            class="log-container-wrapper bg-base-200 rounded-lg font-mono text-sm"
+            :style="{ height: logContainerHeight + 'px' }"
+          >
+            <div class="p-4 h-full relative">
+              <!-- 展开状态显示完整日志 -->
+              <div
+                v-if="isLogExpanded"
+                class="h-full overflow-auto"
+                ref="logContainer"
+              >
+                <pre>{{ logMessages.join('\n') }}</pre>
+              </div>
+              
+              <!-- 折叠状态只显示最新一条 -->
+              <div v-else class="truncate flex items-center h-full">
+                <span class="truncate">{{ latestLogMessage }}</span>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -183,7 +216,7 @@
 
 <script setup lang="ts">
 import { TauriEvent } from '@tauri-apps/api/event';
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { listen } from '@tauri-apps/api/event';
 
@@ -204,6 +237,38 @@ const progressPercent = ref(0);
 const isFlashing = ref(false);
 const logMessages = ref<string[]>([]);
 const isWindowDragging = ref(false);
+const isLogExpanded = ref(true); // 日志窗口展开状态
+const logContainer = ref<HTMLElement | null>(null); // 日志容器DOM引用
+const logContainerHeight = ref(200); // 日志容器高度，默认值
+
+// 计算最新的日志消息用于折叠状态显示
+const latestLogMessage = computed(() => {
+  return logMessages.value.length > 0 ? logMessages.value[logMessages.value.length - 1] : '';
+});
+
+// 监听日志展开状态的变化，更新容器高度
+watch(isLogExpanded, () => {
+  updateLogContainerHeight();
+});
+
+// 更新日志容器高度
+const updateLogContainerHeight = () => {
+  if (isLogExpanded.value) {
+    // 展开状态 - 使用nextTick确保DOM已更新
+    nextTick(() => {
+      if (logContainer.value) {
+        // 获取内容实际高度
+        const scrollHeight = logContainer.value.scrollHeight;
+        const height = scrollHeight + 32; // 加上padding (16px * 2)
+        // 设置最大高度为200px
+        logContainerHeight.value = Math.min(height, 200);
+      }
+    });
+  } else {
+    // 折叠状态 - 固定高度
+    logContainerHeight.value = 60; // 保持小高度显示单行
+  }
+};
 
 // 初始化日志消息（在组件挂载后）
 const initializeLog = () => {
@@ -211,11 +276,16 @@ const initializeLog = () => {
     t('writeFlash.status.ready'),
     '拖拽功能已启用，可以直接将固件文件拖拽到窗口中'
   ];
+  
+  // 默认折叠日志窗口
+  isLogExpanded.value = false;
+  logContainerHeight.value = 40;
 };
 
 // 组件挂载时初始化
 onMounted(async () => {
   initializeLog();
+  updateLogContainerHeight();
   
   addLogMessage('正在初始化Tauri文件拖拽监听器...');
   
@@ -265,7 +335,7 @@ onMounted(async () => {
 
   } catch (error) {
     console.warn('无法设置Tauri文件拖拽监听器:', error);
-    addLogMessage(`警告: 无法设置Tauri文件拖拽监听器，请使用文件选择按钮`);
+    addLogMessage(`警告: 无法设置Tauri文件拖拽监听器，请使用文件选择按钮`, true);
   }
 });
 
@@ -339,7 +409,7 @@ const handleTauriFileDrop = async (payload: any) => {
   addLogMessage(`解析结果: 检测到 ${paths.length} 个文件路径`);
   
   if (paths.length === 0) {
-    addLogMessage('错误: 无法从拖拽事件中解析出文件路径');
+    addLogMessage('错误: 无法从拖拽事件中解析出文件路径', true);
     addLogMessage(`实际payload内容: ${JSON.stringify(payload)}`);
     return;
   }
@@ -356,7 +426,7 @@ const handleTauriFileDrop = async (payload: any) => {
     addLogMessage(`处理文件: ${fileName} (路径: ${path})`);
 
     if (!isSupportedFile(fileName)) {
-      addLogMessage(`${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${fileName}`);
+      addLogMessage(`${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${fileName}`, true);
       continue;
     }
 
@@ -599,9 +669,17 @@ const removeFile = (index: number) => {
 };
 
 // 添加日志消息
-const addLogMessage = (message: string) => {
+const addLogMessage = (message: string, important: boolean = false) => {
   const timestamp = new Date().toLocaleTimeString();
   logMessages.value.push(`[${timestamp}] ${message}`);
+  
+  // 如果是重要消息，自动展开日志窗口
+  if (important && !isLogExpanded.value) {
+    isLogExpanded.value = true;
+  } else if (isLogExpanded.value) {
+    // 如果日志窗口已展开，则更新高度以适应新的内容
+    nextTick(() => updateLogContainerHeight());
+  }
   
   // 限制日志条数，避免内存过度使用
   if (logMessages.value.length > 100) {
@@ -626,9 +704,9 @@ const startFlashing = async () => {
   try {
     await flashProcess();
     progressPercent.value = 100;
-    addLogMessage(`${t('writeFlash.status.completed')}`);
+    addLogMessage(`${t('writeFlash.status.completed')}`, true);
   } catch (error) {
-    addLogMessage(`${t('writeFlash.status.failed')}: ${error}`);
+    addLogMessage(`${t('writeFlash.status.failed')}: ${error}`, true);
   } finally {
     isFlashing.value = false;
   }
@@ -660,5 +738,25 @@ const startFlashing = async () => {
 /* 列表项移动的动画 */
 .file-list-move {
   transition: transform 0.5s ease;
+}
+
+/* 日志容器样式 */
+.log-container-wrapper {
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.log-container-wrapper > div {
+  transition: opacity 0.3s ease;
+}
+
+/* 确保内容淡入淡出平滑 */
+.log-container-wrapper div[v-if] {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>
