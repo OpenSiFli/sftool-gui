@@ -275,6 +275,46 @@ onUnmounted(() => {
   }
 });
 
+// 统一添加文件并去重的函数
+const addFilesWithDeduplication = (newFiles: FlashFile[], source: string) => {
+  const addedFiles: FlashFile[] = [];
+  const duplicatedFiles: string[] = [];
+  
+  for (const newFile of newFiles) {
+    // 检查是否已存在相同路径的文件
+    const existingFile = selectedFiles.value.find(file => file.path === newFile.path);
+    if (existingFile) {
+      duplicatedFiles.push(newFile.name);
+      continue;
+    }
+    
+    addedFiles.push(newFile);
+  }
+  
+  // 添加新文件
+  if (addedFiles.length > 0) {
+    selectedFiles.value.push(...addedFiles);
+    addLogMessage(`${t('writeFlash.status.fileSelected')}: ${source}添加了 ${addedFiles.length} 个文件`);
+    addedFiles.forEach(file => {
+      // 如果有文件大小信息，则显示大小
+      if (file.size && file.size > 0) {
+        addLogMessage(`- ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+      } else {
+        addLogMessage(`- ${file.name}`);
+      }
+    });
+  }
+  
+  // 提示重复文件
+  if (duplicatedFiles.length > 0) {
+    addLogMessage(`跳过重复文件 (${duplicatedFiles.length}个): ${duplicatedFiles.join(', ')}`);
+  }
+  
+  if (addedFiles.length === 0 && duplicatedFiles.length === 0) {
+    addLogMessage('没有有效的固件文件被添加');
+  }
+};
+
 // Tauri 文件拖拽处理
 const handleTauriFileDrop = async (payload: any) => {
   if (isFlashing.value) {
@@ -324,15 +364,8 @@ const handleTauriFileDrop = async (payload: any) => {
     });
   }
 
-  if (droppedFiles.length > 0) {
-    selectedFiles.value.push(...droppedFiles);
-    addLogMessage(`${t('writeFlash.status.fileSelected')}: 拖拽添加了 ${droppedFiles.length} 个文件`);
-    droppedFiles.forEach(file => {
-      addLogMessage(`- ${file.name}`);
-    });
-  } else {
-    addLogMessage('没有有效的固件文件被添加');
-  }
+  // 使用统一的去重函数添加文件
+  addFilesWithDeduplication(droppedFiles, '拖拽');
 };
 
 // 支持的文件扩展名
@@ -451,7 +484,7 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
         files.push({
           name: fileName,
           path: filePath,
-          address: isAutoAddressFile(fileName) ? '' : '0x08000000',
+          address: isAutoAddressFile(fileName) ? '' : '0x10000000',
           addressError: '',
           size: fileContent.length
         });
@@ -474,10 +507,8 @@ const handleSelectFile = async () => {
   try {
     const newFiles = await selectFile(false);
     if (newFiles.length > 0) {
-      selectedFiles.value.push(...newFiles);
-      newFiles.forEach(file => {
-        addLogMessage(`${t('writeFlash.status.fileSelected')}: ${file.name} (${(file.size! / 1024).toFixed(1)}KB)`);
-      });
+      // 使用统一的去重函数添加文件
+      addFilesWithDeduplication(newFiles, '单文件选择');
     }
   } catch (error) {
     addLogMessage(`${t('writeFlash.status.failed')}: ${error}`);
@@ -491,11 +522,8 @@ const handleSelectMultipleFiles = async () => {
   try {
     const newFiles = await selectFile(true);
     if (newFiles.length > 0) {
-      selectedFiles.value.push(...newFiles);
-      addLogMessage(`${t('writeFlash.status.fileSelected')}: 批量选择了 ${newFiles.length} 个文件`);
-      newFiles.forEach(file => {
-        addLogMessage(`- ${file.name} (${(file.size! / 1024).toFixed(1)}KB)`);
-      });
+      // 使用统一的去重函数添加文件
+      addFilesWithDeduplication(newFiles, '多文件选择');
     }
   } catch (error) {
     addLogMessage(`${t('writeFlash.status.failed')}: ${error}`);
