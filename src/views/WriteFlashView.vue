@@ -249,17 +249,29 @@ onMounted(async () => {
 
     addLogMessage('Tauri文件拖拽监听器设置成功');
     
-    // 组件卸载时清理监听器
-    onUnmounted(() => {
-      unlistenDragEnter();
-      unlistenDragLeave();
-      unlistenDragOver();
-      unlistenDragDrop();
-    });
+    // 存储清理函数以便在组件卸载时调用
+    (window as any).__tauriUnlisteners = {
+      unlistenDragEnter,
+      unlistenDragLeave,
+      unlistenDragOver,
+      unlistenDragDrop
+    };
 
   } catch (error) {
     console.warn('无法设置Tauri文件拖拽监听器:', error);
     addLogMessage(`警告: 无法设置Tauri文件拖拽监听器，请使用文件选择按钮`);
+  }
+});
+
+// 组件卸载时清理监听器
+onUnmounted(() => {
+  const unlisteners = (window as any).__tauriUnlisteners;
+  if (unlisteners) {
+    unlisteners.unlistenDragEnter?.();
+    unlisteners.unlistenDragLeave?.();
+    unlisteners.unlistenDragOver?.();
+    unlisteners.unlistenDragDrop?.();
+    delete (window as any).__tauriUnlisteners;
   }
 });
 
@@ -300,7 +312,7 @@ const handleTauriFileDrop = async (payload: any) => {
     // 根据文件类型生成默认地址
     let defaultAddress = '';
     if (!isAutoAddressFile(fileName)) {
-      defaultAddress = '0x08000000'; // 默认Flash起始地址
+      defaultAddress = '0x10000000'; // 默认Flash起始地址
     }
 
     droppedFiles.push({
