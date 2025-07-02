@@ -55,20 +55,10 @@
 </template>
 
 <script setup lang="ts">
-import {useI18n} from 'vue-i18n';
 import {useUserStore} from "../stores/userStore.ts";
-import {storeToRefs} from "pinia"; // 导入storeToRefs
-import router from "../router.ts";
 import { ref, onMounted } from 'vue';
 
-const {locale} = useI18n();
 const userStore = useUserStore();
-
-// 保留语言切换功能，但从界面上移除按钮
-const setLanguage = (lang: string) => {
-  locale.value = lang;
-  userStore.setLanguage(lang);
-};
 
 // 导航栏折叠状态，使用userStore的状态
 const isCollapsed = ref(userStore.menuCollapsed);

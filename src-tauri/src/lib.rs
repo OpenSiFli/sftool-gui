@@ -76,7 +76,7 @@ async fn connect_device(
     // siflitool.download_stub().map_err(|e| {
     //     e.to_string()
     // })?;
-    
+
     let mut state = state.lock().unwrap();
     state.sftool = Some(siflitool);
 
@@ -92,6 +92,8 @@ fn disconnect_device() -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {

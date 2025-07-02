@@ -6,7 +6,7 @@ import { availableLanguages, Language, getLanguageByCode } from '../i18n';
 
 // 获取用户存储和国际化
 const userStore = useUserStore();
-const { t, locale } = useI18n();
+const { locale } = useI18n();
 
 // 设置的实时状态
 const activeTheme = ref<ThemeType>(userStore.theme as ThemeType);

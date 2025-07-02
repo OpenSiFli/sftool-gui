@@ -35,5 +35,48 @@
     "save_settings": "保存设置",
     "settings_saved": "设置已保存",
     "restart_required": "部分设置需要重启应用后生效"
+  },
+  "writeFlash": {
+    "title": "固件烧录",
+    "selectFiles": "选择固件文件",
+    "clickToSelectFile": "点击选择文件",
+    "dropFilesHere": "释放文件到此处",
+    "addFile": "添加文件",
+    "addSingleFile": "添加单个文件",
+    "addMultipleFiles": "批量添加文件",
+    "mockMode": "Mock模式",
+    "removeFile": "移除",
+    "fileName": "文件名",
+    "address": "烧录地址",
+    "autoAddress": "自动地址",
+    "addressPlaceholder": "请输入十六进制地址，如：0x10000000",
+    "pathPlaceholder": "文件路径",
+    "pathTooltip": "固件文件的完整路径，可以手动编辑",
+    "addressTooltip": "固件烧录到目标设备的十六进制地址",
+    "progress": "烧录进度",
+    "startFlash": "开始烧录",
+    "clearLog": "清除日志",
+    "dragDropSuccess": "拖拽添加了 {count} 个文件",
+    "log": "日志输出",
+    "supportedFormats": "支持的文件格式：.bin, .hex, .elf, .axf",
+    "validation": {
+      "noFiles": "请选择至少一个固件文件",
+      "addressRequired": "请输入烧录地址",
+      "invalidAddress": "地址格式不正确，请输入有效的十六进制地址",
+      "addressTooLarge": "地址不能超过 0xFFFFFFFF",
+      "duplicateAddress": "烧录地址重复，请检查"
+    },
+    "status": {
+      "ready": "系统就绪，请选择固件文件...",
+      "fileSelected": "已选择文件",
+      "fileRemoved": "已移除文件",
+      "starting": "开始烧录...",
+      "progress": "烧录进度",
+      "completed": "烧录完成！",
+      "failed": "烧录失败",
+      "validating": "正在验证文件...",
+      "connecting": "正在连接设备...",
+      "unsupportedFileFormat": "不支持的文件格式"
+    }
   }
 }

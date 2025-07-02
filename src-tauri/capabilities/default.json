@@ -8,6 +8,9 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "store:default"
+    "store:default",
+    "dialog:default",
+    "fs:default",
+    "core:window:allow-start-dragging"
   ]
 }

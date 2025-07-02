@@ -35,5 +35,48 @@
     "save_settings": "Save Settings",
     "settings_saved": "Settings Saved",
     "restart_required": "Some settings require restarting the application to take effect"
+  },
+  "writeFlash": {
+    "title": "Firmware Flash",
+    "selectFiles": "Select Firmware Files",
+    "clickToSelectFile": "Click to select file",
+    "dropFilesHere": "Drop files here",
+    "addFile": "Add File",
+    "addSingleFile": "Add Single File",
+    "addMultipleFiles": "Add Multiple Files",
+    "mockMode": "Mock Mode",
+    "removeFile": "Remove",
+    "fileName": "File Name",
+    "address": "Flash Address",
+    "autoAddress": "Auto Address",
+    "addressPlaceholder": "Enter hex address, e.g.: 0x10000000",
+    "pathPlaceholder": "File path",
+    "pathTooltip": "Full path to the firmware file, can be manually edited",
+    "addressTooltip": "Hexadecimal address where the firmware will be flashed",
+    "progress": "Flash Progress",
+    "startFlash": "Start Flash",
+    "clearLog": "Clear Log",
+    "dragDropSuccess": "Added {count} files via drag and drop",
+    "log": "Log Output",
+    "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf",
+    "validation": {
+      "noFiles": "Please select at least one firmware file",
+      "addressRequired": "Please enter flash address",
+      "invalidAddress": "Invalid address format, please enter a valid hexadecimal address",
+      "addressTooLarge": "Address cannot exceed 0xFFFFFFFF",
+      "duplicateAddress": "Duplicate flash address, please check"
+    },
+    "status": {
+      "ready": "System ready, please select firmware files...",
+      "fileSelected": "File selected",
+      "fileRemoved": "File removed",
+      "starting": "Starting flash...",
+      "progress": "Flash progress",
+      "completed": "Flash completed!",
+      "failed": "Flash failed",
+      "validating": "Validating file...",
+      "connecting": "Connecting to device...",
+      "unsupportedFileFormat": "Unsupported file format"
+    }
   }
 }
