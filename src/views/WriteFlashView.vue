@@ -32,68 +32,74 @@
           
           <!-- 文件选择列表 -->
           <div class="space-y-3 mb-4">
-            <!-- 已选择的文件 -->
-            <div 
-              v-for="(file, index) in selectedFiles" 
-              :key="`file-${index}`"
-              class="card card-compact bg-base-200 shadow-sm"
+            <!-- 已选择的文件 - 使用 transition-group 添加动画 -->
+            <transition-group 
+              name="file-list" 
+              tag="div" 
+              class="space-y-3"
             >
-              <div class="card-body">
-                <div class="flex flex-col gap-3">
-                  <!-- 第一行：文件名和移除按钮 -->
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="flex-1 min-w-0">
-                      <div class="font-medium truncate">{{ file.name }}</div>
+              <div 
+                v-for="(file, index) in selectedFiles" 
+                :key="`file-${index}`"
+                class="card card-compact bg-base-200 shadow-sm file-list-item"
+              >
+                <div class="card-body">
+                  <div class="flex flex-col gap-3">
+                    <!-- 第一行：文件名和移除按钮 -->
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">{{ file.name }}</div>
+                      </div>
+                      <button 
+                        class="btn btn-sm btn-error btn-outline flex-shrink-0"
+                        @click="removeFile(index)"
+                        :disabled="isFlashing"
+                      >
+                        {{ $t('writeFlash.removeFile') }}
+                      </button>
                     </div>
-                    <button 
-                      class="btn btn-sm btn-error btn-outline flex-shrink-0"
-                      @click="removeFile(index)"
-                      :disabled="isFlashing"
-                    >
-                      {{ $t('writeFlash.removeFile') }}
-                    </button>
-                  </div>
-                  
-                  <!-- 第二行：文件路径 -->
-                  <div class="w-full relative group">
-                    <input 
-                      type="text" 
-                      v-model="file.path"
-                      class="input input-sm input-bordered w-full text-sm"
-                      :placeholder="$t('writeFlash.pathPlaceholder')"
-                    />
-                    <!-- 自定义提示框 -->
-                    <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                      {{ $t('writeFlash.pathTooltip') }}
+                    
+                    <!-- 第二行：文件路径 -->
+                    <div class="w-full relative group">
+                      <input 
+                        type="text" 
+                        v-model="file.path"
+                        class="input input-sm input-bordered w-full text-sm"
+                        :placeholder="$t('writeFlash.pathPlaceholder')"
+                      />
+                      <!-- 自定义提示框 -->
+                      <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        {{ $t('writeFlash.pathTooltip') }}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <!-- 第三行：地址输入（如果需要） -->
-                  <div class="w-full relative group" v-if="!isAutoAddressFile(file.name)">
-                    <input 
-                      type="text" 
-                      v-model="file.address"
-                      class="input input-sm input-bordered w-full"
-                      :class="{ 'input-error': file.addressError }"
-                      :placeholder="$t('writeFlash.addressPlaceholder')"
-                      @input="validateAddress(index)"
-                    />
-                    <!-- 自定义提示框 -->
-                    <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                      {{ $t('writeFlash.addressTooltip') }}
+                    
+                    <!-- 第三行：地址输入（如果需要） -->
+                    <div class="w-full relative group" v-if="!isAutoAddressFile(file.name)">
+                      <input 
+                        type="text" 
+                        v-model="file.address"
+                        class="input input-sm input-bordered w-full"
+                        :class="{ 'input-error': file.addressError }"
+                        :placeholder="$t('writeFlash.addressPlaceholder')"
+                        @input="validateAddress(index)"
+                      />
+                      <!-- 自定义提示框 -->
+                      <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        {{ $t('writeFlash.addressTooltip') }}
+                      </div>
+                      <div class="text-xs text-error mt-1" v-if="file.addressError">
+                        {{ file.addressError }}
+                      </div>
                     </div>
-                    <div class="text-xs text-error mt-1" v-if="file.addressError">
-                      {{ file.addressError }}
+                    
+                    <!-- 自动地址标识 -->
+                    <div class="w-full flex items-center" v-else>
+                      <span class="badge badge-success badge-sm">{{ $t('writeFlash.autoAddress') }}</span>
                     </div>
-                  </div>
-                  
-                  <!-- 自动地址标识 -->
-                  <div class="w-full flex items-center" v-else>
-                    <span class="badge badge-success badge-sm">{{ $t('writeFlash.autoAddress') }}</span>
                   </div>
                 </div>
               </div>
-            </div>
+            </transition-group>
             
             <!-- 空白选择框 - 支持拖拽上传 -->
             <div 
@@ -291,17 +297,22 @@ const addFilesWithDeduplication = (newFiles: FlashFile[], source: string) => {
     addedFiles.push(newFile);
   }
   
-  // 添加新文件
+  // 添加新文件 - 逐个添加以便动画可以逐个展示
   if (addedFiles.length > 0) {
-    selectedFiles.value.push(...addedFiles);
     addLogMessage(`${t('writeFlash.status.fileSelected')}: ${source}添加了 ${addedFiles.length} 个文件`);
-    addedFiles.forEach(file => {
-      // 如果有文件大小信息，则显示大小
-      if (file.size && file.size > 0) {
-        addLogMessage(`- ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
-      } else {
-        addLogMessage(`- ${file.name}`);
-      }
+    
+    // 使用延迟添加文件以使动画更明显
+    addedFiles.forEach((file, index) => {
+      setTimeout(() => {
+        selectedFiles.value.push(file);
+        
+        // 如果有文件大小信息，则显示大小
+        if (file.size && file.size > 0) {
+          addLogMessage(`- ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+        } else {
+          addLogMessage(`- ${file.name}`);
+        }
+      }, index * 100); // 每个文件添加间隔100毫秒
     });
   }
   
@@ -570,11 +581,21 @@ const flashProcess = async () => {
   }
 };
 
-// 移除文件
+// 移除文件 - 添加动画延迟
 const removeFile = (index: number) => {
   const file = selectedFiles.value[index];
-  selectedFiles.value.splice(index, 1);
-  addLogMessage(`${t('writeFlash.status.fileRemoved')}: ${file.name}`);
+  
+  // 标记文件为正在删除状态，可以触发CSS过渡效果
+  const fileElement = document.querySelector(`.file-list-item:nth-child(${index + 1})`);
+  if (fileElement) {
+    fileElement.classList.add('file-list-leave-to');
+  }
+  
+  // 延迟删除以便动画完成
+  setTimeout(() => {
+    selectedFiles.value.splice(index, 1);
+    addLogMessage(`${t('writeFlash.status.fileRemoved')}: ${file.name}`);
+  }, 300); // 300毫秒后删除，这样有足够时间显示动画
 };
 
 // 添加日志消息
@@ -613,3 +634,31 @@ const startFlashing = async () => {
   }
 };
 </script>
+
+<style>
+/* 文件列表项的过渡动画 */
+.file-list-item {
+  transition: all 0.5s;
+}
+
+/* 列表项进入和离开的动画 */
+.file-list-enter-active,
+.file-list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.file-list-enter-from {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+.file-list-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+/* 列表项移动的动画 */
+.file-list-move {
+  transition: transform 0.5s ease;
+}
+</style>
