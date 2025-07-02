@@ -1,40 +1,21 @@
 <template>
   <div 
     class="p-6 min-h-screen relative" 
-    @drop="handleWindowDrop"
-    @dragover="handleWindowDragOver"
-    @dragenter="handleWindowDragEnter"
-    @dragleave="handleWindowDragLeave"
     :class="{ 'bg-primary/5 transition-colors duration-200': isWindowDragging }"
   >
     <!-- 全窗口拖拽提示覆盖层 -->
     <div 
       v-if="isWindowDragging" 
       class="fixed inset-0 bg-primary/20 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none"
-      style="z-index: 9999;"
     >
-      <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border-2 border-dashed border-primary animate-pulse">
+      <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border-2 border-dashed border-primary">
         <div class="text-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-primary mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
           <h2 class="text-2xl font-bold text-primary mb-2">{{ $t('writeFlash.dropFilesHere') }}</h2>
           <p class="text-gray-600 dark:text-gray-300">{{ $t('writeFlash.supportedFormats') }}</p>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">拖拽检测正常工作</p>
         </div>
-      </div>
-    </div>
-    
-    <!-- 调试按钮 -->
-    <div class="absolute top-4 right-4 z-40 flex gap-2">
-      <button 
-        class="btn btn-sm btn-outline btn-secondary"
-        @click="testDragFunction"
-      >
-        测试拖拽功能
-      </button>
-      <div class="badge badge-lg" :class="isWindowDragging ? 'badge-success' : 'badge-neutral'">
-        {{ isWindowDragging ? '拖拽中' : '等待拖拽' }}
       </div>
     </div>
     
@@ -118,13 +99,8 @@
             <div 
               class="card card-compact bg-base-100 border-2 border-dashed border-base-300 hover:border-primary cursor-pointer transition-colors"
               @click="handleSelectFile"
-              @drop="handleDrop"
-              @dragover.prevent
-              @dragenter="handleDragEnter"
-              @dragleave="handleDragLeave"
               :class="{ 
-                'opacity-50 cursor-not-allowed': isFlashing,
-                'border-primary bg-primary/5': isDragging
+                'opacity-50 cursor-not-allowed': isFlashing
               }"
             >
               <div class="card-body">
@@ -132,8 +108,7 @@
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
-                  <span v-if="!isDragging">{{ $t('writeFlash.clickToSelectFile') }}</span>
-                  <span v-else class="text-primary font-medium">{{ $t('writeFlash.dropFilesHere') }}</span>
+                  <span>{{ $t('writeFlash.clickToSelectFile') }}</span>
                 </div>
               </div>
             </div>
@@ -201,8 +176,10 @@
 </template>
 
 <script setup lang="ts">
+import { TauriEvent } from '@tauri-apps/api/event';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { listen } from '@tauri-apps/api/event';
 
 const { t } = useI18n();
 
@@ -220,7 +197,6 @@ const selectedFiles = ref<FlashFile[]>([]);
 const progressPercent = ref(0);
 const isFlashing = ref(false);
 const logMessages = ref<string[]>([]);
-const isDragging = ref(false);
 const isWindowDragging = ref(false);
 
 // 初始化日志消息（在组件挂载后）
@@ -238,80 +214,114 @@ onMounted(async () => {
   addLogMessage('正在初始化Tauri文件拖拽监听器...');
   
   try {
-    // 动态导入 Tauri v2 API
-    const { listen } = await import('@tauri-apps/api/event');
-
-    const unlisten = await listen<string[]>('tauri://file-drop', (event) => {
-      console.log('Tauri file drop event:', event.payload);
-      addLogMessage('收到Tauri文件拖拽事件');
-      handleTauriFileDrop(event.payload);
-      isWindowDragging.value = false;
-    });
-
-    const unlistenHover = await listen('tauri://file-drop-hover', () => {
-      console.log('Tauri file drop hover');
-      addLogMessage('文件拖拽悬停检测');
+    // 监听拖拽进入事件
+    const unlistenDragEnter = await listen(TauriEvent.DRAG_ENTER, () => {
+      console.log('Tauri file drag enter');
+      addLogMessage('检测到文件拖拽进入窗口');
       if (!isFlashing.value) {
         isWindowDragging.value = true;
       }
     });
 
-    const unlistenCancel = await listen('tauri://file-drop-cancelled', () => {
-      console.log('Tauri file drop cancelled');
-      addLogMessage('文件拖拽已取消');
+    // 监听拖拽离开事件
+    const unlistenDragLeave = await listen(TauriEvent.DRAG_LEAVE, () => {
+      console.log('Tauri file drag leave');
+      addLogMessage('文件拖拽离开窗口');
       isWindowDragging.value = false;
+    });
+
+    // 监听拖拽悬停事件
+    const unlistenDragOver = await listen(TauriEvent.DRAG_OVER, () => {
+      console.log('Tauri file drag over');
+      // 拖拽悬停时保持覆盖层显示
+      if (!isFlashing.value && !isWindowDragging.value) {
+        isWindowDragging.value = true;
+      }
+    });
+
+    // 监听文件拖拽释放事件
+    const unlistenDragDrop = await listen(TauriEvent.DRAG_DROP, (event) => {
+      console.log('Tauri file drop event:', event);
+      addLogMessage('检测到文件拖拽释放');
+      handleTauriFileDrop(event.payload);
+      isWindowDragging.value = false; // 拖拽结束后隐藏覆盖层
     });
 
     addLogMessage('Tauri文件拖拽监听器设置成功');
     
     // 组件卸载时清理监听器
     onUnmounted(() => {
-      unlisten();
-      unlistenHover();
-      unlistenCancel();
+      unlistenDragEnter();
+      unlistenDragLeave();
+      unlistenDragOver();
+      unlistenDragDrop();
     });
 
   } catch (error) {
-    console.warn('无法设置Tauri文件拖拽监听器, 将使用DOM事件作为备用:', error);
-    addLogMessage(`警告: 无法设置Tauri文件拖拽监听器 - ${error}`);
-    addLogMessage('尝试设置DOM事件处理作为备用方案...');
-    
-    // 作为备用方案，设置DOM事件监听器
-    const globalDragOver = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!isFlashing.value) {
-        isWindowDragging.value = true;
-      }
-    };
-    
-    const globalDrop = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      isWindowDragging.value = false;
-      console.log('DOM fallback drop:', e);
-      addLogMessage('DOM备用拖拽释放事件');
-      handleWindowDrop(e);
-    };
-
-    const globalDragLeave = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      isWindowDragging.value = false;
-    };
-    
-    window.addEventListener('dragover', globalDragOver);
-    window.addEventListener('drop', globalDrop);
-    window.addEventListener('dragleave', globalDragLeave);
-    
-    // 清理DOM事件监听器
-    onUnmounted(() => {
-      window.removeEventListener('dragover', globalDragOver);
-      window.removeEventListener('drop', globalDrop);
-      window.removeEventListener('dragleave', globalDragLeave);
-    });
+    console.warn('无法设置Tauri文件拖拽监听器:', error);
+    addLogMessage(`警告: 无法设置Tauri文件拖拽监听器，请使用文件选择按钮`);
   }
 });
+
+// Tauri 文件拖拽处理
+const handleTauriFileDrop = async (payload: any) => {
+  if (isFlashing.value) {
+    addLogMessage('烧录进行中，无法添加文件');
+    return;
+  }
+
+  // Tauri v2 的 DRAG_DROP 事件 payload 是对象，包含 paths 数组
+  const paths: string[] = payload?.paths || [];
+  
+  addLogMessage(`解析结果: 检测到 ${paths.length} 个文件路径`);
+  
+  if (paths.length === 0) {
+    addLogMessage('错误: 无法从拖拽事件中解析出文件路径');
+    addLogMessage(`实际payload内容: ${JSON.stringify(payload)}`);
+    return;
+  }
+
+  const droppedFiles: FlashFile[] = [];
+
+  for (const path of paths) {
+    if (typeof path !== 'string') {
+      addLogMessage(`跳过无效路径: ${JSON.stringify(path)}`);
+      continue;
+    }
+    
+    const fileName = path.split(/[\/\\]/).pop() || path;
+    addLogMessage(`处理文件: ${fileName} (路径: ${path})`);
+
+    if (!isSupportedFile(fileName)) {
+      addLogMessage(`${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${fileName}`);
+      continue;
+    }
+
+    // 根据文件类型生成默认地址
+    let defaultAddress = '';
+    if (!isAutoAddressFile(fileName)) {
+      defaultAddress = '0x08000000'; // 默认Flash起始地址
+    }
+
+    droppedFiles.push({
+      name: fileName,
+      path: path,
+      address: defaultAddress,
+      addressError: '',
+      size: 0 
+    });
+  }
+
+  if (droppedFiles.length > 0) {
+    selectedFiles.value.push(...droppedFiles);
+    addLogMessage(`${t('writeFlash.status.fileSelected')}: 拖拽添加了 ${droppedFiles.length} 个文件`);
+    droppedFiles.forEach(file => {
+      addLogMessage(`- ${file.name}`);
+    });
+  } else {
+    addLogMessage('没有有效的固件文件被添加');
+  }
+};
 
 // 支持的文件扩展名
 const SUPPORTED_EXTENSIONS = ['.bin', '.hex', '.elf', '.axf'];
@@ -320,216 +330,6 @@ const SUPPORTED_EXTENSIONS = ['.bin', '.hex', '.elf', '.axf'];
 const isSupportedFile = (fileName: string): boolean => {
   const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
   return SUPPORTED_EXTENSIONS.includes(extension);
-};
-
-// 拖拽处理
-const handleDrop = async (event: DragEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-  isDragging.value = false;
-  
-  if (isFlashing.value) return;
-  
-  // 在Tauri中处理拖拽文件
-  await processDraggedFiles(event);
-};
-
-// 拖拽进入/离开事件
-const handleDragEnter = () => {
-  if (!isFlashing.value) {
-    isDragging.value = true;
-  }
-};
-
-const handleDragLeave = () => {
-  isDragging.value = false;
-};
-
-// 窗口级别的拖拽处理（DOM事件备用）
-const handleWindowDrop = async (event: DragEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-  console.log('Window drop event (DOM fallback)', event.dataTransfer?.files);
-  addLogMessage('DOM拖拽释放事件触发');
-  isWindowDragging.value = false;
-  
-  if (isFlashing.value) {
-    addLogMessage('烧录进行中，无法添加文件');
-    return;
-  }
-  
-  // 使用DOM事件处理文件拖拽
-  addLogMessage('使用DOM事件处理文件拖拽...');
-  await processDraggedFiles(event);
-};
-
-// 处理拖拽文件的通用函数
-const processDraggedFiles = async (event: DragEvent) => {
-  console.log('Processing dragged files...', event.dataTransfer?.files);
-  addLogMessage('检测到拖拽文件...');
-  
-  const files = event.dataTransfer?.files;
-  if (!files || files.length === 0) {
-    addLogMessage('没有检测到有效文件');
-    return;
-  }
-  
-  addLogMessage(`检测到 ${files.length} 个文件`);
-  const droppedFiles: FlashFile[] = [];
-  
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    
-    if (!isSupportedFile(file.name)) {
-      addLogMessage(`${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${file.name}`);
-      continue;
-    }
-    
-    // 根据文件类型生成默认地址
-    let defaultAddress = '';
-    if (!isAutoAddressFile(file.name)) {
-      defaultAddress = '0x08000000'; // 默认Flash起始地址
-    }
-    
-    // 在Tauri环境中，需要获取完整路径
-    let filePath = file.name;
-    try {
-      // 尝试获取文件的完整路径（如果可能）
-      if ((file as any).path) {
-        filePath = (file as any).path;
-      } else if ((file as any).webkitRelativePath) {
-        filePath = (file as any).webkitRelativePath;
-      }
-    } catch (error) {
-      console.warn('无法获取文件完整路径，使用文件名:', error);
-    }
-    
-    droppedFiles.push({
-      name: file.name,
-      path: filePath,
-      address: defaultAddress,
-      addressError: '',
-      size: file.size
-    });
-  }
-  
-  if (droppedFiles.length > 0) {
-    selectedFiles.value.push(...droppedFiles);
-    addLogMessage(`${t('writeFlash.status.fileSelected')}: 拖拽添加了 ${droppedFiles.length} 个文件`);
-    droppedFiles.forEach(file => {
-      addLogMessage(`- ${file.name} (${(file.size! / 1024).toFixed(1)}KB)`);
-    });
-  } else {
-    addLogMessage('没有有效的固件文件被添加');
-  }
-};
-
-// 处理Tauri文件拖拽事件
-const handleTauriFileDrop = async (filePaths: string[]) => {
-  console.log('Handling Tauri file drop:', filePaths);
-  isWindowDragging.value = false;
-  
-  if (isFlashing.value) {
-    addLogMessage('烧录进行中，无法添加文件');
-    return;
-  }
-  
-  addLogMessage('检测到文件拖拽...');
-  
-  if (!filePaths || filePaths.length === 0) {
-    addLogMessage('没有检测到有效文件');
-    return;
-  }
-  
-  addLogMessage(`检测到 ${filePaths.length} 个文件`);
-  const droppedFiles: FlashFile[] = [];
-  
-  try {
-    const { readFile, exists } = await import('@tauri-apps/plugin-fs');
-    
-    for (const filePath of filePaths) {
-      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
-      
-      if (!isSupportedFile(fileName)) {
-        addLogMessage(`${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${fileName}`);
-        continue;
-      }
-      
-      try {
-        const fileExists = await exists(filePath);
-        if (!fileExists) {
-          addLogMessage(`${t('writeFlash.status.failed')}: 文件不存在 - ${fileName}`);
-          continue;
-        }
-        
-        const fileContent = await readFile(filePath);
-        
-        // 根据文件类型生成默认地址
-        let defaultAddress = '';
-        if (!isAutoAddressFile(fileName)) {
-          defaultAddress = '0x08000000'; // 默认Flash起始地址
-        }
-        
-        droppedFiles.push({
-          name: fileName,
-          path: filePath,
-          address: defaultAddress,
-          addressError: '',
-          size: fileContent.length
-        });
-      } catch (error) {
-        addLogMessage(`${t('writeFlash.status.failed')}: 读取文件失败 - ${fileName}: ${error}`);
-      }
-    }
-    
-    if (droppedFiles.length > 0) {
-      selectedFiles.value.push(...droppedFiles);
-      addLogMessage(`${t('writeFlash.status.fileSelected')}: 拖拽添加了 ${droppedFiles.length} 个文件`);
-      droppedFiles.forEach(file => {
-        addLogMessage(`- ${file.name} (${(file.size! / 1024).toFixed(1)}KB)`);
-      });
-    } else {
-      addLogMessage('没有有效的固件文件被添加');
-    }
-  } catch (error) {
-    addLogMessage(`${t('writeFlash.status.failed')}: 处理拖拽文件时出错 - ${error}`);
-  }
-};
-
-const handleWindowDragEnter = (event: DragEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-  console.log('Window drag enter (DOM fallback)', event.dataTransfer?.types);
-  addLogMessage(`DOM拖拽进入事件触发 - ${event.type}`);
-  
-  if (!isFlashing.value) {
-    addLogMessage('检测到文件拖拽，显示覆盖层');
-    isWindowDragging.value = true;
-  }
-};
-
-const handleWindowDragOver = (event: DragEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-  // 简化处理，每次dragover都确保覆盖层显示
-  if (!isFlashing.value) {
-    isWindowDragging.value = true;
-  }
-};
-
-const handleWindowDragLeave = (event: DragEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-  console.log('Window drag leave (DOM fallback)', event.clientX, event.clientY);
-  addLogMessage(`DOM拖拽离开事件触发 - ${event.type}`);
-  
-  // 简化处理，使用setTimeout避免快速的enter/leave事件
-  setTimeout(() => {
-    if (!event.relatedTarget || !document.contains(event.relatedTarget as Node)) {
-      addLogMessage('拖拽真正离开，隐藏覆盖层');
-      isWindowDragging.value = false;
-    }
-  }, 100);
 };
 
 // 自动地址文件类型（不需要手动输入地址）
@@ -771,20 +571,5 @@ const startFlashing = async () => {
   } finally {
     isFlashing.value = false;
   }
-};
-
-// 测试拖拽功能
-const testDragFunction = () => {
-  addLogMessage('=== 拖拽功能测试 ===');
-  addLogMessage('手动切换拖拽覆盖层状态...');
-  isWindowDragging.value = !isWindowDragging.value;
-  
-  setTimeout(() => {
-    if (isWindowDragging.value) {
-      addLogMessage('覆盖层显示正常');
-      isWindowDragging.value = false;
-      addLogMessage('覆盖层已隐藏');
-    }
-  }, 2000);
 };
 </script>

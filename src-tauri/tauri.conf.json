@@ -22,15 +22,6 @@
       "csp": null
     }
   },
-  "plugins": {
-    "fs": {
-      "scope": [
-        "$APPDATA/**",
-        "$DESKTOP/**",
-        "$HOME/**"
-      ]
-    }
-  },
   "bundle": {
     "active": true,
     "targets": "all",
