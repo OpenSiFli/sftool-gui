@@ -31,16 +31,16 @@
           </label>
           
           <!-- 文件选择列表 -->
-          <div class="space-y-3 mb-4">
+          <div class="mb-4">
             <!-- 已选择的文件 - 使用 transition-group 添加动画 -->
             <transition-group 
               name="file-list" 
               tag="div" 
-              class="space-y-3"
+              class="space-y-3 mb-3 file-list-container"
             >
               <div 
                 v-for="(file, index) in selectedFiles" 
-                :key="`file-${index}`"
+                :key="file.id"
                 class="card card-compact bg-base-200 shadow-sm file-list-item"
               >
                 <div class="card-body">
@@ -224,6 +224,7 @@ const { t } = useI18n();
 
 // 文件类型定义
 interface FlashFile {
+  id: string; // 添加唯一ID
   name: string;
   path: string;
   address?: string;
@@ -240,6 +241,11 @@ const isWindowDragging = ref(false);
 const isLogExpanded = ref(true); // 日志窗口展开状态
 const logContainer = ref<HTMLElement | null>(null); // 日志容器DOM引用
 const logContainerHeight = ref(200); // 日志容器高度，默认值
+
+// 生成唯一ID的函数
+const generateFileId = () => {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+};
 
 // 计算最新的日志消息用于折叠状态显示
 const latestLogMessage = computed(() => {
@@ -437,6 +443,7 @@ const handleTauriFileDrop = async (payload: any) => {
     }
 
     droppedFiles.push({
+      id: generateFileId(),
       name: fileName,
       path: path,
       address: defaultAddress,
@@ -563,6 +570,7 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
         const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
         
         files.push({
+          id: generateFileId(),
           name: fileName,
           path: filePath,
           address: isAutoAddressFile(fileName) ? '' : '0x10000000',
@@ -651,21 +659,11 @@ const flashProcess = async () => {
   }
 };
 
-// 移除文件 - 添加动画延迟
+// 移除文件
 const removeFile = (index: number) => {
   const file = selectedFiles.value[index];
-  
-  // 标记文件为正在删除状态，可以触发CSS过渡效果
-  const fileElement = document.querySelector(`.file-list-item:nth-child(${index + 1})`);
-  if (fileElement) {
-    fileElement.classList.add('file-list-leave-to');
-  }
-  
-  // 延迟删除以便动画完成
-  setTimeout(() => {
-    selectedFiles.value.splice(index, 1);
-    addLogMessage(`${t('writeFlash.status.fileRemoved')}: ${file.name}`);
-  }, 300); // 300毫秒后删除，这样有足够时间显示动画
+  selectedFiles.value.splice(index, 1);
+  addLogMessage(`${t('writeFlash.status.fileRemoved')}: ${file.name}`);
 };
 
 // 添加日志消息
@@ -716,28 +714,39 @@ const startFlashing = async () => {
 <style>
 /* 文件列表项的过渡动画 */
 .file-list-item {
-  transition: all 0.5s;
+  transition: all 0.3s ease;
 }
 
 /* 列表项进入和离开的动画 */
 .file-list-enter-active,
 .file-list-leave-active {
-  transition: all 0.5s ease;
+  transition: all 0.3s ease;
 }
 
 .file-list-enter-from {
   opacity: 0;
-  transform: translateY(-30px);
+  transform: translateY(-20px) scale(0.95);
 }
 
 .file-list-leave-to {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateX(30px) scale(0.95);
 }
 
 /* 列表项移动的动画 */
 .file-list-move {
-  transition: transform 0.5s ease;
+  transition: transform 0.3s ease;
+}
+
+/* 确保leaving元素在正确位置，避免空白 */
+.file-list-leave-active {
+  position: absolute;
+  width: calc(100% - 1.5rem); /* 减去容器的padding */
+}
+
+/* 为transition-group容器设置相对定位 */
+.file-list-container {
+  position: relative;
 }
 
 /* 日志容器样式 */
