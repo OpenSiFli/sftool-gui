@@ -25,7 +25,7 @@
     <div class="flex flex-col space-y-3 flex-1 min-h-0">
       <!-- 文件选择区域 -->
       <div class="bg-base-100 rounded-lg flex-1 min-h-0 overflow-hidden">
-        <div class="p-4 h-full overflow-y-auto flex flex-col">
+        <div class="p-4 h-full overflow-y-auto flex flex-col scrollable-container">
           <!-- 文件选择区域 -->
           <div class="form-control w-full flex-1 min-h-0 flex flex-col">
             <label class="label">
@@ -43,7 +43,7 @@
               </button>
             </label>
              <!-- 文件选择列表 -->
-            <div class="mb-4 flex-1 min-h-0 overflow-y-auto">
+            <div class="mb-4 flex-1 min-h-0 overflow-y-auto scrollable-container">
               <!-- 已选择的文件 - 使用 transition-group 添加动画 -->
               <transition-group 
                 name="file-list" 
@@ -188,7 +188,7 @@
               <!-- 展开状态显示完整日志 -->
               <div
                 v-if="isLogExpanded"
-                class="h-full overflow-auto"
+                class="h-full overflow-auto scrollable-container"
                 ref="logContainer"
               >
                 <pre>{{ logMessages.join('\n') }}</pre>
@@ -696,6 +696,56 @@ const startFlashing = async () => {
 </script>
 
 <style>
+/* 完全隐藏所有滚动条 */
+/* Webkit浏览器滚动条 - 全局隐藏 */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+  display: none;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  display: none;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  display: none;
+}
+
+/* Firefox滚动条 - 全局隐藏 */
+* {
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+/* 滚动容器 - 完全隐藏滚动条，但保持滚动功能 */
+.scrollable-container {
+  position: relative;
+  overflow: auto;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+.scrollable-container::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+  display: none;
+}
+
+.scrollable-container::-webkit-scrollbar-track {
+  background: transparent;
+  display: none;
+}
+
+.scrollable-container::-webkit-scrollbar-thumb {
+  background: transparent;
+  display: none;
+}
+
 /* 文件列表项的过渡动画 */
 .file-list-item {
   transition: all 0.3s ease;
