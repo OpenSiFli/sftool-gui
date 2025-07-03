@@ -48,65 +48,67 @@
               <transition-group 
                 name="file-list" 
                 tag="div" 
-                class="space-y-2 mb-3 file-list-container"
+                class="space-y-1 mb-2 file-list-container"
               >
                 <div 
                   v-for="(file, index) in selectedFiles" 
                   :key="file.id"
-                  class="card card-compact bg-base-200 shadow-sm file-list-item"
+                  class="card card-compact bg-base-200 shadow-sm file-list-item border border-base-300"
                 >
-                  <div class="card-body">
-                    <div class="flex flex-col gap-3">
+                  <div class="card-body p-3">
+                    <div class="flex flex-col gap-2">
                       <!-- 第一行：文件名和移除按钮 -->
-                      <div class="flex items-start justify-between gap-2">
+                      <div class="flex items-center justify-between gap-2">
                         <div class="flex-1 min-w-0">
-                          <div class="font-medium truncate">{{ file.name }}</div>
+                          <div class="font-medium text-sm truncate">{{ file.name }}</div>
                         </div>
                         <button 
-                          class="btn btn-sm btn-error btn-outline flex-shrink-0"
+                          class="btn btn-xs btn-error btn-outline flex-shrink-0"
                           @click="removeFile(index)"
                           :disabled="isFlashing"
                         >
-                          {{ $t('writeFlash.removeFile') }}
+                          移除
                         </button>
                       </div>
                       
-                      <!-- 第二行：文件路径 -->
-                      <div class="w-full relative group">
-                        <input 
-                          type="text" 
-                          v-model="file.path"
-                          class="input input-sm input-bordered w-full text-sm"
-                          :placeholder="$t('writeFlash.pathPlaceholder')"
-                        />
-                        <!-- 自定义提示框 -->
-                        <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                          {{ $t('writeFlash.pathTooltip') }}
+                      <!-- 第二行：文件路径和地址输入 -->
+                      <div class="flex gap-2 items-start">
+                        <!-- 文件路径 -->
+                        <div class="flex-1">
+                          <input 
+                            type="text" 
+                            v-model="file.path"
+                            class="input input-xs input-bordered w-full text-xs"
+                            :placeholder="$t('writeFlash.pathPlaceholder')"
+                          />
+                        </div>
+                        
+                        <!-- 地址输入或自动地址标识 -->
+                        <div v-if="!isAutoAddressFile(file.name)" class="flex items-center gap-1">
+                          <!-- @ 符号分隔 -->
+                          <span class="text-xs text-base-content/60 font-mono">@</span>
+                          <!-- 地址输入框 -->
+                          <div class="w-28">
+                            <input 
+                              type="text" 
+                              v-model="file.address"
+                              class="input input-xs input-bordered w-full text-xs"
+                              :class="{ 'input-error': file.addressError }"
+                              :placeholder="$t('writeFlash.addressPlaceholder')"
+                              @input="validateAddress(index)"
+                            />
+                          </div>
+                        </div>
+                        <div v-else class="flex items-center justify-end w-32">
+                          <div class="bg-success text-success-content px-2 py-1 rounded text-xs h-6 flex items-center">
+                            {{ $t('writeFlash.autoAddress') }}
+                          </div>
                         </div>
                       </div>
                       
-                      <!-- 第三行：地址输入（如果需要） -->
-                      <div class="w-full relative group" v-if="!isAutoAddressFile(file.name)">
-                        <input 
-                          type="text" 
-                          v-model="file.address"
-                          class="input input-sm input-bordered w-full"
-                          :class="{ 'input-error': file.addressError }"
-                          :placeholder="$t('writeFlash.addressPlaceholder')"
-                          @input="validateAddress(index)"
-                        />
-                        <!-- 自定义提示框 -->
-                        <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                          {{ $t('writeFlash.addressTooltip') }}
-                        </div>
-                        <div class="text-xs text-error mt-1" v-if="file.addressError">
-                          {{ file.addressError }}
-                        </div>
-                      </div>
-                      
-                      <!-- 自动地址标识 -->
-                      <div class="w-full flex items-center" v-else>
-                        <span class="badge badge-success badge-sm">{{ $t('writeFlash.autoAddress') }}</span>
+                      <!-- 地址错误信息（如果有） -->
+                      <div v-if="file.addressError && !isAutoAddressFile(file.name)" class="text-xs text-error">
+                        {{ file.addressError }}
                       </div>
                     </div>
                   </div>
@@ -122,12 +124,12 @@
                 'opacity-50 cursor-not-allowed': isFlashing
               }"
             >
-              <div class="card-body">
-                <div class="flex items-center justify-center gap-2 py-4 text-base-content/60">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="card-body p-3">
+                <div class="flex items-center justify-center gap-2 py-2 text-base-content/60">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
-                  <span>{{ $t('writeFlash.clickToSelectFile') }}</span>
+                  <span class="text-sm">{{ $t('writeFlash.clickToSelectFile') }}</span>
                 </div>
               </div>
             </div>
