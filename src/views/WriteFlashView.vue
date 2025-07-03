@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="p-6 min-h-screen relative" 
+    class="p-4 h-screen flex flex-col overflow-hidden relative" 
     :class="{ 'bg-primary/5 transition-colors duration-200': isWindowDragging }"
   >
     <!-- 全窗口拖拽提示覆盖层 -->
@@ -19,91 +19,104 @@
       </div>
     </div>
     
-    <h1 class="text-2xl font-bold mb-6">{{ $t('writeFlash.title') }}</h1>
+    <h1 class="text-2xl font-bold mb-4">{{ $t('writeFlash.title') }}</h1>
     
-    <div class="card bg-base-100 shadow-lg">
-      <div class="card-body">
-        <!-- 文件选择区域 -->
-        <div class="form-control w-full">
-          <label class="label">
-            <span class="label-text font-semibold">{{ $t('writeFlash.selectFiles') }}</span>
-            <span class="label-text-alt text-xs">{{ $t('writeFlash.supportedFormats') }}</span>
-          </label>
-          
-          <!-- 文件选择列表 -->
-          <div class="mb-4">
-            <!-- 已选择的文件 - 使用 transition-group 添加动画 -->
-            <transition-group 
-              name="file-list" 
-              tag="div" 
-              class="space-y-3 mb-3 file-list-container"
-            >
-              <div 
-                v-for="(file, index) in selectedFiles" 
-                :key="file.id"
-                class="card card-compact bg-base-200 shadow-sm file-list-item"
+    <!-- 主要内容区域 - 使用flexbox布局确保按钮始终在底部 -->
+    <div class="flex flex-col space-y-3 flex-1 min-h-0">
+      <!-- 文件选择区域 -->
+      <div class="bg-base-100 rounded-lg flex-1 min-h-0 overflow-hidden">
+        <div class="p-4 h-full overflow-y-auto flex flex-col">
+          <!-- 文件选择区域 -->
+          <div class="form-control w-full flex-1 min-h-0 flex flex-col">
+            <label class="label">
+              <span class="label-text font-semibold">{{ $t('writeFlash.selectFiles') }}</span>
+              <!-- 批量选择按钮移动到这里 -->
+              <button 
+                class="btn btn-outline btn-xs"
+                @click="handleSelectMultipleFiles"
+                :disabled="isFlashing"
               >
-                <div class="card-body">
-                  <div class="flex flex-col gap-3">
-                    <!-- 第一行：文件名和移除按钮 -->
-                    <div class="flex items-start justify-between gap-2">
-                      <div class="flex-1 min-w-0">
-                        <div class="font-medium truncate">{{ file.name }}</div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {{ $t('writeFlash.addMultipleFiles') }}
+              </button>
+            </label>
+             <!-- 文件选择列表 -->
+            <div class="mb-4 flex-1 min-h-0 overflow-y-auto">
+              <!-- 已选择的文件 - 使用 transition-group 添加动画 -->
+              <transition-group 
+                name="file-list" 
+                tag="div" 
+                class="space-y-2 mb-3 file-list-container"
+              >
+                <div 
+                  v-for="(file, index) in selectedFiles" 
+                  :key="file.id"
+                  class="card card-compact bg-base-200 shadow-sm file-list-item"
+                >
+                  <div class="card-body">
+                    <div class="flex flex-col gap-3">
+                      <!-- 第一行：文件名和移除按钮 -->
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                          <div class="font-medium truncate">{{ file.name }}</div>
+                        </div>
+                        <button 
+                          class="btn btn-sm btn-error btn-outline flex-shrink-0"
+                          @click="removeFile(index)"
+                          :disabled="isFlashing"
+                        >
+                          {{ $t('writeFlash.removeFile') }}
+                        </button>
                       </div>
-                      <button 
-                        class="btn btn-sm btn-error btn-outline flex-shrink-0"
-                        @click="removeFile(index)"
-                        :disabled="isFlashing"
-                      >
-                        {{ $t('writeFlash.removeFile') }}
-                      </button>
-                    </div>
-                    
-                    <!-- 第二行：文件路径 -->
-                    <div class="w-full relative group">
-                      <input 
-                        type="text" 
-                        v-model="file.path"
-                        class="input input-sm input-bordered w-full text-sm"
-                        :placeholder="$t('writeFlash.pathPlaceholder')"
-                      />
-                      <!-- 自定义提示框 -->
-                      <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                        {{ $t('writeFlash.pathTooltip') }}
+                      
+                      <!-- 第二行：文件路径 -->
+                      <div class="w-full relative group">
+                        <input 
+                          type="text" 
+                          v-model="file.path"
+                          class="input input-sm input-bordered w-full text-sm"
+                          :placeholder="$t('writeFlash.pathPlaceholder')"
+                        />
+                        <!-- 自定义提示框 -->
+                        <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                          {{ $t('writeFlash.pathTooltip') }}
+                        </div>
                       </div>
-                    </div>
-                    
-                    <!-- 第三行：地址输入（如果需要） -->
-                    <div class="w-full relative group" v-if="!isAutoAddressFile(file.name)">
-                      <input 
-                        type="text" 
-                        v-model="file.address"
-                        class="input input-sm input-bordered w-full"
-                        :class="{ 'input-error': file.addressError }"
-                        :placeholder="$t('writeFlash.addressPlaceholder')"
-                        @input="validateAddress(index)"
-                      />
-                      <!-- 自定义提示框 -->
-                      <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                        {{ $t('writeFlash.addressTooltip') }}
+                      
+                      <!-- 第三行：地址输入（如果需要） -->
+                      <div class="w-full relative group" v-if="!isAutoAddressFile(file.name)">
+                        <input 
+                          type="text" 
+                          v-model="file.address"
+                          class="input input-sm input-bordered w-full"
+                          :class="{ 'input-error': file.addressError }"
+                          :placeholder="$t('writeFlash.addressPlaceholder')"
+                          @input="validateAddress(index)"
+                        />
+                        <!-- 自定义提示框 -->
+                        <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                          {{ $t('writeFlash.addressTooltip') }}
+                        </div>
+                        <div class="text-xs text-error mt-1" v-if="file.addressError">
+                          {{ file.addressError }}
+                        </div>
                       </div>
-                      <div class="text-xs text-error mt-1" v-if="file.addressError">
-                        {{ file.addressError }}
+                      
+                      <!-- 自动地址标识 -->
+                      <div class="w-full flex items-center" v-else>
+                        <span class="badge badge-success badge-sm">{{ $t('writeFlash.autoAddress') }}</span>
                       </div>
-                    </div>
-                    
-                    <!-- 自动地址标识 -->
-                    <div class="w-full flex items-center" v-else>
-                      <span class="badge badge-success badge-sm">{{ $t('writeFlash.autoAddress') }}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </transition-group>
+              </transition-group>
+            </div>
             
             <!-- 空白选择框 - 支持拖拽上传 -->
             <div 
-              class="card card-compact bg-base-100 border-2 border-dashed border-base-300 hover:border-primary cursor-pointer transition-colors"
+              class="card card-compact bg-base-100 border-2 border-dashed border-base-300 hover:border-primary cursor-pointer transition-colors flex-shrink-0"
               @click="handleSelectFile"
               :class="{ 
                 'opacity-50 cursor-not-allowed': isFlashing
@@ -119,37 +132,26 @@
               </div>
             </div>
           </div>
-          
-          <!-- 批量选择按钮 -->
-          <div class="mb-4 flex justify-start">
-            <button 
-              class="btn btn-outline btn-sm w-full sm:w-auto"
-              @click="handleSelectMultipleFiles"
-              :disabled="isFlashing"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {{ $t('writeFlash.addMultipleFiles') }}
-            </button>
-          </div>
         </div>
-        
-        <!-- 进度条 -->
-        <div class="mt-8">
-          <div class="flex justify-between mb-2">
-            <span class="font-medium">{{ $t('writeFlash.progress') }}</span>
-            <span class="text-sm">{{ progressPercent }}%</span>
-          </div>
-          <progress 
-            class="progress progress-primary w-full" 
-            :value="progressPercent" 
-            max="100"
-          ></progress>
+      </div>
+      
+      <!-- 操作按钮 - 紧凑布局，无阴影 -->
+      <div class="bg-base-50 rounded-lg flex-shrink-0">
+        <div class="p-1">
+          <button 
+            class="btn btn-primary btn-sm w-full" 
+            :disabled="!canStartFlashing || isFlashing" 
+            @click="startFlashing"
+          >
+            <span v-if="isFlashing" class="loading loading-spinner loading-sm mr-2"></span>
+            {{ $t('writeFlash.startFlash') }}
+          </button>
         </div>
-        
-        <!-- 日志区域 -->
-        <div class="mt-6">
+      </div>
+      
+      <!-- 日志区域 - 移到按钮下方，无阴影 -->
+      <div class="bg-base-100 rounded-lg flex-shrink-0">
+        <div class="p-2">
           <div class="flex justify-between items-center mb-2">
             <div class="flex items-center gap-2">
               <span class="font-medium">{{ $t('writeFlash.log') }}</span>
@@ -180,7 +182,7 @@
             class="log-container-wrapper bg-base-200 rounded-lg font-mono text-sm"
             :style="{ height: logContainerHeight + 'px' }"
           >
-            <div class="p-4 h-full relative">
+            <div class="p-2 h-full relative">
               <!-- 展开状态显示完整日志 -->
               <div
                 v-if="isLogExpanded"
@@ -196,18 +198,6 @@
               </div>
             </div>
           </div>
-        </div>
-        
-        <!-- 操作按钮 -->
-        <div class="card-actions justify-end mt-6">
-          <button 
-            class="btn btn-primary" 
-            :disabled="!canStartFlashing || isFlashing" 
-            @click="startFlashing"
-          >
-            <span v-if="isFlashing" class="loading loading-spinner loading-sm mr-2"></span>
-            {{ $t('writeFlash.startFlash') }}
-          </button>
         </div>
       </div>
     </div>
@@ -234,13 +224,12 @@ interface FlashFile {
 
 // 状态管理
 const selectedFiles = ref<FlashFile[]>([]);
-const progressPercent = ref(0);
 const isFlashing = ref(false);
 const logMessages = ref<string[]>([]);
 const isWindowDragging = ref(false);
 const isLogExpanded = ref(true); // 日志窗口展开状态
 const logContainer = ref<HTMLElement | null>(null); // 日志容器DOM引用
-const logContainerHeight = ref(200); // 日志容器高度，默认值
+const logContainerHeight = ref(80); // 日志容器高度，更紧凑的默认值
 
 // 生成唯一ID的函数
 const generateFileId = () => {
@@ -265,14 +254,14 @@ const updateLogContainerHeight = () => {
       if (logContainer.value) {
         // 获取内容实际高度
         const scrollHeight = logContainer.value.scrollHeight;
-        const height = scrollHeight + 32; // 加上padding (16px * 2)
-        // 设置最大高度为200px
-        logContainerHeight.value = Math.min(height, 200);
+        const height = scrollHeight + 24; // 减少padding
+        // 设置最大高度为80px，进一步减少空间占用
+        logContainerHeight.value = Math.min(height, 80);
       }
     });
   } else {
-    // 折叠状态 - 固定高度
-    logContainerHeight.value = 60; // 保持小高度显示单行
+    // 折叠状态 - 更紧凑的高度
+    logContainerHeight.value = 30;
   }
 };
 
@@ -285,7 +274,7 @@ const initializeLog = () => {
   
   // 默认折叠日志窗口
   isLogExpanded.value = false;
-  logContainerHeight.value = 40;
+  logContainerHeight.value = 30; // 更紧凑的折叠高度
 };
 
 // 组件挂载时初始化
@@ -647,11 +636,6 @@ const flashProcess = async () => {
         throw new Error(`烧录失败: ${file.name}`);
       }
       
-      // 更新进度
-      const fileProgress = 100 / selectedFiles.value.length;
-      const startProgress = progressPercent.value;
-      progressPercent.value = startProgress + fileProgress;
-      
       addLogMessage(`烧录完成: ${file.name}`);
     }
   } catch (error) {
@@ -695,13 +679,11 @@ const startFlashing = async () => {
   if (!validateAllFiles()) return;
   
   isFlashing.value = true;
-  progressPercent.value = 0;
   addLogMessage(`${t('writeFlash.status.starting')}`);
   addLogMessage(`${t('writeFlash.status.connecting')}`);
   
   try {
     await flashProcess();
-    progressPercent.value = 100;
     addLogMessage(`${t('writeFlash.status.completed')}`, true);
   } catch (error) {
     addLogMessage(`${t('writeFlash.status.failed')}: ${error}`, true);
