@@ -3,10 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use sftool_lib::{
     create_sifli_tool, ChipType, Operation, SifliToolBase, SifliTool,
-    WriteFlashParams, WriteFlashFile,
+    WriteFlashParams,
     ReadFlashParams, ReadFlashFile,
     EraseFlashParams,
     progress::{ProgressCallback, ProgressInfo, ProgressId, ProgressCallbackArc},
+    utils::Utils,
 };
 use std::sync::{Arc, Mutex, atomic::{AtomicU64, Ordering}};
 use tauri::{AppHandle, Manager, State, Emitter};
@@ -197,6 +198,16 @@ fn get_serial_ports() -> Result<Vec<PortInfo>, String> {
 
     let port_infos = ports
         .into_iter()
+        .filter(|p| {
+            // 在 macOS 下过滤掉 /dev/tty* 开头的串口，只保留 /dev/cu* 的
+            #[cfg(target_os = "macos")]
+            {
+                if p.port_name.starts_with("/dev/tty") {
+                    return false;
+                }
+            }
+            true
+        })
         .map(|p| {
             let port_type = match p.port_type {
                 serialport::SerialPortType::UsbPort(info) => {
@@ -238,11 +249,7 @@ async fn connect_device(
     let progress_callback: ProgressCallbackArc = Arc::new(TauriProgressCallback::new(app_handle));
     
     // 创建带进度回调的工具实例
-    let mut tool = create_tool_instance_with_progress(&device_config, progress_callback)?;
-    
-    // 尝试下载 stub 来验证连接
-    tool.download_stub()
-        .map_err(|e| format!("连接设备失败: {}", e))?;
+    let tool = create_tool_instance_with_progress(&device_config, progress_callback)?;
 
     // 保存设备配置和工具实例到状态
     let mut app_state = state.lock().unwrap();
@@ -314,17 +321,25 @@ async fn write_flash(
     // 准备写入文件参数
     let mut files = Vec::new();
     for file_info in request.files {
-        let file = std::fs::File::open(&file_info.file_path)
-            .map_err(|e| format!("无法打开文件 {}: {}", file_info.file_path, e))?;
-        
-        // 计算文件的 CRC32 (这里需要实际的 CRC32 计算)
-        let crc32 = 0; // TODO: 实现 CRC32 计算
-        
-        files.push(WriteFlashFile {
-            address: file_info.address,
-            file,
-            crc32,
-        });
+        // 检查文件是否存在
+        if !std::path::Path::new(&file_info.file_path).exists() {
+            return Err(format!("文件不存在: {}", file_info.file_path));
+        }
+
+        // 根据文件类型和地址构造文件字符串
+        let file_string = if file_info.address == 0 {
+            // 对于地址为 0 的情况，可能是 ELF/HEX 文件，让 parse_file_info 自动检测
+            file_info.file_path.clone()
+        } else {
+            // 对于指定地址的情况，使用 file@address 格式
+            format!("{}@0x{:08X}", file_info.file_path, file_info.address)
+        };
+
+        // 使用 Utils::parse_file_info 解析文件
+        let parsed_files = Utils::parse_file_info(&file_string)
+            .map_err(|e| format!("解析文件 {} 失败: {}", file_info.file_path, e))?;
+
+        files.extend(parsed_files);
     }
 
     let params = WriteFlashParams {
