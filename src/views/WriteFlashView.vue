@@ -233,9 +233,56 @@ const isLogExpanded = ref(true); // 日志窗口展开状态
 const logContainer = ref<HTMLElement | null>(null); // 日志容器DOM引用
 const logContainerHeight = ref(80); // 日志容器高度，更紧凑的默认值
 
+// 进度状态管理
+const progressMap = ref<Map<number, {
+  step: string;
+  message: string;
+  current?: number;
+  total?: number;
+}>>(new Map());
+
 // 生成唯一ID的函数
 const generateFileId = () => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+};
+
+// 处理进度事件
+const handleProgressEvent = (event: any) => {
+  const { id, event_type, step, message, current, total } = event;
+  
+  switch (event_type) {
+    case 'start':
+      progressMap.value.set(id, { step, message, current, total });
+      addLogMessage(`[${step}] ${message}`);
+      break;
+      
+    case 'update':
+      const existing = progressMap.value.get(id);
+      if (existing) {
+        existing.message = message;
+        addLogMessage(`[${existing.step}] ${message}`);
+      }
+      break;
+      
+    case 'increment':
+      const progressItem = progressMap.value.get(id);
+      if (progressItem && progressItem.current !== undefined) {
+        progressItem.current += current || 0;
+        if (progressItem.total) {
+          const percentage = Math.round((progressItem.current / progressItem.total) * 100);
+          addLogMessage(`[${progressItem.step}] 进度: ${percentage}% (${progressItem.current}/${progressItem.total})`);
+        }
+      }
+      break;
+      
+    case 'finish':
+      const finishedItem = progressMap.value.get(id);
+      if (finishedItem) {
+        addLogMessage(`[${finishedItem.step}] ${message}`, true);
+        progressMap.value.delete(id);
+      }
+      break;
+  }
 };
 
 // 计算最新的日志消息用于折叠状态显示
@@ -269,11 +316,6 @@ const updateLogContainerHeight = () => {
 
 // 初始化日志消息（在组件挂载后）
 const initializeLog = () => {
-  logMessages.value = [
-    t('writeFlash.status.ready'),
-    '拖拽功能已启用，可以直接将固件文件拖拽到窗口中'
-  ];
-  
   // 默认折叠日志窗口
   isLogExpanded.value = false;
   logContainerHeight.value = 30; // 更紧凑的折叠高度
@@ -284,9 +326,12 @@ onMounted(async () => {
   initializeLog();
   updateLogContainerHeight();
   
-  addLogMessage('正在初始化Tauri文件拖拽监听器...');
-  
   try {
+    // 监听进度事件
+    const unlistenProgress = await listen('flash-progress', (event) => {
+      handleProgressEvent(event.payload);
+    });
+
     // 监听拖拽进入事件
     const unlistenDragEnter = await listen(TauriEvent.DRAG_ENTER, () => {
       console.log('Tauri file drag enter');
@@ -319,11 +364,10 @@ onMounted(async () => {
       handleTauriFileDrop(event.payload);
       isWindowDragging.value = false; // 拖拽结束后隐藏覆盖层
     });
-
-    addLogMessage('Tauri文件拖拽监听器设置成功');
     
     // 存储清理函数以便在组件卸载时调用
     (window as any).__tauriUnlisteners = {
+      unlistenProgress,
       unlistenDragEnter,
       unlistenDragLeave,
       unlistenDragOver,
@@ -340,6 +384,7 @@ onMounted(async () => {
 onUnmounted(() => {
   const unlisteners = (window as any).__tauriUnlisteners;
   if (unlisteners) {
+    unlisteners.unlistenProgress?.();
     unlisteners.unlistenDragEnter?.();
     unlisteners.unlistenDragLeave?.();
     unlisteners.unlistenDragOver?.();
@@ -616,30 +661,20 @@ const flashProcess = async () => {
     // 动态导入 Tauri v2 API
     const { invoke } = await import('@tauri-apps/api/core');
     
-    for (const file of selectedFiles.value) {
-      addLogMessage(`${t('writeFlash.status.validating')}: ${file.name}`);
-      
-      // 验证文件
-      const isValid = await invoke('validate_firmware_file', { filePath: file.path });
-      if (!isValid) {
-        throw new Error(`文件验证失败: ${file.name}`);
-      }
-      
-      const address = isAutoAddressFile(file.name) ? 'auto' : file.address;
-      addLogMessage(`${t('writeFlash.status.progress')}: ${file.name} -> ${address}`);
-      
-      // 开始烧录
-      const result = await invoke('flash_firmware', {
-        filePath: file.path,
-        address: address === 'auto' ? null : parseInt(address!, 16)
-      });
-      
-      if (!result) {
-        throw new Error(`烧录失败: ${file.name}`);
-      }
-      
-      addLogMessage(`烧录完成: ${file.name}`);
-    }
+    // 构造请求对象
+    const writeFlashRequest = {
+      files: selectedFiles.value.map(file => ({
+        file_path: file.path,
+        address: isAutoAddressFile(file.name) ? 0 : parseInt(file.address || '0x10000000', 16)
+      })),
+      verify: true, // 默认验证
+      no_compress: false, // 默认压缩
+      erase_all: false // 默认不全擦除
+    };
+
+    // 调用写入 Flash 命令
+    await invoke('write_flash', { request: writeFlashRequest });
+    
   } catch (error) {
     throw new Error(`烧录失败: ${error}`);
   }
@@ -681,16 +716,34 @@ const startFlashing = async () => {
   if (!validateAllFiles()) return;
   
   isFlashing.value = true;
+  // 清空进度映射
+  progressMap.value.clear();
+  
   addLogMessage(`${t('writeFlash.status.starting')}`);
-  addLogMessage(`${t('writeFlash.status.connecting')}`);
+  addLogMessage(`准备烧录 ${selectedFiles.value.length} 个文件...`);
   
   try {
+    // 先验证所有文件
+    for (const file of selectedFiles.value) {
+      addLogMessage(`${t('writeFlash.status.validating')}: ${file.name}`);
+      
+      const { invoke } = await import('@tauri-apps/api/core');
+      const isValid = await invoke('validate_firmware_file', { filePath: file.path });
+      if (!isValid) {
+        throw new Error(`文件验证失败: ${file.name}`);
+      }
+    }
+    
+    addLogMessage('所有文件验证通过，开始烧录过程...');
+    
     await flashProcess();
     addLogMessage(`${t('writeFlash.status.completed')}`, true);
   } catch (error) {
     addLogMessage(`${t('writeFlash.status.failed')}: ${error}`, true);
   } finally {
     isFlashing.value = false;
+    // 清理进度状态
+    progressMap.value.clear();
   }
 };
 </script>
