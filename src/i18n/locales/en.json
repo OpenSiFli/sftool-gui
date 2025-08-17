@@ -78,5 +78,20 @@
       "connecting": "Connecting to device...",
       "unsupportedFileFormat": "Unsupported file format"
     }
+  },
+  "logWindow": {
+    "autoScroll": "Auto Scroll",
+    "showAll": "Show All",
+    "infoOnly": "Info Only",
+    "errorsOnly": "Errors Only",
+    "exportLog": "Export Log",
+    "exportSuccess": "Log exported successfully",
+    "exportFailed": "Failed to export log",
+    "messageCopied": "Message copied to clipboard",
+    "noLogs": "No log messages",
+    "totalMessages": "Total {count} messages",
+    "filteredMessages": "Filtered {count} messages",
+    "activeSession": "Active session",
+    "ready": "Ready"
   }
 }

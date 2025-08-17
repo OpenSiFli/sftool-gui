@@ -78,5 +78,20 @@
       "connecting": "正在连接设备...",
       "unsupportedFileFormat": "不支持的文件格式"
     }
+  },
+  "logWindow": {
+    "autoScroll": "自动滚动",
+    "showAll": "显示全部",
+    "infoOnly": "仅信息",
+    "errorsOnly": "仅错误",
+    "exportLog": "导出日志",
+    "exportSuccess": "日志导出成功",
+    "exportFailed": "日志导出失败",
+    "messageCopied": "消息已复制到剪贴板",
+    "noLogs": "暂无日志消息",
+    "totalMessages": "总共 {count} 条消息",
+    "filteredMessages": "已过滤 {count} 条消息",
+    "activeSession": "烧录进行中",
+    "ready": "就绪"
   }
 }

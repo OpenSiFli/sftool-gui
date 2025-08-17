@@ -1,24 +1,21 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Capability for the main window",
+  "identifier": "log-window",
+  "description": "Capability for the log window",
   "windows": [
-    "main",
     "log-window"
   ],
   "permissions": [
     "core:default",
-    "opener:default",
-    "store:default",
     "dialog:default",
     "fs:default",
-    "core:window:allow-start-dragging",
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:window:allow-close",
     "core:window:allow-set-focus",
     "core:window:allow-set-always-on-top",
-    "core:window:allow-create",
-    "core:webview:allow-create-webview-window"
+    "core:window:allow-maximize",
+    "core:window:allow-minimize",
+    "core:window:allow-set-size"
   ]
 }

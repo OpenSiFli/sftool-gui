@@ -1,8 +1,16 @@
 <template>
-  <div class="flex w-full h-screen overflow-hidden">
+  <!-- 日志窗口布局 -->
+  <div v-if="isLogWindow" class="w-full h-screen overflow-hidden">
+    <router-view />
+  </div>
+  
+  <!-- 主窗口布局 -->
+  <div v-else class="flex w-full h-screen overflow-hidden">
     <Navbar />
-    <main class="flex-1 overflow-auto">
+    <main class="flex-1 overflow-auto relative">
       <router-view />
+      <!-- 全局浮动日志按钮 -->
+      <LogFloatingButton v-if="showFloatingLogButton" />
     </main>
     <DeviceConnection v-if="isDisplatDeviceConnection" class="h-screen bg-base-200 overflow-auto py-6 px-4" />
   </div>
@@ -11,20 +19,42 @@
 <script>
 import Navbar from './components/Navbar.vue';
 import DeviceConnection from './components/DeviceConnection.vue';
+import LogFloatingButton from './components/LogFloatingButton.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 export default {
   components: {
     Navbar,
-    DeviceConnection
+    DeviceConnection,
+    LogFloatingButton
   },
   setup() {
     const isNavbarCollapsed = ref(false);
     const route = useRoute();
 
-    // 根据当前路由判断是否为设置页面
+    // 检查是否为日志窗口
+    const isLogWindow = computed(() => {
+      return route.path === '/log-window';
+    });
+
+    // 根据当前路由判断是否显示设备连接面板
     const isDisplatDeviceConnection = computed(() => {
+      if (isLogWindow.value) return false;
+      
+      switch (route.path) {
+        case '/setting':
+        case '/about':
+          return false;
+        default:
+          return true;
+      }
+    });
+
+    // 根据当前路由判断是否显示浮动日志按钮
+    const showFloatingLogButton = computed(() => {
+      if (isLogWindow.value) return false;
+      
       switch (route.path) {
         case '/setting':
         case '/about':
@@ -55,7 +85,9 @@ export default {
 
     return {
       isNavbarCollapsed,
-      isDisplatDeviceConnection
+      isLogWindow,
+      isDisplatDeviceConnection,
+      showFloatingLogButton
     };
   }
 };
