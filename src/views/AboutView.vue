@@ -19,7 +19,7 @@
           <div class="flex items-center py-2 border-b border-base-300">
             <span class="material-icons text-info mr-2">new_releases</span>
             <span class="font-medium">{{ $t('about.version') }}:</span>
-            <span class="ml-auto">v0.1.0</span>
+            <span class="ml-auto">v{{ appVersion }}</span>
           </div>
           
           <!-- 开源协议 -->
@@ -58,7 +58,20 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { getVersion } from '@tauri-apps/api/app'
+
 // About page component
+const appVersion = ref('0.0.1')
+
+onMounted(async () => {
+  try {
+    appVersion.value = await getVersion()
+  } catch (error) {
+    console.error('Failed to get app version:', error)
+    appVersion.value = '0.0.1'
+  }
+})
 </script>
 
 <style scoped>
