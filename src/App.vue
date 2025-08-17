@@ -9,8 +9,6 @@
     <Navbar />
     <main class="flex-1 overflow-auto relative">
       <router-view />
-      <!-- 全局浮动日志按钮 -->
-      <LogFloatingButton v-if="showFloatingLogButton" />
     </main>
     <DeviceConnection v-if="isDisplatDeviceConnection" class="h-screen bg-base-200 overflow-auto py-6 px-4" />
   </div>
@@ -19,15 +17,13 @@
 <script>
 import Navbar from './components/Navbar.vue';
 import DeviceConnection from './components/DeviceConnection.vue';
-import LogFloatingButton from './components/LogFloatingButton.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 export default {
   components: {
     Navbar,
-    DeviceConnection,
-    LogFloatingButton
+    DeviceConnection
   },
   setup() {
     const isNavbarCollapsed = ref(false);
@@ -46,19 +42,8 @@ export default {
         case '/setting':
         case '/about':
           return false;
-        default:
-          return true;
-      }
-    });
-
-    // 根据当前路由判断是否显示浮动日志按钮
-    const showFloatingLogButton = computed(() => {
-      if (isLogWindow.value) return false;
-      
-      switch (route.path) {
-        case '/setting':
-        case '/about':
-          return false;
+        case '/':
+        case '/write-flash':
         default:
           return true;
       }
@@ -86,8 +71,7 @@ export default {
     return {
       isNavbarCollapsed,
       isLogWindow,
-      isDisplatDeviceConnection,
-      showFloatingLogButton
+      isDisplatDeviceConnection
     };
   }
 };

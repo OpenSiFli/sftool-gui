@@ -117,6 +117,28 @@ export const useLogStore = defineStore('log', () => {
         isFlashing.value = flashing;
       });
 
+      // 监听日志同步请求，发送当前所有日志到新窗口
+      await listen('log-sync-request', async () => {
+        try {
+          const { emit } = await import('@tauri-apps/api/event');
+          await emit('log-sync-data', { 
+            messages: messages.value, 
+            isFlashing: isFlashing.value 
+          });
+        } catch (error) {
+          console.warn('Failed to sync log data:', error);
+        }
+      });
+
+      // 监听日志同步数据
+      await listen('log-sync-data', (event: any) => {
+        const { messages: syncedMessages, isFlashing: syncedFlashing } = event.payload;
+        if (syncedMessages && Array.isArray(syncedMessages)) {
+          messages.value = syncedMessages;
+          isFlashing.value = syncedFlashing;
+        }
+      });
+
       eventListenerInitialized = true;
     } catch (error) {
       console.warn('Failed to setup log event listeners:', error);

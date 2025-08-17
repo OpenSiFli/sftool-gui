@@ -299,6 +299,63 @@
         </div>
       </transition>
     </div>
+    
+    <!-- 日志预览区域 -->
+    <div class="mt-3">
+      <div class="card bg-base-200 shadow-sm">
+        <div class="card-body p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-sm flex items-center gap-1">
+              <div 
+                class="w-2 h-2 rounded-full transition-all duration-300"
+                :class="logStore.isFlashing ? 'bg-success animate-pulse' : logStore.hasErrors ? 'bg-error' : 'bg-info'"
+              ></div>
+              系统日志
+              <div class="badge badge-xs" :class="logStore.messages.length > 0 ? 'badge-primary' : 'badge-ghost'">
+                {{ logStore.messages.length }}
+              </div>
+            </h4>
+            <button 
+              @click="openLogWindow"
+              class="btn btn-xs btn-primary btn-outline"
+              title="打开日志窗口"
+            >
+              <span class="material-icons text-xs">open_in_new</span>
+            </button>
+          </div>
+          
+          <!-- 日志预览内容 -->
+          <div class="text-xs">
+            <div v-if="logStore.messages.length === 0" class="text-base-content/60 italic text-center py-2">
+              暂无日志消息
+            </div>
+            <div v-else class="space-y-1 max-h-32 overflow-y-auto">
+              <!-- 只显示最近的3条日志 -->
+              <div 
+                v-for="(message, index) in recentLogMessages" 
+                :key="index"
+                class="text-xs p-2 rounded bg-base-100/50 border-l-2 transition-colors"
+                :class="getLogMessageClass(message)"
+              >
+                {{ formatLogMessage(message) }}
+              </div>
+              <div v-if="logStore.messages.length > 3" class="text-center text-base-content/60 py-1">
+                还有 {{ logStore.messages.length - 3 }} 条消息...
+              </div>
+            </div>
+          </div>
+          
+          <!-- 状态显示 -->
+          <div class="mt-2 pt-2 border-t border-base-300/30">
+            <div class="flex items-center justify-center text-xs">
+              <span :class="getStatusTextClass()">
+                {{ getStatusText() }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -306,6 +363,10 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { CHIP_MODELS, type ChipModel } from '../config/chips';
 import { invoke } from '@tauri-apps/api/core';
+import { useLogStore } from '../stores/logStore';
+import { WindowManager } from '../services/windowManager';
+
+const logStore = useLogStore();
 
 interface PortInfo {
   name: string;
@@ -618,7 +679,65 @@ watch(selectedInterface, (newInterface) => {
 // 组件挂载时加载串口列表
 onMounted(() => {
   refreshPorts();
+  // 初始化日志事件监听
+  logStore.setupEventListeners();
 });
+
+// 日志相关方法
+const recentLogMessages = computed(() => {
+  return logStore.messages.slice(-3); // 只显示最近3条
+});
+
+const formatLogMessage = (message: string) => {
+  // 移除时间戳前缀，只显示消息内容
+  let cleaned = message.replace(/^\[[\d:]+\]\s*/, '');
+  // 如果消息太长，进行截断
+  if (cleaned.length > 60) {
+    return cleaned.substring(0, 57) + '...';
+  }
+  return cleaned;
+};
+
+const getLogMessageClass = (message: string) => {
+  const lowerMessage = message.toLowerCase();
+  if (lowerMessage.includes('error') || lowerMessage.includes('failed') || lowerMessage.includes('错误') || lowerMessage.includes('失败')) {
+    return 'border-l-error text-error/90 bg-error/5';
+  } else if (lowerMessage.includes('success') || lowerMessage.includes('completed') || lowerMessage.includes('成功') || lowerMessage.includes('完成')) {
+    return 'border-l-success text-success/90 bg-success/5';
+  } else if (lowerMessage.includes('warning') || lowerMessage.includes('warn') || lowerMessage.includes('警告')) {
+    return 'border-l-warning text-warning/90 bg-warning/5';
+  }
+  return 'border-l-info text-base-content/80 bg-base-100/50';
+};
+
+const getStatusTextClass = () => {
+  if (logStore.hasErrors) {
+    return 'text-error font-medium';
+  } else if (logStore.isFlashing) {
+    return 'text-success font-medium';
+  } else {
+    return 'text-info';
+  }
+};
+
+const getStatusText = () => {
+  if (logStore.hasErrors) {
+    return '发现错误';
+  } else if (logStore.isFlashing) {
+    return '烧录中...';
+  } else {
+    return logStore.messages.length > 0 ? '有新日志' : '等待日志';
+  }
+};
+
+const openLogWindow = async () => {
+  try {
+    await WindowManager.openLogWindow();
+  } catch (error) {
+    console.error('打开日志窗口失败:', error);
+    logStore.addMessage('打开日志窗口失败: ' + error, true);
+  }
+};
 </script>
 
 <style scoped>

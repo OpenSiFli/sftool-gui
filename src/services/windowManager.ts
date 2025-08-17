@@ -37,9 +37,23 @@ export class WindowManager {
         alwaysOnTop: false,
       });
 
-      // 监听窗口关闭事件
-      logWindow.once('tauri://close-requested', () => {
+      // 不监听 close-requested 事件，让窗口自然关闭
+      // 只监听窗口被销毁事件来更新状态
+      logWindow.once('tauri://destroyed', () => {
         windowState.isLogWindowOpen = false;
+      });
+
+      // 窗口创建完成后请求同步现有日志数据
+      logWindow.once('tauri://created', async () => {
+        try {
+          // 延迟一点确保日志窗口完全加载
+          setTimeout(async () => {
+            const { emit } = await import('@tauri-apps/api/event');
+            await emit('log-sync-request', {});
+          }, 500);
+        } catch (error) {
+          console.warn('Failed to request log sync:', error);
+        }
       });
 
       windowState.isLogWindowOpen = true;
