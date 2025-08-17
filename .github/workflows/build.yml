@@ -38,6 +38,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -86,6 +88,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libudev-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -140,6 +144,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup node
         uses: actions/setup-node@v4
