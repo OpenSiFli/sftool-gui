@@ -65,7 +65,7 @@ jobs:
       - name: Zip portable to release assets
         run: |
           cd src-tauri/target/release
-          7z a -tzip "../../../artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64_portable.zip" "sftool-gui.exe"
+          7z a -tzip "../../../artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64_portable.zip" "sftool.exe"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -119,7 +119,7 @@ jobs:
       - name: Zip portable to release assets
         run: |
           cd src-tauri/target/release
-          tar -czf "../../../artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_linux_amd64_portable.tar.gz" sftool-gui
+          tar -czf "../../../artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_linux_amd64_portable.tar.gz" sftool
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
