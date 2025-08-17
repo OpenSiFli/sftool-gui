@@ -31,9 +31,15 @@ function parseToSemVer(gitVersion) {
     gitVersion = gitVersion.substring(1);
   }
 
-  // v1.0.0-1-gabcdef → 1.0.0+1+gabcdef
+  // v1.0.0-1-gabcdef → 1.0.0-1+gabcdef
   if (gitVersion.includes('-')) {
-    return gitVersion.replace(/-/g, '+');
+    const parts = gitVersion.split('-');
+    if (parts.length > 2) {
+      // 第一部分是版本号，第二部分是提交数，第三部分是hash
+      // 保留第一个 - 用于预发布版本，后续的 - 转换为 +
+      return parts[0] + '-' + parts[1] + '+' + parts.slice(2).join('+');
+    }
+    return gitVersion;
   }
 
   // 如果是纯 hash，作为 fallback
@@ -49,8 +55,33 @@ function parseToSemVer(gitVersion) {
  * @param {string} semverVersion SemVer 格式的版本号
  * @returns {string} 数字版本号
  */
-function extractNumberVersion(semverVersion) {
-  return semverVersion.split('+')[0] || '0.0.1';
+function extractNumberVersion(gitVersion) {
+  if (!gitVersion) {
+    return '0.0.1+unknown';
+  }
+
+  // v1.0.0 → 1.0.0
+  if (gitVersion.startsWith('v')) {
+    gitVersion = gitVersion.substring(1);
+  }
+
+  // v1.0.0-1-gabcdef → 1.0.0-1+gabcdef
+  if (gitVersion.includes('-')) {
+    const parts = gitVersion.split('-');
+    if (parts.length > 2) {
+      // 第一部分是版本号，第二部分是提交数，第三部分是hash
+      // 保留第一个 - 用于预发布版本，后续的 - 转换为 +
+      return parts[0] + '-' + parts[1] + '+' + parts.slice(2).join('+');
+    }
+    return gitVersion;
+  }
+
+  // 如果是纯 hash，作为 fallback
+  if (!/^\d+\.\d+\.\d+/.test(gitVersion)) {
+    return `0.0.1+${gitVersion}`;
+  }
+
+  return gitVersion;
 }
 
 /**
