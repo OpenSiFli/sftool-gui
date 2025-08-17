@@ -7,10 +7,10 @@
     "windows": [
       {
         "dragDropEnabled": true,
-        "height": 600,
+        "height": 720,
         "label": "main",
         "title": "sftool",
-        "width": 800
+        "width": 1280
       }
     ]
   },
@@ -40,5 +40,5 @@
   },
   "identifier": "com.sftool.app",
   "productName": "sftool",
-  "version": "1.0.0-7+g1d41b15"
+  "version": "1.0.0-9+gbf43fb5"
 }
