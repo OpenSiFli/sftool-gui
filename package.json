@@ -35,5 +35,5 @@
     "update-version": "node scripts/update-version.js"
   },
   "type": "module",
-  "version": "1.0.0+1+ga455863"
+  "version": "1.0.0-7+g1d41b15"
 }
