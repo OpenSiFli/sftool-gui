@@ -88,7 +88,7 @@
                       </div>
                       
                       <!-- 第二行：文件路径 -->
-                      <div class="text-xs text-base-content/70 font-mono bg-base-300 rounded px-2 py-1 truncate">
+                      <div class="text-xs text-base-content/70 font-mono bg-base-200/20 border border-base-300/30 rounded px-2 py-1 truncate">
                         {{ file.path }}
                       </div>
                       
@@ -99,8 +99,8 @@
                           <input 
                             type="text" 
                             v-model="file.address"
-                            class="input input-xs input-bordered w-full text-xs font-mono"
-                            :class="{ 'input-error': file.addressError }"
+                            class="input input-xs w-full text-xs font-mono bg-base-100/50 border-base-300/40 focus:border-primary/50 focus:bg-base-100/70 transition-all duration-200"
+                            :class="{ 'border-error/50 bg-error/5': file.addressError }"
                             :placeholder="$t('writeFlash.addressPlaceholder')"
                             @input="validateAddress(index)"
                           />
@@ -321,17 +321,17 @@ const getFileCardClass = (file: FlashFile) => {
   if (progress) {
     switch (progress.status) {
       case 'active':
-        return 'bg-blue-50 border-blue-300 hover:shadow-blue-100';
+        return 'bg-gradient-to-r from-blue-50/15 to-blue-50/25 border-blue-200/40 ring-1 ring-blue-200/20 hover:shadow-lg transition-all duration-300';
       case 'completed':
-        return 'bg-green-50 border-green-300 hover:shadow-green-100';
+        return 'bg-gradient-to-r from-green-50/15 to-green-50/25 border-green-200/40 ring-1 ring-green-200/20 hover:shadow-lg transition-all duration-300';
       case 'error':
-        return 'bg-red-50 border-red-300 hover:shadow-red-100';
+        return 'bg-gradient-to-r from-red-50/15 to-red-50/25 border-red-200/40 ring-1 ring-red-200/20 hover:shadow-lg transition-all duration-300';
       default:
-        return 'bg-base-200 border-base-300 hover:shadow-md';
+        return 'bg-base-200/30 border-base-300/40 hover:shadow-md transition-all duration-300';
     }
   }
   
-  return 'bg-base-200 border-base-300 hover:shadow-md';
+  return 'bg-base-200/30 border-base-300/40 hover:shadow-md transition-all duration-300';
 };
 
 // 格式化速度
@@ -456,10 +456,10 @@ const handleProgressEvent = (event: any) => {
         finishedItem.status = 'completed';
         finishedItem.percentage = 100;
         logStore.addMessage(`[${finishedItem.fileName}] ${message}`, true);
-        // 保留一段时间显示完成状态，然后删除
-        setTimeout(() => {
-          progressMap.value.delete(id);
-        }, 2000);
+        // 暂时不删掉之前的进度
+        // setTimeout(() => {
+        //   progressMap.value.delete(id);
+        // }, 2000);
       }
       break;
   }
