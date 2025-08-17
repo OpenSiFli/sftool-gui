@@ -1,37 +1,37 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
-  "productName": "sftool-gui",
-  "version": "0.1.0",
-  "identifier": "com.sftool-gui.app",
-  "build": {
-    "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../dist"
-  },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "sftool-gui",
-        "width": 800,
-        "height": 600,
-        "dragDropEnabled": true
-      }
-    ],
     "security": {
       "csp": null
-    }
+    },
+    "windows": [
+      {
+        "dragDropEnabled": true,
+        "height": 600,
+        "label": "main",
+        "title": "sftool",
+        "width": 800
+      }
+    ]
+  },
+  "build": {
+    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
   },
   "bundle": {
     "active": true,
-    "targets": "all",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
-  }
+    ],
+    "targets": "all"
+  },
+  "identifier": "com.sftool.app",
+  "productName": "sftool",
+  "version": "0.0.1"
 }

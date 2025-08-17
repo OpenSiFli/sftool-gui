@@ -4112,7 +4112,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sftool-gui"
+name = "sftool"
 version = "0.1.0"
 dependencies = [
  "serde",
