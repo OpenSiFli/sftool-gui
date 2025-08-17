@@ -26,7 +26,7 @@ jobs:
       - name: Get version number
         id: get_version
         run: |
-          VERSION=$(node scripts/get-version.js)
+          VERSION=$(node scripts/version-manager.js get)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   windows-build:

@@ -32,8 +32,8 @@
     "dev": "vite",
     "preview": "vite preview",
     "tauri": "tauri",
-    "update-version": "node scripts/update-version.js"
+    "update-version": "node scripts/version-manager.js update"
   },
   "type": "module",
-  "version": "1.0.0-7+gf1e97a8"
+  "version": "1.0.0-9+gbf43fb5"
 }
