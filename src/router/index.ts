@@ -5,7 +5,7 @@ import AboutView from '../views/AboutView.vue'
 import LogWindowView from '../views/LogWindowView.vue'
 
 const routes = [
-  {path: '/', redirect: '/setting'},
+  {path: '/', redirect: '/write-flash'},
   {path: '/setting', name: 'Setting', component: SettingsView},
   {path: '/write-flash', name: 'WriteFlash', component: WriteFlashView},
   {path: '/about', name: 'About', component: AboutView},
