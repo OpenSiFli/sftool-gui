@@ -37,9 +37,15 @@ function parseToSemVer(gitVersion) {
     gitVersion = gitVersion.substring(1);
   }
 
-  // v1.0.0-1-gabcdef → 1.0.0+1+gabcdef
+  // v1.0.0-1-gabcdef → 1.0.0-1+gabcdef
   if (gitVersion.includes('-')) {
-    return gitVersion.replace(/-/g, '+');
+    const parts = gitVersion.split('-');
+    if (parts.length > 2) {
+      // 第一部分是版本号，第二部分是提交数，第三部分是hash
+      // 保留第一个 - 用于预发布版本，后续的 - 转换为 +
+      return parts[0] + '-' + parts[1] + '+' + parts.slice(2).join('+');
+    }
+    return gitVersion;
   }
 
   // 如果是纯 hash，作为 fallback
@@ -49,7 +55,6 @@ function parseToSemVer(gitVersion) {
 
   return gitVersion;
 }
-
 /**
  * 从 SemVer 版本号中提取数字版本号（去掉构建元数据）
  * @param {string} semverVersion SemVer 格式的版本号
@@ -115,7 +120,7 @@ function main() {
 
   // 更新 tauri.conf.json
   const tauriConfigPath = path.join(projectRoot, 'src-tauri', 'tauri.conf.json');
-  updateJsonVersion(tauriConfigPath, numberVersion, 'tauri.conf.json');
+  updateJsonVersion(tauriConfigPath, semverVersion, 'tauri.conf.json');
 
   console.log('Version update completed successfully!');
 }
