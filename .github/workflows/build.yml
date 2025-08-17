@@ -48,10 +48,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          run_install: false
-
-      - name: Install frontend dependencies
-        run: pnpm install
+          run_install: true
+          version: 10
 
       - name: Build tauri app
         uses: tauri-apps/tauri-action@v0
@@ -98,10 +96,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          run_install: false
-
-      - name: Install frontend dependencies
-        run: pnpm install
+          run_install: true
+          version: 10
 
       - name: Build tauri app
         uses: tauri-apps/tauri-action@v0
@@ -156,10 +152,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          run_install: false
-
-      - name: Install frontend dependencies
-        run: pnpm install
+          run_install: true
+          version: 10
 
       - name: Build tauri app
         uses: tauri-apps/tauri-action@v0
