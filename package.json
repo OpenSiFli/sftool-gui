@@ -28,11 +28,12 @@
   "name": "sftool-gui",
   "private": true,
   "scripts": {
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "pnpm run update-version &&vue-tsc --noEmit && vite build",
     "dev": "vite",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "update-version": "node scripts/update-version.js"
   },
   "type": "module",
-  "version": "0.0.1+006035e"
+  "version": "1.0.0+1+ga455863"
 }

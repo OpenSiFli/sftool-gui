@@ -29,9 +29,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "targets": "all"
+    "targets": ["nsis", "deb", "appimage", "rpm", "app", "dmg"]
   },
   "identifier": "com.sftool.app",
   "productName": "sftool",
-  "version": "0.0.1"
+  "version": "1.0.0"
 }
