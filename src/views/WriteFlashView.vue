@@ -137,13 +137,13 @@
                 'border-primary bg-primary/5': isWindowDragging
               }"
             >
-              <div class="card-body p-6">
-                <div class="flex flex-col items-center justify-center gap-3 text-base-content/60">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="card-body p-4">
+                <div class="flex flex-col items-center justify-center gap-2 text-base-content/60">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
                   <div class="text-center">
-                    <div class="font-medium">{{ $t('writeFlash.clickToSelectFile') }}</div>
+                    <div class="font-medium text-sm">{{ $t('writeFlash.clickToSelectFile') }}</div>
                     <div class="text-xs mt-1">{{ $t('writeFlash.supportedFormats') }}</div>
                   </div>
                 </div>
@@ -154,29 +154,29 @@
       </div>
       
       <!-- 操作按钮区域 -->
-      <div class="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl shadow-sm border border-primary/20 flex-shrink-0">
-        <div class="p-6 flex items-center justify-center">
+      <div class="flex-shrink-0">
+        <div class="flex items-center justify-center">
           <!-- 下载按钮 -->
           <button 
-            class="btn btn-primary btn-lg gap-3 px-8" 
+            class="btn btn-primary btn-md gap-2 px-6" 
             :disabled="!canStartFlashing || isFlashing" 
             @click="startFlashing"
           >
-            <span v-if="isFlashing" class="loading loading-spinner loading-md"></span>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span v-if="isFlashing" class="loading loading-spinner loading-sm"></span>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <span class="text-base font-medium">
+            <span class="text-sm font-medium">
               {{ isFlashing ? '烧录中...' : $t('writeFlash.startFlash') }}
             </span>
           </button>
         </div>
         
         <!-- 进度显示区域 -->
-        <div class="mt-4 p-4 bg-base-100 rounded-lg border border-base-300">
+        <div class="mt-3">
           <div v-if="activeProgressItems.length > 0" class="space-y-3">
             <div v-for="[id, progress] in activeProgressItems" :key="id" 
-                 class="p-3 bg-base-200 rounded-lg transition-all duration-300">
+                 class="p-3 bg-base-200/50 rounded-lg transition-all duration-300">
               
               <!-- 文件名和进度百分比 -->
               <div class="flex justify-between items-center mb-2">
@@ -219,7 +219,7 @@
           </div>
           
           <!-- 空状态占位 -->
-          <div v-else class="p-3 bg-base-200 rounded-lg">
+          <div v-else class="p-3 bg-base-200/30 rounded-lg">
             <div class="flex justify-between items-center mb-2">
               <div class="flex-1 min-w-0">
                 <div class="font-medium text-sm text-base-content/50">
