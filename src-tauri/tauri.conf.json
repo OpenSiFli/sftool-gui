@@ -9,6 +9,8 @@
         "dragDropEnabled": true,
         "height": 720,
         "label": "main",
+        "minHeight": 720,
+        "minWidth": 1280,
         "title": "sftool",
         "width": 1280
       }
