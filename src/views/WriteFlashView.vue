@@ -174,44 +174,77 @@
         
         <!-- 进度显示区域 -->
         <div class="mt-3">
-          <div v-if="activeProgressItems.length > 0" class="space-y-3">
-            <div v-for="[id, progress] in activeProgressItems" :key="id" 
-                 class="p-3 bg-base-200/50 rounded-lg transition-all duration-300">
+          <!-- 烧录完成提示 -->
+          <div v-if="flashCompleted" class="mb-3 p-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 rounded-lg shadow-lg">
+            <div class="flex items-center justify-center gap-3 text-center">
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-green-800 mb-1">烧录完成！</h3>
+                <p class="text-sm text-green-600">
+                  成功烧录了 {{ completedFiles.size }} 个文件，可以开始下一次烧录了
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="totalProgress.totalCount > 0 || isFlashing" class="space-y-3">
+            <div class="p-3 bg-base-200/50 rounded-lg transition-all duration-300">
               
               <!-- 文件名和进度百分比 -->
               <div class="flex justify-between items-center mb-2">
                 <div class="flex-1 min-w-0">
                   <div class="font-medium text-sm truncate text-base-content">
-                    {{ progress.fileName }}
+                    <span v-if="totalProgress.currentFileName">
+                      {{ totalProgress.currentFileName }}
+                      <span v-if="totalProgress.totalCount > 1" class="text-base-content/60 ml-2">
+                        ({{ totalProgress.completedCount + 1 }}/{{ totalProgress.totalCount }})
+                      </span>
+                    </span>
+                    <span v-else-if="flashCompleted" class="text-success">
+                      烧录完成！
+                    </span>
+                    <span v-else>
+                      准备中...
+                    </span>
                   </div>
                 </div>
                 <div class="ml-4 text-sm font-bold text-base-content">
-                  {{ Math.round(progress.percentage) }}%
+                  {{ Math.round(totalProgress.percentage) }}%
                 </div>
               </div>
               
               <!-- 进度条 -->
               <div class="w-full bg-base-300 rounded-full h-2 mb-2 overflow-hidden">
                 <div 
-                  class="h-2 rounded-full transition-all duration-300 ease-out bg-primary"
-                  :style="{ width: `${progress.percentage}%` }"
+                  class="h-2 rounded-full transition-all duration-300 ease-out"
+                  :class="flashCompleted ? 'bg-success' : 'bg-primary'"
+                  :style="{ width: `${totalProgress.percentage}%` }"
                 ></div>
               </div>
               
               <!-- 详细信息：大小、速度、剩余时间 -->
               <div class="flex justify-between items-center text-xs text-base-content/70">
-                <span>
-                  {{ formatBytes(progress.current) }} / {{ formatBytes(progress.total) }}
+                <span v-if="totalProgress.total > 0">
+                  {{ formatBytes(totalProgress.current) }} / {{ formatBytes(totalProgress.total) }}
+                </span>
+                <span v-else>
+                  等待开始...
                 </span>
                 <div class="flex items-center gap-4">
-                  <span v-if="progress.speed && progress.speed > 0" class="text-primary font-medium">
-                    {{ formatSpeed(progress.speed) }}
+                  <span v-if="totalProgress.speed && totalProgress.speed > 0" class="text-primary font-medium">
+                    {{ formatSpeed(totalProgress.speed) }}
                   </span>
-                  <span v-if="progress.eta && progress.eta > 0 && progress.percentage < 100" class="text-warning font-medium">
-                    {{ formatETA(progress.eta) }}
+                  <span v-if="totalProgress.eta && totalProgress.eta > 0 && totalProgress.percentage < 100" class="text-warning font-medium">
+                    {{ formatETA(totalProgress.eta) }}
                   </span>
-                  <span v-if="progress.percentage >= 100" class="text-success font-medium">
-                    ✓ 完成
+                  <span v-if="flashCompleted" class="text-success font-medium">
+                    ✓ 全部完成
                   </span>
                 </div>
               </div>
@@ -292,6 +325,24 @@ const progressMap = ref<Map<number, {
   status: 'waiting' | 'active' | 'completed' | 'error';
 }>>(new Map());
 
+// 当前正在处理的文件
+const currentFlashingFile = ref<string>('');
+// 已完成的文件列表
+const completedFiles = ref<Set<string>>(new Set());
+// 烧录完成状态
+const flashCompleted = ref(false);
+// 总进度状态
+const totalProgress = ref({
+  current: 0,
+  total: 0,
+  percentage: 0,
+  speed: 0,
+  eta: 0,
+  currentFileName: '',
+  completedCount: 0,
+  totalCount: 0
+});
+
 // 生成唯一ID的函数
 const generateFileId = () => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -313,24 +364,19 @@ const formatBytes = (bytes: number | undefined): string => {
 
 // 获取文件卡片样式
 const getFileCardClass = (file: FlashFile) => {
-  // 查找该文件的进度状态
-  const progress = Array.from(progressMap.value.values()).find(p => 
-    p.step === file.path || p.fileName === file.name
-  );
+  const fileName = file.name;
   
-  if (progress) {
-    switch (progress.status) {
-      case 'active':
-        return 'bg-gradient-to-r from-blue-50/15 to-blue-50/25 border-blue-200/40 ring-1 ring-blue-200/20 hover:shadow-lg transition-all duration-300';
-      case 'completed':
-        return 'bg-gradient-to-r from-green-50/15 to-green-50/25 border-green-200/40 ring-1 ring-green-200/20 hover:shadow-lg transition-all duration-300';
-      case 'error':
-        return 'bg-gradient-to-r from-red-50/15 to-red-50/25 border-red-200/40 ring-1 ring-red-200/20 hover:shadow-lg transition-all duration-300';
-      default:
-        return 'bg-base-200/30 border-base-300/40 hover:shadow-md transition-all duration-300';
-    }
+  // 检查当前是否正在烧录这个文件
+  if (currentFlashingFile.value === fileName) {
+    return 'downloading-file';
   }
   
+  // 检查文件是否已完成
+  if (completedFiles.value.has(fileName)) {
+    return 'bg-gradient-to-r from-green-50/20 to-green-100/30 border-green-300/50 ring-2 ring-green-300/30 shadow-lg';
+  }
+  
+  // 默认样式
   return 'bg-base-200/30 border-base-300/40 hover:shadow-md transition-all duration-300';
 };
 
@@ -354,13 +400,6 @@ const formatTime = (seconds: number): string => {
     return `${hours}时${minutes}分`;
   }
 };
-
-// 计算活跃的进度项
-const activeProgressItems = computed(() => {
-  return Array.from(progressMap.value.entries()).filter(([_, progress]) => 
-    progress.current !== undefined && progress.total !== undefined && progress.current < progress.total
-  );
-});
 
 // 处理进度事件
 const handleProgressEvent = (event: any) => {
@@ -391,6 +430,18 @@ const handleProgressEvent = (event: any) => {
   
   switch (event_type) {
     case 'start':
+      const fileName = getDisplayFileName(step, id);
+      currentFlashingFile.value = fileName;
+      
+      // 更新总进度状态
+      totalProgress.value.currentFileName = fileName;
+      totalProgress.value.totalCount = selectedFiles.value.length;
+      totalProgress.value.current = 0;
+      totalProgress.value.total = total || 0;
+      totalProgress.value.percentage = 0;
+      totalProgress.value.speed = 0;
+      totalProgress.value.eta = 0;
+      
       progressMap.value.set(id, { 
         step, 
         message, 
@@ -400,11 +451,11 @@ const handleProgressEvent = (event: any) => {
         speed: 0,
         eta: 0,
         percentage: 0,
-        fileName: getDisplayFileName(step, id),
+        fileName,
         address: parseInt(step) || 0,
         status: 'active'
       });
-      logStore.addMessage(`[${getDisplayFileName(step, id)}] ${message}`);
+      logStore.addMessage(`[${fileName}] ${message}`);
       break;
       
     case 'update':
@@ -420,19 +471,25 @@ const handleProgressEvent = (event: any) => {
       if (progressItem && progressItem.current !== undefined) {
         progressItem.current += current || 0;
         
+        // 更新总进度
+        totalProgress.value.current = progressItem.current;
+        
         // 计算百分比
         if (progressItem.total && progressItem.total > 0) {
           progressItem.percentage = Math.round((progressItem.current / progressItem.total) * 100);
+          totalProgress.value.percentage = progressItem.percentage;
         }
         
         // 计算速度和ETA
         if (progressItem.startTime && progressItem.current > 0) {
           const elapsed = (now - progressItem.startTime) / 1000; // 秒
           progressItem.speed = progressItem.current / elapsed; // bytes/s
+          totalProgress.value.speed = progressItem.speed;
           
           if (progressItem.total && progressItem.speed > 0) {
             const remaining = progressItem.total - progressItem.current;
             progressItem.eta = remaining / progressItem.speed; // 剩余秒数
+            totalProgress.value.eta = progressItem.eta;
           }
         }
         
@@ -455,11 +512,26 @@ const handleProgressEvent = (event: any) => {
       if (finishedItem) {
         finishedItem.status = 'completed';
         finishedItem.percentage = 100;
+        
+        // 标记文件为完成状态
+        completedFiles.value.add(finishedItem.fileName);
+        
+        // 更新完成计数
+        totalProgress.value.completedCount = completedFiles.value.size;
+        totalProgress.value.percentage = 100;
+        
+        // 清除当前烧录文件状态
+        if (currentFlashingFile.value === finishedItem.fileName) {
+          currentFlashingFile.value = '';
+        }
+        
         logStore.addMessage(`[${finishedItem.fileName}] ${message}`, true);
-        // 暂时不删掉之前的进度
-        // setTimeout(() => {
-        //   progressMap.value.delete(id);
-        // }, 2000);
+        
+        // 检查是否所有文件都完成了
+        if (completedFiles.value.size >= selectedFiles.value.length) {
+          flashCompleted.value = true;
+          totalProgress.value.currentFileName = '';
+        }
       }
       break;
   }
@@ -839,7 +911,22 @@ const startFlashing = async () => {
   
   isFlashing.value = true;
   logStore.setFlashing(true);
+  
+  // 重置所有状态
   progressMap.value.clear();
+  currentFlashingFile.value = '';
+  completedFiles.value.clear();
+  flashCompleted.value = false;
+  totalProgress.value = {
+    current: 0,
+    total: 0,
+    percentage: 0,
+    speed: 0,
+    eta: 0,
+    currentFileName: '',
+    completedCount: 0,
+    totalCount: selectedFiles.value.length
+  };
   
   logStore.addMessage(`${t('writeFlash.status.starting')}`);
   logStore.addMessage(`准备烧录 ${selectedFiles.value.length} 个文件...`);
@@ -861,10 +948,10 @@ const startFlashing = async () => {
     logStore.addMessage(`${t('writeFlash.status.completed')}`, true);
   } catch (error) {
     logStore.addMessage(`${t('writeFlash.status.failed')}: ${error}`, true);
+    flashCompleted.value = false;
   } finally {
     isFlashing.value = false;
     logStore.setFlashing(false);
-    progressMap.value.clear();
   }
 };
 </script>
@@ -975,5 +1062,13 @@ const startFlashing = async () => {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* 下载中的文件显示蓝色背景 */
+.downloading-file {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.2));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+  transition: all 0.3s ease;
 }
 </style>
