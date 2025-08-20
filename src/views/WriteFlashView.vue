@@ -201,10 +201,13 @@
                 <div class="flex-1 min-w-0">
                   <div class="font-medium text-sm truncate text-base-content">
                     <span v-if="totalProgress.currentFileName">
-                      {{ totalProgress.currentFileName }}
+                      <span v-if="currentOperation" class="text-primary">{{ currentOperation }}：</span>{{ totalProgress.currentFileName }}
                       <span v-if="totalProgress.totalCount > 1" class="text-base-content/60 ml-2">
                         ({{ totalProgress.completedCount + 1 }}/{{ totalProgress.totalCount }})
                       </span>
+                    </span>
+                    <span v-else-if="currentOperation && !totalProgress.currentFileName" class="text-primary">
+                      {{ currentOperation }}中...
                     </span>
                     <span v-else-if="flashCompleted" class="text-success">
                       烧录完成！
@@ -290,19 +293,15 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { listen } from '@tauri-apps/api/event';
 import { useLogStore } from '../stores/logStore';
+import { ProgressHandler } from '../utils/progressHandler';
+import type { 
+  FlashFile, 
+  ProgressItem, 
+  TotalProgress 
+} from '../types/progress';
 
 const { t } = useI18n();
 const logStore = useLogStore();
-
-// 文件类型定义
-interface FlashFile {
-  id: string;
-  name: string;
-  path: string;
-  address?: string;
-  addressError?: string;
-  size?: number;
-}
 
 // 状态管理
 const selectedFiles = ref<FlashFile[]>([]);
@@ -310,29 +309,17 @@ const isFlashing = ref(false);
 const isWindowDragging = ref(false);
 
 // 进度状态管理
-const progressMap = ref<Map<number, {
-  step: string;
-  message: string;
-  current?: number;
-  total?: number;
-  startTime?: number;
-  lastUpdateTime?: number;
-  speed?: number;
-  eta?: number;
-  percentage: number;
-  fileName: string;
-  address: number;
-  status: 'waiting' | 'active' | 'completed' | 'error';
-}>>(new Map());
+const progressMap = ref<Map<number, ProgressItem>>(new Map());
 
 // 当前正在处理的文件
 const currentFlashingFile = ref<string>('');
+const currentOperation = ref<string>(''); // 当前操作描述（如 "擦除"、"下载"、"验证"）
 // 已完成的文件列表
 const completedFiles = ref<Set<string>>(new Set());
 // 烧录完成状态
 const flashCompleted = ref(false);
 // 总进度状态
-const totalProgress = ref({
+const totalProgress = ref<TotalProgress>({
   current: 0,
   total: 0,
   percentage: 0,
@@ -347,6 +334,17 @@ const totalProgress = ref({
 const generateFileId = () => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 };
+
+// 创建进度处理器实例
+const progressHandler = new ProgressHandler(
+  progressMap,
+  selectedFiles, 
+  completedFiles,
+  totalProgress,
+  currentFlashingFile,
+  currentOperation,
+  flashCompleted
+);
 
 // 格式化文件大小
 const formatFileSize = (bytes: number | undefined): string => {
@@ -380,161 +378,15 @@ const getFileCardClass = (file: FlashFile) => {
   return 'bg-base-200/30 border-base-300/40 hover:shadow-md transition-all duration-300';
 };
 
-// 格式化速度
+// 格式化速度（模板中使用）
 const formatSpeed = (bytesPerSecond: number | undefined): string => {
   if (!bytesPerSecond) return '-- KB/s';
   return formatFileSize(bytesPerSecond) + '/s';
 };
 
-// 格式化时间
-const formatTime = (seconds: number): string => {
-  if (seconds < 60) {
-    return `${seconds}秒`;
-  } else if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}分${remainingSeconds}秒`;
-  } else {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}时${minutes}分`;
-  }
-};
-
-// 处理进度事件
+// 处理进度事件 - 使用重构后的ProgressHandler
 const handleProgressEvent = (event: any) => {
-  const { id, event_type, step, message, current, total } = event;
-  const now = Date.now();
-  
-  // 尝试从选中的文件列表中找到对应的文件名
-  const getDisplayFileName = (step: string, id: number) => {
-    // 如果有选中的文件，尝试根据索引匹配
-    if (selectedFiles.value.length > 0) {
-      const fileIndex = (id - 1) % selectedFiles.value.length;
-      if (selectedFiles.value[fileIndex]) {
-        return selectedFiles.value[fileIndex].name;
-      }
-    }
-    // 回退到从step中提取文件名
-    const extracted = extractFileName(step);
-    // 如果提取的结果看起来像步骤号（如0x07），则使用消息中的信息或文件名
-    if (/^0x[0-9a-fA-F]+$/.test(extracted) || /^\d+$/.test(extracted)) {
-      // 如果有选中的文件，使用第一个文件的名称作为默认
-      if (selectedFiles.value.length > 0) {
-        return selectedFiles.value[0].name;
-      }
-      return `固件文件 (${extracted})`;
-    }
-    return extracted;
-  };
-  
-  switch (event_type) {
-    case 'start':
-      const fileName = getDisplayFileName(step, id);
-      currentFlashingFile.value = fileName;
-      
-      // 更新总进度状态
-      totalProgress.value.currentFileName = fileName;
-      totalProgress.value.totalCount = selectedFiles.value.length;
-      totalProgress.value.current = 0;
-      totalProgress.value.total = total || 0;
-      totalProgress.value.percentage = 0;
-      totalProgress.value.speed = 0;
-      totalProgress.value.eta = 0;
-      
-      progressMap.value.set(id, { 
-        step, 
-        message, 
-        current, 
-        total,
-        startTime: now,
-        speed: 0,
-        eta: 0,
-        percentage: 0,
-        fileName,
-        address: parseInt(step) || 0,
-        status: 'active'
-      });
-      logStore.addMessage(`[${fileName}] ${message}`);
-      break;
-      
-    case 'update':
-      const existing = progressMap.value.get(id);
-      if (existing) {
-        existing.message = message;
-        logStore.addMessage(`[${existing.fileName}] ${message}`);
-      }
-      break;
-      
-    case 'increment':
-      const progressItem = progressMap.value.get(id);
-      if (progressItem && progressItem.current !== undefined) {
-        progressItem.current += current || 0;
-        
-        // 更新总进度
-        totalProgress.value.current = progressItem.current;
-        
-        // 计算百分比
-        if (progressItem.total && progressItem.total > 0) {
-          progressItem.percentage = Math.round((progressItem.current / progressItem.total) * 100);
-          totalProgress.value.percentage = progressItem.percentage;
-        }
-        
-        // 计算速度和ETA
-        if (progressItem.startTime && progressItem.current > 0) {
-          const elapsed = (now - progressItem.startTime) / 1000; // 秒
-          progressItem.speed = progressItem.current / elapsed; // bytes/s
-          totalProgress.value.speed = progressItem.speed;
-          
-          if (progressItem.total && progressItem.speed > 0) {
-            const remaining = progressItem.total - progressItem.current;
-            progressItem.eta = remaining / progressItem.speed; // 剩余秒数
-            totalProgress.value.eta = progressItem.eta;
-          }
-        }
-        
-        // 更新状态
-        if (progressItem.percentage >= 100) {
-          progressItem.status = 'completed';
-        }
-        
-        if (progressItem.total) {
-          const percentage = progressItem.percentage;
-          const speedStr = progressItem.speed ? ` @ ${formatSpeed(progressItem.speed)}` : '';
-          const etaStr = progressItem.eta && progressItem.eta > 0 ? ` (剩余 ${formatTime(progressItem.eta)})` : '';
-          logStore.addMessage(`[${progressItem.fileName}] 进度: ${percentage}% (${formatBytes(progressItem.current)}/${formatBytes(progressItem.total)})${speedStr}${etaStr}`);
-        }
-      }
-      break;
-      
-    case 'finish':
-      const finishedItem = progressMap.value.get(id);
-      if (finishedItem) {
-        finishedItem.status = 'completed';
-        finishedItem.percentage = 100;
-        
-        // 标记文件为完成状态
-        completedFiles.value.add(finishedItem.fileName);
-        
-        // 更新完成计数
-        totalProgress.value.completedCount = completedFiles.value.size;
-        totalProgress.value.percentage = 100;
-        
-        // 清除当前烧录文件状态
-        if (currentFlashingFile.value === finishedItem.fileName) {
-          currentFlashingFile.value = '';
-        }
-        
-        logStore.addMessage(`[${finishedItem.fileName}] ${message}`, true);
-        
-        // 检查是否所有文件都完成了
-        if (completedFiles.value.size >= selectedFiles.value.length) {
-          flashCompleted.value = true;
-          totalProgress.value.currentFileName = '';
-        }
-      }
-      break;
-  }
+  progressHandler.handleEvent(event);
 };
 
 // 初始化日志
@@ -786,10 +638,6 @@ const canStartFlashing = computed(() => {
 });
 
 // 工具方法
-const extractFileName = (filePath: string): string => {
-  return filePath.split('\\').pop() || filePath.split('/').pop() || filePath;
-};
-
 const formatETA = (seconds: number | undefined): string => {
   if (!seconds || seconds <= 0) return '--';
   if (seconds < 60) return `${seconds.toFixed(2)}秒`;
@@ -913,20 +761,7 @@ const startFlashing = async () => {
   logStore.setFlashing(true);
   
   // 重置所有状态
-  progressMap.value.clear();
-  currentFlashingFile.value = '';
-  completedFiles.value.clear();
-  flashCompleted.value = false;
-  totalProgress.value = {
-    current: 0,
-    total: 0,
-    percentage: 0,
-    speed: 0,
-    eta: 0,
-    currentFileName: '',
-    completedCount: 0,
-    totalCount: selectedFiles.value.length
-  };
+  progressHandler.resetAllStates();
   
   logStore.addMessage(`${t('writeFlash.status.starting')}`);
   logStore.addMessage(`准备烧录 ${selectedFiles.value.length} 个文件...`);
