@@ -15,7 +15,7 @@
           <div class="w-3 h-3 rounded-full bg-success animate-pulse" v-if="isFlashing"></div>
           <div class="w-3 h-3 rounded-full bg-base-300" v-else></div>
           <h2 class="text-lg font-semibold text-base-content">
-            {{ $t('writeFlash.log') }}
+            {{ $t('writeFlash.logLabel') }}
           </h2>
           <div class="badge badge-sm" :class="logMessages.length > 0 ? 'badge-primary' : 'badge-ghost'">
             {{ logMessages.length }}

@@ -5,7 +5,7 @@
       <div class="flex items-center gap-3">
         <div class="w-3 h-3 rounded-full" :class="logStore.isFlashing ? 'bg-success animate-pulse' : 'bg-base-300'"></div>
         <h1 class="text-lg font-semibold text-base-content">
-          {{ $t('writeFlash.log') }}
+          {{ $t('writeFlash.logLabel') }}
         </h1>
         <div class="badge badge-sm" :class="logStore.messages.length > 0 ? 'badge-primary' : 'badge-ghost'">
           {{ logStore.messages.length }}

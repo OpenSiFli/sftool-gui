@@ -6,13 +6,13 @@
       <!-- 芯片信息卡片 -->
       <div class="card bg-base-200 shadow-sm p-2 mb-2">
         <div class="flex justify-center mb-1">
-          <h4 class="font-bold text-sm">芯片选择</h4>
+          <h4 class="font-bold text-sm">{{ t('deviceConnection.chipSelection') }}</h4>
         </div>
         
         <div class="flex gap-2">
           <div class="form-control w-1/2">
             <label class="label py-1 justify-center">
-              <span class="label-text text-xs">芯片型号</span>
+              <span class="label-text text-xs">{{ t('deviceConnection.chipModel') }}</span>
             </label>
             <div class="relative">
               <input 
@@ -21,7 +21,7 @@
                 @focus="handleFocus('chip')"
                 @blur="handleBlur('chip')"
                 @keydown="handleChipKeyDown"
-                placeholder="请选择或搜索芯片型号" 
+                :placeholder="t('deviceConnection.chipSearchPlaceholder')" 
                 class="input input-bordered input-sm w-full pr-10 transition-all duration-300 text-xs" 
                 :disabled="isConnected || isConnecting"
               />
@@ -48,7 +48,7 @@
                   >
                     <div class="font-semibold text-xs">{{ chip.name }}</div>
                   </div>
-                  <div v-if="filteredChips.length === 0" class="p-2 text-gray-500 text-center text-xs">未找到匹配芯片型号</div>
+                  <div v-if="filteredChips.length === 0" class="p-2 text-gray-500 text-center text-xs">{{ t('deviceConnection.noChipFound') }}</div>
                 </div>
               </transition>
             </div>
@@ -57,7 +57,7 @@
           <!-- 存储器类型选择 -->
           <div class="form-control w-1/2" v-if="selectedChip">
             <label class="label py-1 justify-center">
-              <span class="label-text text-xs">存储器类型</span>
+              <span class="label-text text-xs">{{ t('deviceConnection.storageType') }}</span>
             </label>
             <div class="relative">
               <input 
@@ -65,7 +65,7 @@
                 v-model="memoryTypeInput"
                 @focus="handleFocus('memoryType')"
                 @blur="handleBlur('memoryType')"
-                placeholder="请选择存储器类型" 
+                :placeholder="t('deviceConnection.storageTypePlaceholder')" 
                 class="input input-bordered input-sm w-full pr-10 transition-all duration-300 text-xs" 
                 :disabled="isConnected || isConnecting"
               />
@@ -92,7 +92,7 @@
                   >
                     <div class="font-semibold text-xs">{{ memoryType }}</div>
                   </div>
-                  <div v-if="availableMemoryTypes.length === 0" class="p-2 text-gray-500 text-center text-xs">无可用存储器类型</div>
+                  <div v-if="availableMemoryTypes.length === 0" class="p-2 text-gray-500 text-center text-xs">{{ t('deviceConnection.noStorageTypeAvailable') }}</div>
                 </div>
               </transition>
             </div>
@@ -101,12 +101,12 @@
           <!-- 存储器类型占位符（未选择芯片时） -->
           <div class="form-control w-1/2" v-else>
             <label class="label py-1 justify-center">
-              <span class="label-text text-xs">存储器类型</span>
+              <span class="label-text text-xs">{{ t('deviceConnection.storageType') }}</span>
             </label>
             <div class="relative">
               <input 
                 type="text" 
-                placeholder="请先选择芯片型号" 
+                :placeholder="t('deviceConnection.selectChipFirst')" 
                 class="input input-bordered input-sm w-full pr-10 transition-all duration-300 text-xs bg-base-200" 
                 disabled
               />
@@ -118,7 +118,7 @@
       <!-- 接口设置卡片 -->
       <div class="card bg-base-200 shadow-sm p-2 mb-2">
         <div class="flex justify-center mb-1">
-          <h4 class="font-bold text-sm">接口设置</h4>
+          <h4 class="font-bold text-sm">{{ t('deviceConnection.interfaceSettings') }}</h4>
         </div>
         
         <!-- 接口类型选择 -->
@@ -151,7 +151,7 @@
               <label class="label py-1">
                 <span class="label-text flex items-center gap-1">
                   <span class="material-icons text-xs">cable</span>
-                  串口号
+                  {{ t('deviceConnection.serialPort') }}
                 </span>
                 <button @click="refreshPorts" class="btn btn-xs btn-ghost transition-all duration-300" :disabled="isConnected || isConnecting">
                   <span class="material-icons text-sm" :class="{'animate-spin': isLoadingPorts}">refresh</span>
@@ -164,7 +164,7 @@
                   @focus="handleFocus('port')"
                   @blur="handleBlur('port')"
                   @keydown="handlePortKeyDown"
-                  placeholder="请选择或搜索串口" 
+                  :placeholder="t('deviceConnection.serialPortPlaceholder')" 
                   class="input input-bordered input-sm w-full pr-10 transition-all duration-300" 
                   :disabled="isConnected || isConnecting"
                 />
@@ -183,9 +183,9 @@
                 >
                   <div v-if="showPortDropdown" class="absolute z-50 mt-1 w-full bg-base-100 border border-base-300 rounded-md shadow-lg max-h-60 overflow-auto origin-top">
                     <div v-if="isLoadingPorts" class="p-2 text-center">
-                      <span class="loading loading-spinner loading-xs"></span> 正在加载串口...
+                      <span class="loading loading-spinner loading-xs"></span> {{ t('deviceConnection.loadingPorts') }}
                     </div>
-                    <div v-else-if="availablePorts.length === 0" class="p-2 text-gray-500 text-center">未检测到串口设备</div>
+                    <div v-else-if="availablePorts.length === 0" class="p-2 text-gray-500 text-center">{{ t('deviceConnection.noPortFound') }}</div>
                     <div 
                       v-for="port in filteredPorts" 
                       :key="port.name" 
@@ -206,7 +206,7 @@
               <label class="label py-1">
                 <span class="label-text flex items-center gap-1">
                   <span class="material-icons text-xs">speed</span>
-                  波特率
+                  {{ t('deviceConnection.baudRate') }}
                 </span>
               </label>
               <div class="relative">
@@ -215,7 +215,7 @@
                   v-model="baudRateInput"
                   @focus="handleFocus('baudRate')"
                   @blur="handleBlur('baudRate')"
-                  placeholder="请选择或输入波特率" 
+                  :placeholder="t('deviceConnection.baudRatePlaceholder')" 
                   class="input input-bordered input-sm w-full pr-10 transition-all duration-300" 
                   :disabled="isConnected || isConnecting"
                 />
@@ -258,7 +258,7 @@
       >
         <span v-if="isConnecting" class="loading loading-spinner loading-xs mr-2"></span>
         <span class="material-icons text-sm mr-1">{{ isConnected ? 'link_off' : 'link' }}</span>
-        {{ isConnected ? '断开连接' : '连接设备' }}
+        {{ isConnected ? t('deviceConnection.disconnectDevice') : t('deviceConnection.connectDevice') }}
       </button>
       
       <transition 
@@ -272,28 +272,28 @@
         <div v-if="isConnected" class="mt-2 bg-base-200 p-2 rounded-lg shadow-inner text-xs">
           <h4 class="font-bold mb-1 flex items-center gap-1">
             <span class="material-icons text-xs">info</span>
-            设备信息
+            {{ t('deviceConnection.deviceInfo') }}
           </h4>
           <div>
             <p class="flex items-center gap-1">
               <span class="material-icons text-xs text-success">check_circle</span>
-              状态: <span class="text-success">已连接</span>
+              {{ t('deviceConnection.status') }}: <span class="text-success">{{ t('deviceConnection.connected') }}</span>
             </p>
             <p class="flex items-center gap-1">
               <span class="material-icons text-xs">memory</span>
-              设备: {{ selectedChip?.name }}
+              {{ t('deviceConnection.device') }}: {{ selectedChip?.name }}
             </p>
             <p class="flex items-center gap-1">
               <span class="material-icons text-xs">sd_card</span>
-              存储器: {{ selectedMemoryType }}
+              {{ t('deviceConnection.storage') }}: {{ selectedMemoryType }}
             </p>
             <p class="flex items-center gap-1">
               <span class="material-icons text-xs">settings_input_component</span>
-              接口: {{ selectedInterface }}
+              {{ t('deviceConnection.interface') }}: {{ selectedInterface }}
             </p>
             <p v-if="selectedInterface === 'UART'" class="flex items-center gap-1">
               <span class="material-icons text-xs">cable</span>
-              端口: {{ selectedPort?.name }} ({{ baudRateInput }} bps)
+              {{ t('deviceConnection.port') }}: {{ selectedPort?.name }} ({{ baudRateInput }} bps)
             </p>
           </div>
         </div>
@@ -310,7 +310,7 @@
                 class="w-2 h-2 rounded-full transition-all duration-300"
                 :class="logStore.isFlashing ? 'bg-success animate-pulse' : logStore.hasErrors ? 'bg-error' : 'bg-info'"
               ></div>
-              系统日志
+              {{ t('deviceConnection.systemLog') }}
               <div class="badge badge-xs" :class="logStore.messages.length > 0 ? 'badge-primary' : 'badge-ghost'">
                 {{ logStore.messages.length }}
               </div>
@@ -318,7 +318,7 @@
             <button 
               @click="openLogWindow"
               class="btn btn-xs btn-primary btn-outline"
-              title="打开日志窗口"
+              :title="t('deviceConnection.openLogWindow')"
             >
               <span class="material-icons text-xs">open_in_new</span>
             </button>
@@ -327,7 +327,7 @@
           <!-- 日志预览内容 -->
           <div class="text-xs">
             <div v-if="logStore.messages.length === 0" class="text-base-content/60 italic text-center py-2">
-              暂无日志消息
+              {{ t('deviceConnection.noLogMessages') }}
             </div>
             <div v-else class="space-y-1 max-h-32 overflow-y-auto">
               <!-- 只显示最近的3条日志 -->
@@ -340,7 +340,7 @@
                 {{ formatLogMessage(message) }}
               </div>
               <div v-if="logStore.messages.length > 3" class="text-center text-base-content/60 py-1">
-                还有 {{ logStore.messages.length - 3 }} 条消息...
+                {{ t('deviceConnection.moreMessages', { count: logStore.messages.length - 3 }) }}
               </div>
             </div>
           </div>
@@ -362,6 +362,7 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useLogStore } from '../stores/logStore';
 import { useDeviceStore } from '../stores/deviceStore';
@@ -372,6 +373,8 @@ interface PortInfo {
   name: string;
   port_type: string;
 }
+
+const { t } = useI18n();
 
 const logStore = useLogStore();
 const deviceStore = useDeviceStore();
@@ -411,7 +414,7 @@ const refreshPorts = async () => {
     const ports = await invoke<PortInfo[]>('get_serial_ports');
     deviceStore.setAvailablePorts(ports);
   } catch (error) {
-    console.error('获取串口列表失败:', error);
+    console.error(t('errors.getPortsFailed'), error);
     deviceStore.setAvailablePorts([]);
   } finally {
     deviceStore.setLoadingPorts(false);
@@ -558,14 +561,14 @@ const connectDevice = async () => {
       await invoke<void>('disconnect_device');
       deviceStore.setConnected(false);
     } catch (error) {
-      console.error('断开设备失败:', error);
+      console.error(t('errors.disconnectFailed'), error);
     } finally {
       deviceStore.setConnecting(false);
     }
   } else {
     // 检查必要的参数是否已选择
     if (!isConnectionValid.value) {
-      alert('请完成所有必要的设备配置');
+      alert(t('deviceConnection.pleaseCompleteConfig'));
       return;
     }
     
@@ -587,11 +590,11 @@ const connectDevice = async () => {
       
       deviceStore.setConnected(success);
       if (!success) {
-        alert('连接设备失败，请检查设备连接后重试');
+        alert(t('deviceConnection.connectFailedMessage'));
       }
     } catch (error) {
-      console.error('连接设备失败:', error);
-      alert('连接设备时出错');
+      console.error(t('errors.connectFailed'), error);
+      alert(t('deviceConnection.connectError'));
     } finally {
       deviceStore.setConnecting(false);
     }
@@ -649,11 +652,11 @@ const getStatusTextClass = () => {
 
 const getStatusText = () => {
   if (logStore.hasErrors) {
-    return '发现错误';
+    return t('deviceConnection.status') + ': ' + t('deviceConnection.connectionFailed');
   } else if (logStore.isFlashing) {
-    return '烧录中...';
+    return t('deviceConnection.status') + ': ' + t('writeFlash.status.starting');
   } else {
-    return logStore.messages.length > 0 ? '有新日志' : '等待日志';
+    return logStore.messages.length > 0 ? t('deviceConnection.moreMessages', { count: logStore.messages.length }) : t('deviceConnection.noLogMessages');
   }
 };
 
@@ -661,8 +664,8 @@ const openLogWindow = async () => {
   try {
     await WindowManager.openLogWindow();
   } catch (error) {
-    console.error('打开日志窗口失败:', error);
-    logStore.addMessage('打开日志窗口失败: ' + error, true);
+    console.error(t('errors.getPortsFailed'), error);
+    logStore.addMessage(t('errors.getPortsFailed') + ' ' + String(error), true);
   }
 };
 </script>

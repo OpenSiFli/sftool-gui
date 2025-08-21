@@ -57,7 +57,7 @@
     "startFlash": "Start Flash",
     "clearLog": "Clear Log",
     "dragDropSuccess": "Added {count} files via drag and drop",
-    "log": "Log Output",
+  "logLabel": "Log Output",
     "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf",
     "validation": {
       "noFiles": "Please select at least one firmware file",
@@ -78,6 +78,13 @@
       "connecting": "Connecting to device...",
       "unsupportedFileFormat": "Unsupported file format"
     }
+    ,
+    "operationInProgress": "{operation} in progress...",
+    "preparing": "Preparing...",
+    "waitingToStart": "Waiting to start...",
+    "allCompleted": "All completed",
+    "waitingForTasks": "Waiting for tasks...",
+    "completedMessage": "Successfully flashed {count} files, you can start the next flash"
   },
   "logWindow": {
     "autoScroll": "Auto Scroll",
@@ -93,5 +100,50 @@
     "filteredMessages": "Filtered {count} messages",
     "activeSession": "Active session",
     "ready": "Ready"
+  },
+  "deviceConnection": {
+    "title": "Device Connection",
+    "chipSelection": "Chip Selection",
+    "chipModel": "Chip Model",
+    "chipSearchPlaceholder": "Please select or search chip model",
+    "noChipFound": "No matching chip model found",
+    "storageType": "Storage Type",
+    "storageTypePlaceholder": "Please select storage type",
+    "selectChipFirst": "Please select chip model first",
+    "noStorageTypeAvailable": "No available storage types",
+    "interfaceSettings": "Interface Settings",
+    "interfaceType": "Interface Type",
+    "serialPort": "Serial Port",
+    "serialPortPlaceholder": "Please select or search serial port",
+    "noPortFound": "No serial port device detected",
+    "loadingPorts": "Loading ports...",
+    "refreshPorts": "Refresh Ports",
+    "baudRate": "Baud Rate",
+    "baudRatePlaceholder": "Please select or enter baud rate",
+    "connectDevice": "Connect Device",
+    "disconnectDevice": "Disconnect Device",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "connectionFailed": "Connection Failed",
+    "deviceInfo": "Device Information",
+    "status": "Status",
+    "device": "Device",
+    "storage": "Storage",
+    "interface": "Interface",
+    "port": "Port",
+    "systemLog": "System Log",
+    "openLogWindow": "Log Window",
+    "noLogMessages": "No log messages",
+    "moreMessages": "{count} more messages...",
+    "pleaseCompleteConfig": "Please complete all necessary device configuration",
+    "connectFailedMessage": "Failed to connect device, please check device connection and retry",
+    "connectError": "Error occurred while connecting device"
+  },
+  "errors": {
+    "getPortsFailed": "Failed to get serial ports:",
+    "disconnectFailed": "Failed to disconnect device:",
+  "connectFailed": "Failed to connect device:",
+  "openLogWindowFailed": "Failed to open log window:"
   }
 }

@@ -1,4 +1,5 @@
 import { reactive } from 'vue';
+import { t } from './i18nHelper';
 
 interface WindowState {
   isLogWindowOpen: boolean;
@@ -27,7 +28,7 @@ export class WindowManager {
       // 创建新的日志窗口
       const logWindow = new WebviewWindow('log-window', {
         url: '#/log-window',
-        title: '日志窗口',
+        title: t('deviceConnection.openLogWindow'),
         width: 800,
         height: 500,
         minWidth: 600,
@@ -60,7 +61,7 @@ export class WindowManager {
       
       return logWindow;
     } catch (error) {
-      console.error('打开日志窗口失败:', error);
+      console.error(t('errors.openLogWindowFailed') || 'Failed to open log window:', error);
       throw error;
     }
   }
