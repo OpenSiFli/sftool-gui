@@ -1,46 +1,27 @@
-import { type Ref } from 'vue';
 import { useLogStore } from '../stores/logStore';
 import { MessageParser } from './messageParser';
 import { 
   OperationType, 
   ProgressStatus,
   type ProgressEvent, 
-  type ProgressItem, 
-  type TotalProgress,
-  type FlashFile
+  type ProgressItem
 } from '../types/progress';
+
+// 导入 writeFlashStore 类型
+import type { useWriteFlashStore } from '../stores/writeFlashStore';
 
 /**
  * 进度处理器类 - 负责处理所有进度相关的逻辑
+ * 使用 Store 方式
  */
 export class ProgressHandler {
   private logStore = useLogStore();
-  private progressMap: Ref<Map<number, ProgressItem>>;
-  private selectedFiles: Ref<FlashFile[]>;
-  private completedFiles: Ref<Set<string>>;
-  private totalProgress: Ref<TotalProgress>;
-  private currentFlashingFile: Ref<string>;
-  private currentOperation: Ref<string>;
-  private flashCompleted: Ref<boolean>;
-
-  constructor(
-    progressMap: Ref<Map<number, ProgressItem>>,
-    selectedFiles: Ref<FlashFile[]>,
-    completedFiles: Ref<Set<string>>,
-    totalProgress: Ref<TotalProgress>,
-    currentFlashingFile: Ref<string>,
-    currentOperation: Ref<string>,
-    flashCompleted: Ref<boolean>
-  ) {
-    this.progressMap = progressMap;
-    this.selectedFiles = selectedFiles;
-    this.completedFiles = completedFiles;
-    this.totalProgress = totalProgress;
-    this.currentFlashingFile = currentFlashingFile;
-    this.currentOperation = currentOperation;
-    this.flashCompleted = flashCompleted;
+  private store: ReturnType<typeof useWriteFlashStore>;
+  
+  constructor(store: ReturnType<typeof useWriteFlashStore>) {
+    this.store = store;
   }
-
+  
   /**
    * 处理进度事件
    */
@@ -68,12 +49,12 @@ export class ProgressHandler {
     const { id, step, message, current, total } = event;
     const now = Date.now();
     
-    const parsed = MessageParser.parseMessage(message, this.selectedFiles.value);
+    const parsed = MessageParser.parseMessage(message, this.store.selectedFiles);
     let fileName = parsed.fileName;
     
     // 如果没有解析出文件名，使用默认逻辑
-    if (!fileName && this.selectedFiles.value.length > 0) {
-      fileName = this.selectedFiles.value[0].name;
+    if (!fileName && this.store.selectedFiles.length > 0) {
+      fileName = this.store.selectedFiles[0].name;
     }
     
     // 更新当前操作状态
@@ -108,7 +89,7 @@ export class ProgressHandler {
    */
   private handleUpdateEvent(event: ProgressEvent): void {
     const { id, message } = event;
-    const existing = this.progressMap.value.get(id);
+    const existing = this.store.progressMap.get(id);
     if (existing) {
       existing.message = message;
       this.logStore.addMessage(`[${existing.fileName}] ${message}`);
@@ -121,18 +102,18 @@ export class ProgressHandler {
   private handleIncrementEvent(event: ProgressEvent): void {
     const { id, current } = event;
     const now = Date.now();
-    const progressItem = this.progressMap.value.get(id);
+    const progressItem = this.store.progressMap.get(id);
     
     if (!progressItem || progressItem.current === undefined) return;
     
     // 更新进度
     progressItem.current += current || 0;
-    this.totalProgress.value.current = progressItem.current;
+    this.store.updateProgress({ current: progressItem.current });
     
     // 计算百分比
     if (progressItem.total && progressItem.total > 0) {
       progressItem.percentage = Math.round((progressItem.current / progressItem.total) * 100);
-      this.totalProgress.value.percentage = progressItem.percentage;
+      this.store.updateProgress({ percentage: progressItem.percentage });
     }
     
     // 计算速度和ETA
@@ -152,7 +133,7 @@ export class ProgressHandler {
    */
   private handleFinishEvent(event: ProgressEvent): void {
     const { id, message } = event;
-    const finishedItem = this.progressMap.value.get(id);
+    const finishedItem = this.store.progressMap.get(id);
     
     if (!finishedItem) return;
     
@@ -171,10 +152,10 @@ export class ProgressHandler {
    */
   private updateCurrentOperation(operationType: OperationType, fileName?: string): void {
     if (operationType === OperationType.DOWNLOAD && fileName) {
-      this.currentFlashingFile.value = fileName;
-      this.currentOperation.value = MessageParser.getOperationName(operationType);
+      this.store.setCurrentFlashingFile(fileName);
+      this.store.setCurrentOperation(MessageParser.getOperationName(operationType));
     } else {
-      this.currentOperation.value = MessageParser.getOperationName(operationType);
+      this.store.setCurrentOperation(MessageParser.getOperationName(operationType));
     }
   }
 
@@ -182,13 +163,15 @@ export class ProgressHandler {
    * 更新总进度状态
    */
   private updateTotalProgress(fileName: string, total?: number): void {
-    this.totalProgress.value.currentFileName = fileName;
-    this.totalProgress.value.totalCount = this.selectedFiles.value.length;
-    this.totalProgress.value.current = 0;
-    this.totalProgress.value.total = total || 0;
-    this.totalProgress.value.percentage = 0;
-    this.totalProgress.value.speed = 0;
-    this.totalProgress.value.eta = 0;
+    this.store.updateProgress({
+      currentFileName: fileName,
+      totalCount: this.store.selectedFiles.length,
+      current: 0,
+      total: total || 0,
+      percentage: 0,
+      speed: 0,
+      eta: 0
+    });
   }
 
   /**
@@ -210,7 +193,7 @@ export class ProgressHandler {
       operationType: data.operationType
     };
     
-    this.progressMap.value.set(id, item);
+    this.store.updateProgressMap(id, item);
   }
 
   /**
@@ -220,12 +203,12 @@ export class ProgressHandler {
     if (progressItem.startTime && progressItem.current && progressItem.current > 0) {
       const elapsed = (now - progressItem.startTime) / 1000; // 秒
       progressItem.speed = progressItem.current / elapsed; // bytes/s
-      this.totalProgress.value.speed = progressItem.speed;
+      this.store.updateProgress({ speed: progressItem.speed });
       
       if (progressItem.total && progressItem.speed > 0) {
         const remaining = progressItem.total - progressItem.current;
         progressItem.eta = remaining / progressItem.speed; // 剩余秒数
-        this.totalProgress.value.eta = progressItem.eta;
+        this.store.updateProgress({ eta: progressItem.eta });
       }
     }
   }
@@ -250,24 +233,27 @@ export class ProgressHandler {
    */
   private handleDownloadComplete(finishedItem: ProgressItem, message: string): void {
     // 只有下载操作完成时才标记文件为完成
-    this.completedFiles.value.add(finishedItem.fileName);
+    this.store.addCompletedFile(finishedItem.fileName);
     
     // 更新完成计数
-    this.totalProgress.value.completedCount = this.completedFiles.value.size;
-    this.totalProgress.value.percentage = 100;
+    const completedCount = this.store.completedFiles.size;
+    this.store.updateProgress({ 
+      completedCount,
+      percentage: 100 
+    });
     
     // 清除当前烧录文件状态
-    if (this.currentFlashingFile.value === finishedItem.fileName) {
-      this.currentFlashingFile.value = '';
+    if (this.store.currentFlashingFile === finishedItem.fileName) {
+      this.store.setCurrentFlashingFile('');
     }
     
     this.logStore.addMessage(`[${finishedItem.fileName}] ${message}`, true);
     
     // 检查是否所有文件都完成了
-    if (this.completedFiles.value.size >= this.selectedFiles.value.length) {
-      this.flashCompleted.value = true;
-      this.currentOperation.value = '';
-      this.totalProgress.value.currentFileName = '';
+    if (this.store.completedFiles.size >= this.store.selectedFiles.length) {
+      this.store.setFlashCompleted(true);
+      this.store.setCurrentOperation('');
+      this.store.updateProgress({ currentFileName: '' });
       this.logStore.addMessage(`所有文件烧录完成！`, true);
     }
   }
@@ -280,28 +266,14 @@ export class ProgressHandler {
     this.logStore.addMessage(`[${operationName}] ${message}`, true);
     
     // 清除当前操作状态（对于非下载操作）
-    this.currentOperation.value = '';
+    this.store.setCurrentOperation('');
   }
 
   /**
    * 重置所有状态
    */
   resetAllStates(): void {
-    this.progressMap.value.clear();
-    this.currentFlashingFile.value = '';
-    this.currentOperation.value = '';
-    this.completedFiles.value.clear();
-    this.flashCompleted.value = false;
-    this.totalProgress.value = {
-      current: 0,
-      total: 0,
-      percentage: 0,
-      speed: 0,
-      eta: 0,
-      currentFileName: '',
-      completedCount: 0,
-      totalCount: this.selectedFiles.value.length
-    };
+    this.store.resetProgressStates();
   }
 
   // 工具方法
@@ -320,10 +292,10 @@ export class ProgressHandler {
 
   private formatTime(seconds: number): string {
     if (seconds < 60) {
-      return `${seconds}秒`;
+      return `${seconds.toFixed(0)}秒`;
     } else if (seconds < 3600) {
       const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
+      const remainingSeconds = Math.floor(seconds % 60);
       return `${minutes}分${remainingSeconds}秒`;
     } else {
       const hours = Math.floor(seconds / 3600);
