@@ -360,131 +360,87 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
-import { CHIP_MODELS, type ChipModel } from '../config/chips';
+import { onMounted, computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import { invoke } from '@tauri-apps/api/core';
 import { useLogStore } from '../stores/logStore';
+import { useDeviceStore } from '../stores/deviceStore';
 import { WindowManager } from '../services/windowManager';
-
-const logStore = useLogStore();
+import type { ChipModel } from '../config/chips';
 
 interface PortInfo {
   name: string;
   port_type: string;
 }
 
-// 状态
-const availablePorts = ref<PortInfo[]>([]);
-const isLoadingPorts = ref(false);
-const isConnected = ref(false);
-const isConnecting = ref(false);
+const logStore = useLogStore();
+const deviceStore = useDeviceStore();
 
-// 芯片下拉框状态 - 默认设置为 SF32LB52
-const showChipDropdown = ref(false);
-const chipSearchInput = ref('SF32LB52');
-const selectedChip = ref<ChipModel | null>(CHIP_MODELS.find(chip => chip.id === 'SF32LB52') || null);
-const tempChipInput = ref('SF32LB52'); // 保存临时输入，用于恢复搜索状态
-
-// 存储器类型 - 默认设置为 NOR
-const showMemoryTypeDropdown = ref(false);
-const memoryTypeInput = ref('NOR');
-const selectedMemoryType = ref<string | null>('NOR');
-const tempMemoryTypeInput = ref('NOR');
-
-// 芯片与存储器映射
-const chipMemoryTypes = {
-  'SF32LB52': ['NOR', 'NAND', 'SD'],
-  'default': ['NOR']
-};
-
-// 获取当前芯片可用的存储器类型
-const availableMemoryTypes = computed(() => {
-  if (!selectedChip.value) return [];
-  return chipMemoryTypes[selectedChip.value.id as keyof typeof chipMemoryTypes] || chipMemoryTypes.default;
-});
-
-// 接口类型
-const selectedInterface = ref('UART');
-
-// 串口下拉框状态
-const showPortDropdown = ref(false);
-const portSearchInput = ref('');
-const selectedPort = ref<PortInfo | null>(null);
-const tempPortInput = ref(''); // 保存临时输入，用于恢复搜索状态
-
-// 波特率
-const baudRates = [1000000, 1500000, 3000000, 6000000];
-const showBaudRateDropdown = ref(false);
-const baudRateInput = ref('1000000');
-const tempBaudRateInput = ref('');
-
-// 连接验证
-const isConnectionValid = computed(() => {
-  if (!selectedChip.value || !selectedMemoryType.value) return false;
-  
-  if (selectedInterface.value === 'UART') {
-    return !!selectedPort.value && !!baudRateInput.value;
-  } else {
-    return true; // USB接口不需要其他配置
-  }
-});
-
-// 过滤的芯片和串口列表
-const filteredChips = computed(() => {
-  if (!chipSearchInput.value) return CHIP_MODELS;
-  
-  const search = chipSearchInput.value.toLowerCase();
-  return CHIP_MODELS.filter(chip => 
-    chip.name.toLowerCase().includes(search)
-  );
-});
-
-const filteredPorts = computed(() => {
-  if (!portSearchInput.value) return availablePorts.value;
-  
-  const search = portSearchInput.value.toLowerCase();
-  return availablePorts.value.filter(port => 
-    port.name.toLowerCase().includes(search) ||
-    port.port_type.toLowerCase().includes(search)
-  );
-});
+// 从 store 中获取计算属性和状态 - 使用 storeToRefs 保持响应性
+const {
+  isConnected,
+  isConnecting,
+  selectedChip,
+  chipSearchInput,
+  showChipDropdown,
+  tempChipInput,
+  selectedMemoryType,
+  memoryTypeInput,
+  showMemoryTypeDropdown,
+  tempMemoryTypeInput,
+  selectedInterface,
+  availablePorts,
+  isLoadingPorts,
+  selectedPort,
+  portSearchInput,
+  showPortDropdown,
+  tempPortInput,
+  baudRateInput,
+  showBaudRateDropdown,
+  baudRates,
+  availableMemoryTypes,
+  isConnectionValid,
+  filteredChips,
+  filteredPorts
+} = storeToRefs(deviceStore);
 
 // 刷新串口列表
 const refreshPorts = async () => {
   try {
-    isLoadingPorts.value = true;
-    availablePorts.value = await invoke<PortInfo[]>('get_serial_ports');
+    deviceStore.setLoadingPorts(true);
+    const ports = await invoke<PortInfo[]>('get_serial_ports');
+    deviceStore.setAvailablePorts(ports);
   } catch (error) {
     console.error('获取串口列表失败:', error);
-    availablePorts.value = [];
+    deviceStore.setAvailablePorts([]);
   } finally {
-    isLoadingPorts.value = false;
+    deviceStore.setLoadingPorts(false);
   }
 };
 
 // 处理输入框获得焦点
 const handleFocus = (type: 'chip' | 'port' | 'memoryType' | 'baudRate') => {
   // 关闭所有下拉框
-  showChipDropdown.value = false;
-  showPortDropdown.value = false;
-  showMemoryTypeDropdown.value = false;
-  showBaudRateDropdown.value = false;
+  deviceStore.setShowChipDropdown(false);
+  deviceStore.setShowPortDropdown(false);
+  deviceStore.setShowMemoryTypeDropdown(false);
+  deviceStore.setShowBaudRateDropdown(false);
   
   if (type === 'chip') {
-    tempChipInput.value = chipSearchInput.value;
-    chipSearchInput.value = ''; 
-    showChipDropdown.value = true;
+    deviceStore.setTempChipInput(chipSearchInput.value);
+    deviceStore.setChipSearchInput(''); 
+    deviceStore.setShowChipDropdown(true);
   } else if (type === 'port') {
-    tempPortInput.value = portSearchInput.value;
-    portSearchInput.value = ''; 
-    showPortDropdown.value = true;
+    deviceStore.setTempPortInput(portSearchInput.value);
+    deviceStore.setPortSearchInput(''); 
+    deviceStore.setShowPortDropdown(true);
   } else if (type === 'memoryType') {
-    tempMemoryTypeInput.value = memoryTypeInput.value;
-    memoryTypeInput.value = '';
-    showMemoryTypeDropdown.value = true;
+    deviceStore.setTempMemoryTypeInput(memoryTypeInput.value);
+    deviceStore.setMemoryTypeInput('');
+    deviceStore.setShowMemoryTypeDropdown(true);
   } else if (type === 'baudRate') {
-    tempBaudRateInput.value = baudRateInput.value;
-    showBaudRateDropdown.value = true;
+    deviceStore.setTempBaudRateInput(baudRateInput.value);
+    deviceStore.setShowBaudRateDropdown(true);
   }
 };
 
@@ -494,26 +450,26 @@ const handleBlur = (type: 'chip' | 'port' | 'memoryType' | 'baudRate') => {
     if (type === 'chip') {
       if (showChipDropdown.value) {
         if (chipSearchInput.value === '') {
-          chipSearchInput.value = selectedChip.value?.name || tempChipInput.value;
+          deviceStore.setChipSearchInput(selectedChip.value?.name || tempChipInput.value);
         }
-        showChipDropdown.value = false;
+        deviceStore.setShowChipDropdown(false);
       }
     } else if (type === 'port') {
       if (showPortDropdown.value) {
         if (portSearchInput.value === '') {
-          portSearchInput.value = selectedPort.value?.name || tempPortInput.value;
+          deviceStore.setPortSearchInput(selectedPort.value?.name || tempPortInput.value);
         }
-        showPortDropdown.value = false;
+        deviceStore.setShowPortDropdown(false);
       }
     } else if (type === 'memoryType') {
       if (showMemoryTypeDropdown.value) {
         if (memoryTypeInput.value === '') {
-          memoryTypeInput.value = selectedMemoryType.value || tempMemoryTypeInput.value;
+          deviceStore.setMemoryTypeInput(selectedMemoryType.value || tempMemoryTypeInput.value);
         }
-        showMemoryTypeDropdown.value = false;
+        deviceStore.setShowMemoryTypeDropdown(false);
       }
     } else if (type === 'baudRate') {
-      showBaudRateDropdown.value = false;
+      deviceStore.setShowBaudRateDropdown(false);
     }
   }, 200);
 };
@@ -533,43 +489,31 @@ const handlePortKeyDown = (e: KeyboardEvent) => {
 
 // 选择芯片
 const selectChip = (chip: ChipModel) => {
-  selectedChip.value = chip;
-  chipSearchInput.value = chip.name;
-  showChipDropdown.value = false;
-  
-  // 重置存储器类型
-  selectedMemoryType.value = null;
-  memoryTypeInput.value = '';
-  
-  // 如果只有一种存储器类型，则自动选择
-  if (availableMemoryTypes.value.length === 1) {
-    selectMemoryType(availableMemoryTypes.value[0]);
-  }
+  deviceStore.setSelectedChip(chip);
+  deviceStore.setShowChipDropdown(false);
 };
 
 // 选择存储器类型
 const selectMemoryType = (memoryType: string) => {
-  selectedMemoryType.value = memoryType;
-  memoryTypeInput.value = memoryType;
-  showMemoryTypeDropdown.value = false;
+  deviceStore.setSelectedMemoryType(memoryType);
+  deviceStore.setShowMemoryTypeDropdown(false);
 };
 
 // 选择接口类型
 const selectInterface = (interfaceType: string) => {
-  selectedInterface.value = interfaceType;
+  deviceStore.setSelectedInterface(interfaceType);
 };
 
 // 选择串口
 const selectPort = (port: PortInfo) => {
-  selectedPort.value = port;
-  portSearchInput.value = port.name;
-  showPortDropdown.value = false;
+  deviceStore.setSelectedPort(port);
+  deviceStore.setShowPortDropdown(false);
 };
 
 // 选择波特率
 const selectBaudRate = (rate: number) => {
-  baudRateInput.value = rate.toString();
-  showBaudRateDropdown.value = false;
+  deviceStore.setBaudRate(rate.toString());
+  deviceStore.setShowBaudRateDropdown(false);
 };
 
 // 切换下拉框显示
@@ -577,7 +521,7 @@ const toggleChipDropdown = () => {
   if (!showChipDropdown.value) {
     handleFocus('chip');
   } else {
-    showChipDropdown.value = false;
+    deviceStore.setShowChipDropdown(false);
   }
 };
 
@@ -585,7 +529,7 @@ const togglePortDropdown = () => {
   if (!showPortDropdown.value) {
     handleFocus('port');
   } else {
-    showPortDropdown.value = false;
+    deviceStore.setShowPortDropdown(false);
   }
 };
 
@@ -593,15 +537,15 @@ const toggleMemoryTypeDropdown = () => {
   if (!showMemoryTypeDropdown.value) {
     handleFocus('memoryType');
   } else {
-    showMemoryTypeDropdown.value = false;
+    deviceStore.setShowMemoryTypeDropdown(false);
   }
 };
 
 const toggleBaudRateDropdown = () => {
   if (!showBaudRateDropdown.value) {
-    showBaudRateDropdown.value = true;
+    deviceStore.setShowBaudRateDropdown(true);
   } else {
-    showBaudRateDropdown.value = false;
+    deviceStore.setShowBaudRateDropdown(false);
   }
 };
 
@@ -609,14 +553,14 @@ const toggleBaudRateDropdown = () => {
 const connectDevice = async () => {
   if (isConnected.value) {
     // 断开连接
-    isConnecting.value = true;
+    deviceStore.setConnecting(true);
     try {
       await invoke<void>('disconnect_device');
-      isConnected.value = false;
+      deviceStore.setConnected(false);
     } catch (error) {
       console.error('断开设备失败:', error);
     } finally {
-      isConnecting.value = false;
+      deviceStore.setConnecting(false);
     }
   } else {
     // 检查必要的参数是否已选择
@@ -626,7 +570,7 @@ const connectDevice = async () => {
     }
     
     // 连接设备
-    isConnecting.value = true;
+    deviceStore.setConnecting(true);
     try {
       const connectParams: Record<string, any> = {
         chipModel: selectedChip.value!.id,
@@ -641,7 +585,7 @@ const connectDevice = async () => {
       
       const success = await invoke<boolean>('connect_device', connectParams);
       
-      isConnected.value = success;
+      deviceStore.setConnected(success);
       if (!success) {
         alert('连接设备失败，请检查设备连接后重试');
       }
@@ -649,36 +593,19 @@ const connectDevice = async () => {
       console.error('连接设备失败:', error);
       alert('连接设备时出错');
     } finally {
-      isConnecting.value = false;
+      deviceStore.setConnecting(false);
     }
   }
 };
 
-// 监听选择的值变化
-watch(selectedChip, (newChip) => {
-  if (newChip) {
-    chipSearchInput.value = newChip.name;
-  }
-});
-
-watch(selectedPort, (newPort) => {
-  if (newPort) {
-    portSearchInput.value = newPort.name;
-  }
-});
-
-// 监听接口类型变化
-watch(selectedInterface, (newInterface) => {
-  if (newInterface !== 'UART') {
-    // 如果不是UART接口，重置串口和波特率
-    selectedPort.value = null;
-    portSearchInput.value = '';
-  }
-});
-
-// 组件挂载时加载串口列表
-onMounted(() => {
-  refreshPorts();
+// 组件挂载时加载串口列表和设备设置
+onMounted(async () => {
+  // 从存储加载设备设置
+  await deviceStore.loadFromStorage();
+  
+  // 加载串口列表
+  await refreshPorts();
+  
   // 初始化日志事件监听
   logStore.setupEventListeners();
 });
