@@ -25,4 +25,4 @@
 
 © 2025 SiFli Technologies(Nanjing) Co., Ltd. All Rights Reserved.
 
-> 问题反馈：Github issue
+> 问题反馈：[existing issues](https://github.com/OpenSiFli/sftool-gui/issues) 
