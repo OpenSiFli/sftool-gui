@@ -1,16 +1,28 @@
-# Tauri + Vue + TypeScript
+# sftool-gui
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+ > 一个界面友好的SIFLI系列芯片图形化烧录工具。
 
-## Recommended IDE Setup
+## 功能与特性
+- 基于 **Tauri + Vue 3 + TypeScript**，只需轻点几步即可烧录，降低使用门槛，让固件烧录更简单。
+- 支持Sifli系列三个主推芯片型号和存储器类型。
+- 支持查看系统日志，方便查看运行情况和错误原因。
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## 支持的产品
+### 芯片型号
+- SF32LB52
+- SF32LB56
+- SF32LB58
+### 存储器类型
+- NOR
+- NAND
+- SD
 
-## Type Support For `.vue` Imports in TS
+## 安装与运行
 
-Since TypeScript cannot handle type information for `.vue` imports, they are shimmed to be a generic Vue component type by default. In most cases this is fine if you don't really care about component prop types outside of templates. However, if you wish to get actual prop types in `.vue` imports (for example to get props validation when using manual `h(...)` calls), you can enable Volar's Take Over mode by following these steps:
+> 快速使用图形界面，请查看 **[发布页](https://github.com/OpenSiFli/sftool-gui/releases)** 下载您的环境对应的安装包。
 
-1. Run `Extensions: Show Built-in Extensions` from VS Code's command palette, look for `TypeScript and JavaScript Language Features`, then right click and select `Disable (Workspace)`. By default, Take Over mode will enable itself if the default TypeScript extension is disabled.
-2. Reload the VS Code window by running `Developer: Reload Window` from the command palette.
+## 关于
 
-You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
+© 2025 SiFli Technologies(Nanjing) Co., Ltd. All Rights Reserved.
+
+> 问题反馈：[existing issues](https://github.com/OpenSiFli/sftool-gui/issues) 
