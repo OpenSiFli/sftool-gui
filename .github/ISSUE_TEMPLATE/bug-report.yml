@@ -1,0 +1,258 @@
+name: Bug Report
+description: Report bugs in sftool-gui desktop application
+title: "[BUG] "
+labels: ['Type: Bug', 'Status: Needs Triage']
+assignees:
+  - 
+body:
+  - type: markdown
+    attributes:
+      value: |
+        * Thanks for taking the time to fill out this bug report for sftool-gui!
+        * Please provide as much detail as possible to help us reproduce and fix the issue.
+        * Check the [existing issues](https://github.com/OpenSiFli/sftool-gui/issues) first.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Before submitting a new issue, please follow the checklist and try to find the answer.
+      options:
+        - label: I have read the SiFli documentation and the issue is not addressed there.
+          required: true
+        - label: I have updated to the latest version of sftool-gui and confirmed the issue still exists.
+          required: true
+        - label: I have searched the issue tracker for a similar issue and not found a duplicate.
+          required: true
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bug_category
+    attributes:
+      label: Bug Category
+      description: What type of issue are you experiencing?
+      options:
+        - Application Runtime - Crashes, errors during normal use
+        - Installation/Setup - Problems installing or setting up sftool-gui
+        - Build from Source - Issues building sftool-gui from source code
+        - Hardware Communication - Problems connecting to SiFli chips
+        - User Interface - GUI display or interaction issues
+        - Performance - Slow performance or memory issues
+        - Cross-platform - Platform-specific problems
+        - Other (please specify in description)
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: sftool-gui Version
+      description: Which version of sftool-gui are you using? Check Help > About or run with --version flag.
+      placeholder: ex. v1.0.1, v1.2.0-beta, or commit hash if building from source
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating_system
+    attributes:
+      label: Operating System
+      description: Which operating system are you running sftool-gui on?
+      multiple: false
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Linux (Ubuntu/Debian)
+        - Linux (Arch/Manjaro)
+        - Linux (Other distribution)
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: chip_model
+    attributes:
+      label: Target SiFli Chip Model (if applicable)
+      description: Which SiFli chip are you trying to interact with?
+      options:
+        - Not applicable - Installation/UI issue
+        - SF32LB52
+        - SF32LB55
+        - SF32LB56
+        - SF32LB58
+        - Other (please specify in description)
+      default: 0
+    validations:
+      required: false
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: ex. The application crashes when I try to connect to SF32LB52 via COM3... / Installation fails with "Failed to verify signature"...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: What is the expected behavior?
+      description: Please provide a clear and concise description of what you expected to happen.
+      placeholder: I expected the chip to connect successfully... / I expected sftool-gui to install without errors...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: What is the actual behavior?
+      description: Please describe what actually happened instead.
+      placeholder: Instead, the connection fails with error "Connection timeout"... / Instead, the installer shows error "Missing dependencies"...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: How did the issue occur? Please provide detailed step-by-step instructions.
+      value: |
+        1. [For runtime issues] Launch sftool-gui / [For installation] Download installer from...
+        2. [Describe the action taken]
+        3. [Continue with specific steps]
+        4. [Add more steps as needed]
+        5. Observe the error/crash
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Bug Severity
+      description: How severe is this bug's impact on your workflow?
+      options:
+        - Critical - Cannot install/launch application, data loss, security issue
+        - High - Major functionality broken (cannot flash/connect to chip)
+        - Medium - Minor functionality affected, workaround available
+        - Low - UI/cosmetic issue, doesn't affect core functionality
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: hardware-setup
+    attributes:
+      label: Hardware Setup (for hardware communication issues)
+      description: Please describe your hardware configuration and connection setup. Skip if not applicable.
+      placeholder: |
+        - Development Board: SiFli Development Board / Custom board
+        - Connection Type: USB-to-Serial / Direct USB / UART
+        - Serial Port: COM3 / /dev/ttyUSB0
+        - Cable Type: USB-C / Micro-USB / Custom
+        - Power Supply: USB powered / External 3.3V
+        - Other connected devices or debugging tools
+    validations:
+      required: false
+
+  - type: textarea
+    id: installation-details
+    attributes:
+      label: Installation/Build Details (for installation/build issues)
+      description: If this is an installation or build issue, please provide these details. Skip if not applicable.
+      placeholder: |
+        Installation Type:
+        - Downloaded pre-built binary from GitHub releases
+        - Installing from package manager (apt, brew, etc.)
+        - Building from source code
+        - Updating from previous version
+        
+        Build Environment (if building from source):
+        - Node.js version: v18.12.0
+        - npm/yarn version: npm 8.19.2
+        - Rust toolchain: rustc 1.65.0
+        - Tauri CLI version: @tauri-apps/cli 1.2.0
+        - System Architecture: x64 / ARM64
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment-details
+    attributes:
+      label: Environment Details
+      description: Please provide system and development environment information
+      placeholder: |
+        - OS Version: Windows 11 22H2 Build 22621.1555 / macOS Ventura 13.2 / Ubuntu 22.04
+        - System Architecture: x64 / ARM64
+        - Available RAM: 16GB
+        - User Account Type: Administrator / Standard user
+        - Antivirus Software: Windows Defender  (if relevant)
+        - USB Drivers: CH340, FTDI, CP2102 etc. (for hardware issues)
+        - System Language/Locale: English (US), Chinese, etc.
+        - Virtual Machine: VMware/VirtualBox (if applicable)
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-logs
+    attributes:
+      label: Error Messages and Logs
+      description: Please paste any error messages, console output, installation logs, or build logs
+      placeholder: |
+        Include any error dialogs, console messages, or log file contents.
+        For runtime issues: Enable debug/verbose mode if available.
+        For installation issues: Include complete installer logs.
+        For build issues: Include complete build output and error traces.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and System Components (for installation/build issues)
+      description: List installed dependencies that might be relevant. Skip if not applicable.
+      placeholder: |
+        - Visual C++ Redistributables: Version X.X
+        - .NET Framework: Version X.X  
+        - USB Drivers and versions
+        - Python: 3.9.0 (if building from source)
+        - Git: 2.38.0
+        - Any other relevant system libraries or tools
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: attempted-solutions
+    attributes:
+      label: Attempted Solutions
+      description: What have you already tried to fix this issue?
+      placeholder: |
+        - Tried running as administrator/sudo
+        - Reinstalled the application
+        - Cleared cache/temporary files
+        - Disabled antivirus temporarily
+        - Tried different USB port/cable
+        - Used different download source
+        - etc.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Information
+      description: Any other context, screenshots, or related information about the problem
+      placeholder: |
+        ex. This issue started after updating from v1.0.0 to v1.1.0
+        - Screenshots of error dialogs or UI issues
+        - Works fine on colleague's Windows 10 machine
+        - Issue occurs only with specific chip batches
+        - Similar problems with command-line sftool
+        - Workarounds that partially help
+    validations:
+      required: false
