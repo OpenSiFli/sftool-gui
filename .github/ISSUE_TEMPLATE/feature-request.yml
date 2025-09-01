@@ -1,0 +1,163 @@
+name: Feature Request
+description: Suggest an idea or improvement for sftool-gui
+title: "[FEATURE] "
+labels: ['Type: Feature Request', 'Status: Needs Discussion']
+assignees:
+  -
+body:
+  - type: markdown
+    attributes:
+      value: |
+        * We welcome any ideas or feature requests for sftool-gui! It's helpful if you can explain exactly why the feature would be useful.
+        * Please check the [existing feature requests](https://github.com/OpenSiFli/sftool-gui/labels/Type%3A%20Feature%20Request) first to avoid duplicates.
+        * Consider browsing the [SiFli documentation](https://docs.sifli.com/) to see if the functionality already exists.
+
+  - type: textarea
+    id: problem-related
+    attributes:
+      label: Is your feature request related to a problem?
+      description: Please provide a clear and concise description of what the problem or limitation is.
+      placeholder: ex. I'm always frustrated when I need to manually select each file for multi-chip programming because the current interface doesn't support batch operations...
+    validations:
+      required: false
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: Please provide a clear and concise description of what you want to happen.
+      placeholder: ex. I would like to have a batch programming feature where I can select multiple firmware files and target multiple chips simultaneously with a single click...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: Please provide a clear and concise description of any alternative solutions or features you've considered.
+      placeholder: ex. I considered using command-line sftool with scripts, but this wouldn't work well for our team because many engineers prefer GUI tools and need visual feedback...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: feature-category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - User Interface/Experience - UI improvements, layout, accessibility
+        - Chip Support - New SiFli chip models, protocols, or hardware features
+        - Programming/Flashing - Firmware upload, verification, batch operations
+        - Connectivity - Serial ports, USB, communication protocols
+        - Development Tools - Debugging, logging, analysis features
+        - Cross-platform - Windows, macOS, Linux specific improvements
+        - Performance - Speed, memory usage, optimization
+        - Automation - Scripting, batch processing, workflow automation
+        - Documentation/Help - In-app help, tutorials, guides
+        - Other (please specify in description)
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature for your development workflow?
+      options:
+        - Low - Nice to have, would be a welcome addition
+        - Medium - Would significantly improve my development efficiency
+        - High - Critical for my team's workflow or project requirements
+      default: 1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-type
+    attributes:
+      label: Primary User Type
+      description: Which type of user would benefit most from this feature?
+      options:
+        - Firmware Developer - Engineers writing embedded software
+        - Hardware Engineer - Board designers and hardware developers
+        - Production Engineer - Manufacturing and testing teams
+        - Hobbyist/Maker - Individual developers and makers
+        - Team Lead/Manager - Managing development workflows
+        - All Users - Would benefit everyone using sftool-gui
+      default: 5
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases and Examples
+      description: Please provide specific scenarios where this feature would be helpful
+      placeholder: |
+        1. When programming multiple development boards for a team, I need to...
+        2. During production testing, it would help if we could...
+        3. For debugging firmware issues, this feature would enable...
+        4. In educational settings, students would benefit from...
+
+  - type: textarea
+    id: target-hardware
+    attributes:
+      label: Target Hardware/Chips
+      description: If this feature is hardware-specific, please specify which SiFli chips or hardware setups
+      placeholder: |
+        - Specific chip models: SF32LB52, SF32LB55, etc.
+        - Development boards: SiFli EVK, custom boards
+        - Connection types: USB, UART, SWD
+        - Or mark as "All hardware" if generally applicable
+
+  - type: textarea
+    id: mockups-workflow
+    attributes:
+      label: Proposed Workflow or Mockups
+      description: Describe the ideal user workflow or attach mockups/screenshots showing how this feature should work
+      placeholder: |
+        Describe the step-by-step workflow or attach images:
+        1. User opens "Batch Programming" dialog
+        2. User selects multiple firmware files and target addresses
+        3. User selects connected devices from auto-detected list
+        4. Progress bar shows individual chip programming status
+        5. Success/failure summary is displayed
+        
+        Screenshots, wireframes, or drawings are very helpful!
+
+  - type: textarea
+    id: technical-considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical aspects, limitations, or implementation ideas you've considered
+      placeholder: |
+        ex. This feature might require:
+        - Multi-threading to handle simultaneous chip communications
+        - New UI components for device management
+        - Compatibility with existing command-line sftool backend
+        - Error handling for partial failures in batch operations
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, references to similar tools, or examples about the feature request here
+      placeholder: |
+        ex. Similar tools like Arduino IDE or PlatformIO have this feature implemented as...
+        - Links to similar features in other tools
+        - References to SiFli documentation sections
+        - Screenshots from other applications showing desired functionality
+        - Team/project context that drives this need
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm you have completed the following
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I have provided sufficient details for the development team to understand the request
+          required: true
+        - label: I have considered how this feature would fit into the existing sftool-gui interface
+          required: false
