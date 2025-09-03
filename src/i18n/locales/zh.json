@@ -58,7 +58,7 @@
     "clearLog": "清除日志",
     "dragDropSuccess": "拖拽添加了 {count} 个文件",
   "logLabel": "日志输出",
-    "supportedFormats": "支持的文件格式：.bin, .hex, .elf, .axf",
+    "supportedFormats": "支持的文件格式：.bin, .hex, .elf, .axf, sftool_param.json",
     "validation": {
       "noFiles": "请选择至少一个固件文件",
       "addressRequired": "请输入烧录地址",
@@ -101,6 +101,22 @@
       },
       "cannotSetupDragListeners": "无法设置Tauri文件拖拽监听器:",
       "cannotSetupDragListenersHint": "警告: 无法设置Tauri文件拖拽监听器，请使用文件选择按钮"
+    },
+    "sftoolConfig": {
+      "detected": "检测到sftool配置文件",
+      "parsing": "正在解析配置文件...",
+      "parseSuccess": "配置文件解析成功",
+      "parseFailed": "配置文件解析失败",
+      "extractedFiles": "从配置文件提取了 {count} 个文件",
+      "validationFailed": "配置验证失败",
+      "chipMismatch": "芯片类型不匹配",
+      "memoryMismatch": "存储器类型不匹配",
+      "configMismatchWarning": "配置文件与当前设备设置不匹配，请检查设备配置",
+      "currentDevice": "当前设备：{chip} - {memory}",
+      "configDevice": "配置文件：{chip} - {memory}",
+      "continueAnyway": "仍要继续使用此配置？",
+      "fileNotFound": "配置文件中引用的文件不存在",
+      "invalidConfig": "无效的配置文件格式"
     }
   },
   "logWindow": {

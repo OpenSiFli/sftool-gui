@@ -65,6 +65,12 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
   const isSupportedFile = (fileName: string): boolean => {
     const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
     const SUPPORTED_EXTENSIONS = ['.bin', '.hex', '.elf', '.axf'];
+    
+    // 检查是否是sftool配置文件
+    if (fileName.toLowerCase().includes('sftool_param.json')) {
+      return true;
+    }
+    
     return SUPPORTED_EXTENSIONS.includes(extension);
   };
   

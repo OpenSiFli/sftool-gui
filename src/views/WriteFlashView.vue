@@ -294,7 +294,14 @@ import { useI18n } from 'vue-i18n';
 import { listen } from '@tauri-apps/api/event';
 import { useLogStore } from '../stores/logStore';
 import { useWriteFlashStore } from '../stores/writeFlashStore';
+import { useDeviceStore } from '../stores/deviceStore';
 import { ProgressHandler } from '../utils/progressHandler';
+import { 
+  parseSftoolParamFile, 
+  validateConfigWithDevice, 
+  isSftoolParamFile,
+  formatValidationErrors 
+} from '../utils/sftoolParamParser';
 import type { 
   FlashFile
 } from '../types/progress';
@@ -302,6 +309,7 @@ import type {
 const { t } = useI18n();
 const logStore = useLogStore();
 const writeFlashStore = useWriteFlashStore();
+const deviceStore = useDeviceStore();
 
 // 创建进度处理器实例
 const progressHandler = new ProgressHandler(writeFlashStore);
@@ -467,6 +475,92 @@ const addFilesWithDeduplication = (newFiles: FlashFile[], source: string) => {
   }
 };
 
+// 处理sftool配置文件
+const handleSftoolConfigFile = async (filePath: string): Promise<FlashFile[]> => {
+  try {
+    logStore.addMessage(t('writeFlash.sftoolConfig.detected'));
+    logStore.addMessage(t('writeFlash.sftoolConfig.parsing'));
+
+    // 解析配置文件
+    const parseResult = await parseSftoolParamFile(filePath);
+    logStore.addMessage(t('writeFlash.sftoolConfig.parseSuccess'));
+
+    // 验证配置与当前设备设置的兼容性
+    const validation = validateConfigWithDevice(
+      parseResult.config,
+      deviceStore.selectedChip,
+      deviceStore.selectedMemoryType
+    );
+
+    // 如果验证失败，显示错误并询问是否继续
+    if (!validation.isValid) {
+      const errorMessages = formatValidationErrors(validation);
+      
+      logStore.addMessage(t('writeFlash.sftoolConfig.validationFailed'), true);
+      errorMessages.forEach(error => {
+        logStore.addMessage(`- ${error}`, true);
+      });
+
+      // 显示当前和配置文件的设备信息
+      logStore.addMessage(
+        t('writeFlash.sftoolConfig.currentDevice', {
+          chip: validation.currentChip,
+          memory: validation.currentMemory
+        })
+      );
+      logStore.addMessage(
+        t('writeFlash.sftoolConfig.configDevice', {
+          chip: validation.configChip,
+          memory: validation.configMemory
+        })
+      );
+
+      // 弹出警告对话框
+      const shouldContinue = confirm(
+        `${t('writeFlash.sftoolConfig.configMismatchWarning')}\n\n` +
+        errorMessages.join('\n') + '\n\n' +
+        t('writeFlash.sftoolConfig.continueAnyway')
+      );
+
+      if (!shouldContinue) {
+        logStore.addMessage('用户取消了配置文件的使用');
+        return [];
+      }
+    }
+
+    // 转换提取的文件为FlashFile格式
+    const flashFiles: FlashFile[] = [];
+    const { readFile } = await import('@tauri-apps/plugin-fs');
+
+    for (const extractedFile of parseResult.extractedFiles) {
+      try {
+        // 读取文件获取大小
+        const fileContent = await readFile(extractedFile.path);
+        
+        flashFiles.push({
+          id: writeFlashStore.generateFileId(),
+          name: extractedFile.name,
+          path: extractedFile.path,
+          address: writeFlashStore.isAutoAddressFile(extractedFile.name) ? '' : extractedFile.address,
+          addressError: '',
+          size: fileContent.length
+        });
+      } catch (error) {
+        logStore.addMessage(`无法读取文件: ${extractedFile.path} - ${error}`, true);
+      }
+    }
+
+    logStore.addMessage(t('writeFlash.sftoolConfig.extractedFiles', { count: flashFiles.length }));
+    return flashFiles;
+
+  } catch (error) {
+    const errorMessage = `${t('writeFlash.sftoolConfig.parseFailed')}: ${error instanceof Error ? error.message : String(error)}`;
+    logStore.addMessage(errorMessage, true);
+    alert(errorMessage);
+    return [];
+  }
+};
+
 // Tauri 文件拖拽处理
 const handleTauriFileDrop = async (payload: any) => {
   if (writeFlashStore.isFlashing) {
@@ -493,13 +587,25 @@ const handleTauriFileDrop = async (payload: any) => {
     }
     
     const fileName = path.split(/[\/\\]/).pop() || path;
-  logStore.addMessage(t('writeFlash.log.processingFile', { name: fileName, path }));
+    logStore.addMessage(t('writeFlash.log.processingFile', { name: fileName, path }));
 
     if (!writeFlashStore.isSupportedFile(fileName)) {
       logStore.addMessage(`${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${fileName}`, true);
       continue;
     }
 
+    // 检查是否是sftool配置文件
+    if (isSftoolParamFile(fileName)) {
+      try {
+        const configFiles = await handleSftoolConfigFile(path);
+        droppedFiles.push(...configFiles);
+      } catch (error) {
+        logStore.addMessage(`${t('writeFlash.sftoolConfig.parseFailed')}: ${error}`, true);
+      }
+      continue;
+    }
+
+    // 常规固件文件处理
     let defaultAddress = '';
     if (!writeFlashStore.isAutoAddressFile(fileName)) {
       defaultAddress = '0x10000000';
@@ -588,7 +694,7 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
       multiple,
       filters: [{
         name: 'Firmware Files',
-        extensions: ['bin', 'hex', 'elf', 'axf']
+        extensions: ['bin', 'hex', 'elf', 'axf', 'json']
       }]
     });
     
@@ -605,17 +711,25 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
           continue;
         }
         
-        const fileContent = await readFile(filePath);
         const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
         
-        files.push({
-          id: writeFlashStore.generateFileId(),
-          name: fileName,
-          path: filePath,
-          address: writeFlashStore.isAutoAddressFile(fileName) ? '' : '0x10000000',
-          addressError: '',
-          size: fileContent.length
-        });
+        // 检查是否是sftool配置文件
+        if (isSftoolParamFile(fileName)) {
+          const configFiles = await handleSftoolConfigFile(filePath);
+          files.push(...configFiles);
+        } else {
+          // 常规固件文件处理
+          const fileContent = await readFile(filePath);
+          
+          files.push({
+            id: writeFlashStore.generateFileId(),
+            name: fileName,
+            path: filePath,
+            address: writeFlashStore.isAutoAddressFile(fileName) ? '' : '0x10000000',
+            addressError: '',
+            size: fileContent.length
+          });
+        }
       } catch (error) {
         logStore.addMessage(`${t('writeFlash.status.failed')}: 读取文件失败 - ${filePath}: ${error}`);
       }
