@@ -58,7 +58,7 @@
     "clearLog": "Clear Log",
     "dragDropSuccess": "Added {count} files via drag and drop",
   "logLabel": "Log Output",
-    "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf",
+    "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf, sftool_param.json",
     "validation": {
       "noFiles": "Please select at least one firmware file",
       "addressRequired": "Please enter flash address",
@@ -84,7 +84,39 @@
     "waitingToStart": "Waiting to start...",
     "allCompleted": "All completed",
     "waitingForTasks": "Waiting for tasks...",
-    "completedMessage": "Successfully flashed {count} files, you can start the next flash"
+    "completedMessage": "Successfully flashed {count} files, you can start the next flash",
+    "log": {
+      "dragEnter": "File drag detected entering window",
+      "dragLeave": "File drag left window",
+      "drop": "File drag drop detected",
+      "detectedPaths": "Parse result: detected {count} file paths",
+      "skippingInvalidPath": "Skipping invalid path: {path}",
+      "processingFile": "Processing file: {name} (path: {path})",
+      "cannotAddWhileFlashing": "Cannot add files while flashing",
+      "cannotParseDrop": "Error: Cannot parse file paths from drag event",
+      "payloadContent": "Actual payload content: {payload}",
+      "source": {
+        "drag": "drag"
+      },
+      "cannotSetupDragListeners": "Cannot setup Tauri file drag listeners:",
+      "cannotSetupDragListenersHint": "Warning: Cannot setup Tauri file drag listeners, please use file selection buttons"
+    },
+    "sftoolConfig": {
+      "detected": "Sftool config file detected",
+      "parsing": "Parsing config file...",
+      "parseSuccess": "Config file parsed successfully",
+      "parseFailed": "Config file parsing failed",
+      "extractedFiles": "Extracted {count} files from config",
+      "validationFailed": "Config validation failed",
+      "chipMismatch": "Chip type mismatch",
+      "memoryMismatch": "Memory type mismatch",
+      "configMismatchWarning": "Config file does not match current device settings, please check device configuration",
+      "currentDevice": "Current device: {chip} - {memory}",
+      "configDevice": "Config file: {chip} - {memory}",
+      "continueAnyway": "Continue with this config anyway?",
+      "fileNotFound": "File referenced in config not found",
+      "invalidConfig": "Invalid config file format"
+    }
   },
   "logWindow": {
     "autoScroll": "Auto Scroll",

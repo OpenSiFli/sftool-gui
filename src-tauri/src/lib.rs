@@ -1,5 +1,6 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+// Learn more about Tauri commands at https://tauri.app/develop/rust/
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 use sftool_lib::{
     create_sifli_tool, ChipType, Operation, SifliToolBase, SifliTool,
@@ -24,6 +25,71 @@ pub struct DeviceConfig {
     pub memory_type: String,
     pub port_name: String,
     pub baud_rate: u32,
+}
+
+// sftool_param.json 相关类型定义
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SftoolParamFile {
+    pub path: String,
+    pub address: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WriteFlashCommand {
+    pub verify: Option<bool>,
+    pub erase_all: Option<bool>,
+    pub no_compress: Option<bool>,
+    pub files: Vec<SftoolParamFile>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SftoolParamConfig {
+    pub chip: String,
+    pub memory: Option<String>,
+    pub port: Option<String>,
+    pub baud: Option<u32>,
+    pub before: Option<String>,
+    pub after: Option<String>,
+    pub connect_attempts: Option<u32>,
+    pub compat: Option<bool>,
+    pub quiet: Option<bool>,
+    pub write_flash: Option<WriteFlashCommand>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigValidationResult {
+    #[serde(rename = "isValid")]
+    pub is_valid: bool,
+    #[serde(rename = "chipMismatch")]
+    pub chip_mismatch: Option<bool>,
+    #[serde(rename = "memoryMismatch")]
+    pub memory_mismatch: Option<bool>,
+    #[serde(rename = "currentChip")]
+    pub current_chip: Option<String>,
+    #[serde(rename = "currentMemory")]
+    pub current_memory: Option<String>,
+    #[serde(rename = "configChip")]
+    pub config_chip: Option<String>,
+    #[serde(rename = "configMemory")]
+    pub config_memory: Option<String>,
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExtractedFile {
+    pub path: String,
+    pub address: String,
+    pub name: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SftoolParamParseResult {
+    pub config: SftoolParamConfig,
+    pub validation: ConfigValidationResult,
+    #[serde(rename = "extractedFiles")]
+    pub extracted_files: Vec<ExtractedFile>,
 }
 
 pub struct AppState {
@@ -282,6 +348,139 @@ pub struct WriteFlashFileInfo {
 }
 
 #[tauri::command]
+async fn parse_sftool_param_file(
+    config_file_path: String,
+    current_chip: Option<String>,
+    current_memory: Option<String>,
+) -> Result<SftoolParamParseResult, String> {
+    // 读取配置文件
+    let config_content = std::fs::read_to_string(&config_file_path)
+        .map_err(|e| format!("无法读取配置文件 {}: {}", config_file_path, e))?;
+
+    // 解析 JSON
+    let config: SftoolParamConfig = serde_json::from_str(&config_content)
+        .map_err(|e| format!("解析配置文件 JSON 失败: {}", e))?;
+
+    // 验证基本结构
+    let write_flash = config.write_flash.as_ref()
+        .ok_or("配置文件缺少 write_flash 字段")?;
+
+    if write_flash.files.is_empty() {
+        return Err("配置文件中 write_flash.files 字段为空".to_string());
+    }
+
+    // 获取配置文件所在目录
+    let config_dir = Path::new(&config_file_path)
+        .parent()
+        .ok_or("无法获取配置文件所在目录")?;
+
+    // 提取和验证文件
+    let mut extracted_files = Vec::new();
+    
+    for file_config in &write_flash.files {
+        // 解析文件路径（可能是相对路径）
+        let file_path = if Path::new(&file_config.path).is_absolute() {
+            file_config.path.clone()
+        } else {
+            config_dir
+                .join(&file_config.path)
+                .to_string_lossy()
+                .to_string()
+        };
+
+        // 检查文件是否存在
+        let file_metadata = std::fs::metadata(&file_path)
+            .map_err(|e| format!("配置文件中引用的文件不存在: {} ({})", file_path, e))?;
+
+        // 获取文件名
+        let file_name = Path::new(&file_config.path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or(&file_config.path)
+            .to_string();
+
+        // 处理地址
+        let address = file_config.address
+            .clone()
+            .unwrap_or_else(|| "0x10000000".to_string());
+
+        extracted_files.push(ExtractedFile {
+            path: file_path,
+            address,
+            name: file_name,
+            size: file_metadata.len(),
+        });
+    }
+
+    // 验证配置与当前设备设置的兼容性
+    let validation = validate_config_with_device(&config, current_chip, current_memory);
+
+    Ok(SftoolParamParseResult {
+        config,
+        validation,
+        extracted_files,
+    })
+}
+
+fn validate_config_with_device(
+    config: &SftoolParamConfig,
+    current_chip: Option<String>,
+    current_memory: Option<String>,
+) -> ConfigValidationResult {
+    let mut result = ConfigValidationResult {
+        is_valid: true,
+        chip_mismatch: None,
+        memory_mismatch: None,
+        current_chip: current_chip.clone(),
+        current_memory: current_memory.clone(),
+        config_chip: Some(config.chip.clone()),
+        config_memory: Some(config.memory.clone().unwrap_or_else(|| "nor".to_string())),
+        errors: Vec::new(),
+        warnings: Vec::new(),
+    };
+
+    // 检查芯片类型匹配
+    if let Some(ref current) = current_chip {
+        if current.to_lowercase() != config.chip.to_lowercase() {
+            result.chip_mismatch = Some(true);
+            result.is_valid = false;
+            result.errors.push(format!(
+                "芯片类型不匹配: 当前设备 {}，配置文件 {}", 
+                current, 
+                config.chip
+            ));
+        }
+    }
+
+    // 检查存储类型匹配
+    let config_memory_type = config.memory.clone().unwrap_or_else(|| "nor".to_string());
+    if let Some(ref current) = current_memory {
+        if current.to_lowercase() != config_memory_type.to_lowercase() {
+            result.memory_mismatch = Some(true);
+            result.is_valid = false;
+            result.errors.push(format!(
+                "存储器类型不匹配: 当前设备 {}，配置文件 {}", 
+                current, 
+                config_memory_type
+            ));
+        }
+    }
+
+    // 检查write_flash命令
+    if config.write_flash.is_none() {
+        result.is_valid = false;
+        result.errors.push("配置文件中没有找到有效的write_flash命令".to_string());
+    } else if let Some(ref write_flash) = config.write_flash {
+        if write_flash.files.is_empty() {
+            result.is_valid = false;
+            result.errors.push("配置文件中write_flash命令的文件列表为空".to_string());
+        }
+    }
+
+    result
+}
+
+#[tauri::command]
 async fn validate_firmware_file(file_path: String) -> Result<bool, String> {
     // 检查文件是否存在
     if !std::path::Path::new(&file_path).exists() {
@@ -469,6 +668,7 @@ pub fn run() {
             get_serial_ports,
             connect_device,
             disconnect_device,
+            parse_sftool_param_file,
             validate_firmware_file,
             write_flash,
             read_flash,
