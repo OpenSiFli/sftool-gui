@@ -298,7 +298,6 @@ import { useDeviceStore } from '../stores/deviceStore';
 import { ProgressHandler } from '../utils/progressHandler';
 import { 
   parseSftoolParamFile, 
-  validateConfigWithDevice, 
   isSftoolParamFile,
   formatValidationErrors 
 } from '../utils/sftoolParamParser';
@@ -481,20 +480,18 @@ const handleSftoolConfigFile = async (filePath: string): Promise<FlashFile[]> =>
     logStore.addMessage(t('writeFlash.sftoolConfig.detected'));
     logStore.addMessage(t('writeFlash.sftoolConfig.parsing'));
 
-    // 解析配置文件
-    const parseResult = await parseSftoolParamFile(filePath);
-    logStore.addMessage(t('writeFlash.sftoolConfig.parseSuccess'));
-
-    // 验证配置与当前设备设置的兼容性
-    const validation = validateConfigWithDevice(
-      parseResult.config,
-      deviceStore.selectedChip,
+    // 解析配置文件（通过Rust后端）
+    const parseResult = await parseSftoolParamFile(
+      filePath, 
+      deviceStore.selectedChip, 
       deviceStore.selectedMemoryType
     );
+    
+    logStore.addMessage(t('writeFlash.sftoolConfig.parseSuccess'));
 
     // 如果验证失败，显示错误并询问是否继续
-    if (!validation.isValid) {
-      const errorMessages = formatValidationErrors(validation);
+    if (!parseResult.validation.isValid) {
+      const errorMessages = formatValidationErrors(parseResult.validation);
       
       logStore.addMessage(t('writeFlash.sftoolConfig.validationFailed'), true);
       errorMessages.forEach(error => {
@@ -504,14 +501,14 @@ const handleSftoolConfigFile = async (filePath: string): Promise<FlashFile[]> =>
       // 显示当前和配置文件的设备信息
       logStore.addMessage(
         t('writeFlash.sftoolConfig.currentDevice', {
-          chip: validation.currentChip,
-          memory: validation.currentMemory
+          chip: parseResult.validation.currentChip,
+          memory: parseResult.validation.currentMemory
         })
       );
       logStore.addMessage(
         t('writeFlash.sftoolConfig.configDevice', {
-          chip: validation.configChip,
-          memory: validation.configMemory
+          chip: parseResult.validation.configChip,
+          memory: parseResult.validation.configMemory
         })
       );
 
@@ -529,26 +526,14 @@ const handleSftoolConfigFile = async (filePath: string): Promise<FlashFile[]> =>
     }
 
     // 转换提取的文件为FlashFile格式
-    const flashFiles: FlashFile[] = [];
-    const { readFile } = await import('@tauri-apps/plugin-fs');
-
-    for (const extractedFile of parseResult.extractedFiles) {
-      try {
-        // 读取文件获取大小
-        const fileContent = await readFile(extractedFile.path);
-        
-        flashFiles.push({
-          id: writeFlashStore.generateFileId(),
-          name: extractedFile.name,
-          path: extractedFile.path,
-          address: writeFlashStore.isAutoAddressFile(extractedFile.name) ? '' : extractedFile.address,
-          addressError: '',
-          size: fileContent.length
-        });
-      } catch (error) {
-        logStore.addMessage(`无法读取文件: ${extractedFile.path} - ${error}`, true);
-      }
-    }
+    const flashFiles: FlashFile[] = parseResult.extractedFiles.map(extractedFile => ({
+      id: writeFlashStore.generateFileId(),
+      name: extractedFile.name,
+      path: extractedFile.path,
+      address: writeFlashStore.isAutoAddressFile(extractedFile.name) ? '' : extractedFile.address,
+      addressError: '',
+      size: extractedFile.size
+    }));
 
     logStore.addMessage(t('writeFlash.sftoolConfig.extractedFiles', { count: flashFiles.length }));
     return flashFiles;

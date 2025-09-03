@@ -2,8 +2,7 @@
  * sftool_param.json 文件解析和验证工具
  */
 
-import { readTextFile, exists } from '@tauri-apps/plugin-fs';
-import { dirname, resolve } from '@tauri-apps/api/path';
+import { invoke } from '@tauri-apps/api/core';
 import type { 
   SftoolParamConfig, 
   ConfigValidationResult, 
@@ -12,60 +11,16 @@ import type {
 import type { ChipModel } from '../config/chips';
 
 /**
- * 解析 sftool_param.json 文件
+ * 解析 sftool_param.json 文件（通过Rust后端）
  */
-export async function parseSftoolParamFile(filePath: string): Promise<SftoolParamParseResult> {
+export async function parseSftoolParamFile(filePath: string, currentChip?: ChipModel | null, currentMemory?: string | null): Promise<SftoolParamParseResult> {
   try {
-    // 读取文件内容
-    const content = await readTextFile(filePath);
-    const config: SftoolParamConfig = JSON.parse(content);
+    const result = await invoke<SftoolParamParseResult>('parse_sftool_param_file', {
+      configFilePath: filePath,
+      currentChip: currentChip?.id || null,
+      currentMemory: currentMemory || null
+    });
     
-    // 验证基本结构
-    if (!config.chip || !config.write_flash?.files) {
-      throw new Error('配置文件缺少必要字段: chip 或 write_flash.files');
-    }
-
-    // 提取文件信息
-    const extractedFiles = [];
-    const configDir = await dirname(filePath);
-    
-    for (const file of config.write_flash.files) {
-      // 解析文件路径（可能是相对路径）
-      let fullPath = file.path;
-      if (!fullPath.startsWith('/') && !fullPath.match(/^[A-Za-z]:/)) {
-        // 相对路径，相对于配置文件目录
-        fullPath = await resolve(configDir, file.path);
-      }
-
-      // 检查文件是否存在
-      const fileExists = await exists(fullPath);
-      if (!fileExists) {
-        console.warn(`配置文件中引用的文件不存在: ${fullPath}`);
-        continue;
-      }
-
-      // 提取文件名
-      const fileName = file.path.split(/[\/\\]/).pop() || file.path;
-      
-      // 处理地址
-      let address = '0x10000000'; // 默认地址
-      if (file.address) {
-        address = file.address;
-      }
-
-      extractedFiles.push({
-        path: fullPath,
-        address,
-        name: fileName
-      });
-    }
-
-    const result: SftoolParamParseResult = {
-      config,
-      validation: { isValid: true, errors: [], warnings: [] },
-      extractedFiles
-    };
-
     return result;
     
   } catch (error) {

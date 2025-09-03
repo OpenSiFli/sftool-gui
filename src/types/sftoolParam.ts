@@ -69,14 +69,20 @@ export interface ConfigValidationResult {
 }
 
 /**
+ * 提取的文件信息
+ */
+export interface ExtractedFile {
+  path: string;
+  address: string;
+  name: string;
+  size: number;
+}
+
+/**
  * 解析结果
  */
 export interface SftoolParamParseResult {
   config: SftoolParamConfig;
   validation: ConfigValidationResult;
-  extractedFiles: Array<{
-    path: string;
-    address: string;
-    name: string;
-  }>;
+  extractedFiles: ExtractedFile[];
 }
