@@ -182,10 +182,6 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
     outputs:
       VERSION: ${{ env.VERSION }}
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [aarch64, x86_64]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -208,7 +204,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.arch }}-apple-darwin
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -225,29 +221,25 @@ jobs:
       - name: Build tauri app
         uses: tauri-apps/tauri-action@v0
         with:
-          args: --target ${{ matrix.arch }}-apple-darwin
+          args: --target universal-apple-darwin
 
       - name: Create artifacts directory
         run: mkdir -p artifacts
 
       - name: Copy dmg to release assets
-        env:
-          ARCH_ALIAS: ${{ matrix.arch == 'x86_64' && 'x64' || matrix.arch }}
-        run: cp "src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/dmg/${{ env.REPO_NAME }}_${{ env.VERSION }}_${{ env.ARCH_ALIAS }}.dmg" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_${{ matrix.arch }}.dmg"
+        run: cp "src-tauri/target/universal-apple-darwin/release/bundle/dmg/${{ env.REPO_NAME }}_${{ env.VERSION }}_universal.dmg" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_universal.dmg"
 
       - name: Copy updater tarball and signature to release assets
-        env:
-          ARCH_ALIAS: ${{ matrix.arch == 'x86_64' && 'x64' || matrix.arch }}
         run: |
-          cp "src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/macos/${{ env.REPO_NAME }}.app.tar.gz" \
-             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_${{ env.ARCH_ALIAS }}.app.tar.gz"
-          cp "src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/macos/${{ env.REPO_NAME }}.app.tar.gz.sig" \
-             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_${{ env.ARCH_ALIAS }}.app.tar.gz.sig"
+          cp "src-tauri/target/universal-apple-darwin/release/bundle/macos/${{ env.REPO_NAME }}.app.tar.gz" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_universal.app.tar.gz"
+          cp "src-tauri/target/universal-apple-darwin/release/bundle/macos/${{ env.REPO_NAME }}.app.tar.gz.sig" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_universal.app.tar.gz.sig"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-assets-${{ matrix.arch }}
+          name: macos-assets-universal
           path: artifacts/*
 
   create-release:
@@ -269,17 +261,11 @@ jobs:
           name: linux-assets
           path: artifacts/linux
 
-      - name: Download macOS aarch64 assets
+      - name: Download macOS universal assets
         uses: actions/download-artifact@v4
         with:
-          name: macos-assets-aarch64
-          path: artifacts/macos-aarch64
-
-      - name: Download macOS x86_64 assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-x86_64
-          path: artifacts/macos-x86_64
+          name: macos-assets-universal
+          path: artifacts/macos-universal
 
       - name: List files in artifacts directory
         run: ls -R artifacts
@@ -291,8 +277,7 @@ jobs:
           artifacts: |
             artifacts/windows/*
             artifacts/linux/*
-            artifacts/macos-aarch64/*
-            artifacts/macos-x86_64/*
+            artifacts/macos-universal/*
           allowUpdates: true
           generateReleaseNotes: true
 
@@ -313,17 +298,11 @@ jobs:
           name: linux-assets
           path: artifacts/linux
 
-      - name: Download macOS aarch64 assets
+      - name: Download macOS universal assets
         uses: actions/download-artifact@v4
         with:
-          name: macos-assets-aarch64
-          path: artifacts/macos-aarch64
-
-      - name: Download macOS x86_64 assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-x86_64
-          path: artifacts/macos-x86_64
+          name: macos-assets-universal
+          path: artifacts/macos-universal
 
       - name: List files in artifacts directory
         run: ls -R artifacts
@@ -359,17 +338,11 @@ jobs:
           name: linux-assets
           path: artifacts/linux
 
-      - name: Download macOS aarch64 assets
+      - name: Download macOS universal assets
         uses: actions/download-artifact@v4
         with:
-          name: macos-assets-aarch64
-          path: artifacts/macos-aarch64
-
-      - name: Download macOS x86_64 assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-x86_64
-          path: artifacts/macos-x86_64
+          name: macos-assets-universal
+          path: artifacts/macos-universal
 
       - name: Generate latest.json (global & cn)
         env:
@@ -380,13 +353,11 @@ jobs:
           mkdir -p updater
           WINDOWS_NAME="${REPO_NAME}_${TAG_NAME}_windows_x64.exe"
           LINUX_APPIMAGE_NAME="${REPO_NAME}_${TAG_NAME}_amd64.AppImage"
-          MAC_ARM_TGZ_NAME="${REPO_NAME}_${TAG_NAME}_macos_aarch64.app.tar.gz"
-          MAC_X64_TGZ_NAME="${REPO_NAME}_${TAG_NAME}_macos_x86_64.app.tar.gz"
+          MAC_UNIVERSAL_TGZ_NAME="${REPO_NAME}_${TAG_NAME}_macos_universal.app.tar.gz"
 
           WINDOWS_SIG="$(cat artifacts/windows/${WINDOWS_NAME}.sig)"
           LINUX_APPIMAGE_SIG="$(cat artifacts/linux/${LINUX_APPIMAGE_NAME}.sig)"
-          MAC_ARM_TGZ_SIG="$(cat artifacts/macos-aarch64/${MAC_ARM_TGZ_NAME}.sig)"
-          MAC_X64_TGZ_SIG="$(cat artifacts/macos-x86_64/${MAC_X64_TGZ_NAME}.sig)"
+          MAC_UNIVERSAL_TGZ_SIG="$(cat artifacts/macos-universal/${MAC_UNIVERSAL_TGZ_NAME}.sig)"
 
           cat > updater/global/latest.json <<EOF
           {
@@ -401,12 +372,12 @@ jobs:
                 "signature": "${LINUX_APPIMAGE_SIG}"
               },
               "darwin-aarch64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_ARM_TGZ_NAME}",
-                "signature": "${MAC_ARM_TGZ_SIG}"
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               },
               "darwin-x86_64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_X64_TGZ_NAME}",
-                "signature": "${MAC_X64_TGZ_SIG}"
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               }
             }
           }
@@ -425,12 +396,12 @@ jobs:
                 "signature": "${LINUX_APPIMAGE_SIG}"
               },
               "darwin-aarch64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_ARM_TGZ_NAME}",
-                "signature": "${MAC_ARM_TGZ_SIG}"
+                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               },
               "darwin-x86_64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_X64_TGZ_NAME}",
-                "signature": "${MAC_X64_TGZ_SIG}"
+                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               }
             }
           }
