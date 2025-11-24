@@ -119,6 +119,8 @@ export const useLogStore = defineStore('log', () => {
 
       // 监听日志同步请求，发送当前所有日志到新窗口
       await listen('log-sync-request', async () => {
+        // 只有当前窗口有日志时才广播，避免空窗口覆盖有内容的窗口
+        if (messages.value.length === 0) return;
         try {
           const { emit } = await import('@tauri-apps/api/event');
           await emit('log-sync-data', { 
@@ -134,6 +136,11 @@ export const useLogStore = defineStore('log', () => {
       await listen('log-sync-data', (event: any) => {
         const { messages: syncedMessages, isFlashing: syncedFlashing } = event.payload;
         if (syncedMessages && Array.isArray(syncedMessages)) {
+          // 如果传入的日志比当前的少且当前已有数据，忽略以防止被空日志覆盖
+          if (messages.value.length > 0 && syncedMessages.length < messages.value.length) {
+            return;
+          }
+          // 同步日志和状态
           messages.value = syncedMessages;
           isFlashing.value = syncedFlashing;
         }

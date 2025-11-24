@@ -339,6 +339,13 @@ onMounted(() => {
   
   // 设置跨窗口事件监听器
   logStore.setupEventListeners();
+
+  // 主动请求同步现有日志，避免新窗口出现空日志的情况
+  import('@tauri-apps/api/event').then(({ emit }) => {
+    emit('log-sync-request', {});
+  }).catch((error) => {
+    console.warn('请求日志同步失败:', error);
+  });
   
   // 初始滚动到底部
   nextTick(() => {
