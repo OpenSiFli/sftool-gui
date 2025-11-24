@@ -38,13 +38,13 @@
       "rpm",
       "app",
       "dmg"
-    ]
+    ],
+    "createUpdaterArtifacts": true
   },
   "plugins": {
     "updater": {
       "active": true,
       "dialog": true,
-      "createUpdaterArtifacts": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ0QjczN0M1QTc3RTU5NTQKUldSVVdYNm54VGUzMU9FNTVWZmltWlRqRkhOTllqQlZnR1k4REkvOXlUWHhYU3UxWnBtUHJ0ZjQK",
       "endpoints": [
         "https://downloads.sifli.com/sftool-gui/cn/latest.json"
