@@ -33,7 +33,8 @@
     "dev": "vite",
     "preview": "vite preview",
     "tauri": "tauri",
-    "update-version": "node scripts/version-manager.js update"
+    "update-version": "node scripts/version-manager.js update",
+    "changelog": "git-cliff -o CHANGELOG.md"
   },
   "type": "module",
   "version": "1.0.0-9+gbf43fb5"
