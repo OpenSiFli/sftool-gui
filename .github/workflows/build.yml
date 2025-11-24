@@ -314,7 +314,7 @@ jobs:
           artifacts: "artifacts/**/*"
 
   generate-latest-json:
-    needs: [windows-build, linux-build, macos-build]
+    needs: [windows-build, linux-build, macos-build, get-version]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -341,7 +341,7 @@ jobs:
 
       - name: Generate latest.json (global & cn)
         env:
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ needs.get-version.outputs.VERSION }}
           REPO_NAME: ${{ env.REPO_NAME }}
         run: |
           set -euo pipefail
