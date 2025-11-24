@@ -345,7 +345,7 @@ jobs:
           REPO_NAME: ${{ env.REPO_NAME }}
         run: |
           set -euo pipefail
-          mkdir -p updater
+          mkdir -p updater/global updater/cn
           WINDOWS_NAME="${REPO_NAME}_${TAG_NAME}_windows_x64.exe"
           LINUX_APPIMAGE_NAME="${REPO_NAME}_${TAG_NAME}_amd64.AppImage"
           MAC_UNIVERSAL_TGZ_NAME="${REPO_NAME}_${TAG_NAME}_macos_universal.app.tar.gz"
