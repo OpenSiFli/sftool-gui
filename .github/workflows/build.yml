@@ -338,7 +338,8 @@ jobs:
           bucket: ${{ secrets.COS_DOWNLOAD_BUCKET }}
           prefix: "sftool-gui"
           delete_remote: true
-          artifacts: "artifacts/**/*"
+          working_directory: "artifacts"
+          artifacts: "./**/*"
 
   generate-latest-json:
     needs: [windows-build, linux-build, macos-build, get-version]
@@ -445,4 +446,5 @@ jobs:
           prefix: "sftool-gui"
           delete_remote: true
           flush_url: "https://downloads.sifli.com/sftool-gui/"
-          artifacts: "updater/global/latest.json,updater/cn/latest.json"
+          working_directory: "updater"
+          artifacts: "global/latest.json,cn/latest.json"
