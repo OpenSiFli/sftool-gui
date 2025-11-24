@@ -33,6 +33,8 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{ needs.get-version.outputs.VERSION }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
     outputs:
       VERSION: ${{ env.VERSION }}
     runs-on: windows-latest
@@ -67,6 +69,13 @@ jobs:
       - name: Copy nsis to release assets
         run: cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe"
 
+      - name: Copy nsis bundle and signature to release assets
+        run: |
+          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe"
+          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe.sig" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe.sig"
+
       - name: Zip portable to release assets
         run: |
           cd src-tauri/target/release
@@ -82,6 +91,8 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{ needs.get-version.outputs.VERSION }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
     outputs:
       VERSION: ${{ env.VERSION }}
     runs-on: ubuntu-24.04
@@ -123,8 +134,12 @@ jobs:
       - name: Copy rpm to release assets
         run: cp "src-tauri/target/release/bundle/rpm/${{ env.REPO_NAME }}-${{ env.VERSION }}-1.x86_64.rpm" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_linux_amd64.rpm"
 
-      - name: Copy appimage to release assets
-        run: cp "src-tauri/target/release/bundle/appimage/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage"
+      - name: Copy appimage and signature to release assets
+        run: |
+          cp "src-tauri/target/release/bundle/appimage/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage"
+          cp "src-tauri/target/release/bundle/appimage/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage.sig" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage.sig"
 
       - name: Zip portable to release assets
         run: |
@@ -141,6 +156,8 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{ needs.get-version.outputs.VERSION }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
     outputs:
       VERSION: ${{ env.VERSION }}
     strategy:
@@ -184,6 +201,15 @@ jobs:
         env:
           ARCH_ALIAS: ${{ matrix.arch == 'x86_64' && 'x64' || matrix.arch }}
         run: cp "src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/dmg/${{ env.REPO_NAME }}_${{ env.VERSION }}_${{ env.ARCH_ALIAS }}.dmg" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_${{ matrix.arch }}.dmg"
+
+      - name: Copy updater tarball and signature to release assets
+        env:
+          ARCH_ALIAS: ${{ matrix.arch == 'x86_64' && 'x64' || matrix.arch }}
+        run: |
+          cp "src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/macos/${{ env.REPO_NAME }}.app.tar.gz" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_${{ env.ARCH_ALIAS }}.app.tar.gz"
+          cp "src-tauri/target/${{ matrix.arch }}-apple-darwin/release/bundle/macos/${{ env.REPO_NAME }}.app.tar.gz.sig" \
+             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_${{ env.ARCH_ALIAS }}.app.tar.gz.sig"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -236,3 +262,161 @@ jobs:
             artifacts/macos-x86_64/*
           allowUpdates: true
           generateReleaseNotes: true
+
+  sync-mirror:
+    needs: [windows-build, linux-build, macos-build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows assets
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-assets
+          path: artifacts/windows
+
+      - name: Download Linux assets
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-assets
+          path: artifacts/linux
+
+      - name: Download macOS aarch64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-assets-aarch64
+          path: artifacts/macos-aarch64
+
+      - name: Download macOS x86_64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-assets-x86_64
+          path: artifacts/macos-x86_64
+
+      - name: List files in artifacts directory
+        run: ls -R artifacts
+    
+      - name: Sync to SiFli mirror
+        uses: OpenSiFli/SiFliMirrorSync@v1
+        with:
+          secret_id: ${{ secrets.COS_DOWNLOAD_SECRET_ID }}
+          secret_key: ${{ secrets.COS_DOWNLOAD_SECRET_KEY }}
+          region: ${{ secrets.COS_DOWNLOAD_REGION }}
+          bucket: ${{ secrets.COS_DOWNLOAD_BUCKET }}
+          prefix: "sftool-gui"
+          delete_remote: true
+          artifacts: "artifacts/**/*"
+
+  generate-latest-json:
+    needs: [windows-build, linux-build, macos-build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download Windows assets
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-assets
+          path: artifacts/windows
+
+      - name: Download Linux assets
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-assets
+          path: artifacts/linux
+
+      - name: Download macOS aarch64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-assets-aarch64
+          path: artifacts/macos-aarch64
+
+      - name: Download macOS x86_64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-assets-x86_64
+          path: artifacts/macos-x86_64
+
+      - name: Generate latest.json (global & cn)
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          REPO_NAME: ${{ env.REPO_NAME }}
+        run: |
+          set -euo pipefail
+          mkdir -p updater
+          WINDOWS_NAME="${REPO_NAME}_${TAG_NAME}_windows_x64.exe"
+          LINUX_APPIMAGE_NAME="${REPO_NAME}_${TAG_NAME}_amd64.AppImage"
+          MAC_ARM_TGZ_NAME="${REPO_NAME}_${TAG_NAME}_macos_aarch64.app.tar.gz"
+          MAC_X64_TGZ_NAME="${REPO_NAME}_${TAG_NAME}_macos_x86_64.app.tar.gz"
+
+          WINDOWS_SIG="$(cat artifacts/windows/${WINDOWS_NAME}.sig)"
+          LINUX_APPIMAGE_SIG="$(cat artifacts/linux/${LINUX_APPIMAGE_NAME}.sig)"
+          MAC_ARM_TGZ_SIG="$(cat artifacts/macos-aarch64/${MAC_ARM_TGZ_NAME}.sig)"
+          MAC_X64_TGZ_SIG="$(cat artifacts/macos-x86_64/${MAC_X64_TGZ_NAME}.sig)"
+
+          cat > updater/global/latest.json <<EOF
+          {
+            "version": "${TAG_NAME}",
+            "platforms": {
+              "windows-x86_64": {
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${WINDOWS_NAME}",
+                "signature": "${WINDOWS_SIG}"
+              },
+              "linux-x86_64": {
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
+                "signature": "${LINUX_APPIMAGE_SIG}"
+              },
+              "darwin-aarch64": {
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_ARM_TGZ_NAME}",
+                "signature": "${MAC_ARM_TGZ_SIG}"
+              },
+              "darwin-x86_64": {
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_X64_TGZ_NAME}",
+                "signature": "${MAC_X64_TGZ_SIG}"
+              }
+            }
+          }
+          EOF
+
+          cat > updater/cn/latest.json <<EOF
+          {
+            "version": "${TAG_NAME}",
+            "platforms": {
+              "windows-x86_64": {
+                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${WINDOWS_NAME}",
+                "signature": "${WINDOWS_SIG}"
+              },
+              "linux-x86_64": {
+                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
+                "signature": "${LINUX_APPIMAGE_SIG}"
+              },
+              "darwin-aarch64": {
+                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_ARM_TGZ_NAME}",
+                "signature": "${MAC_ARM_TGZ_SIG}"
+              },
+              "darwin-x86_64": {
+                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_X64_TGZ_NAME}",
+                "signature": "${MAC_X64_TGZ_SIG}"
+              }
+            }
+          }
+          EOF
+
+      - name: Upload updater manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-manifests
+          path: updater/*.json
+
+      - name: Sync to SiFli mirror
+        uses: OpenSiFli/SiFliMirrorSync@v1
+        with:
+          secret_id: ${{ secrets.COS_DOWNLOAD_SECRET_ID }}
+          secret_key: ${{ secrets.COS_DOWNLOAD_SECRET_KEY }}
+          region: ${{ secrets.COS_DOWNLOAD_REGION }}
+          bucket: ${{ secrets.COS_DOWNLOAD_BUCKET }}
+          prefix: "sftool-gui"
+          delete_remote: true
+          flush_url: "https://downloads.sifli.com/sftool-gui/"
+          artifacts: "updater/global/latest.json,updater/cn/latest.json"
