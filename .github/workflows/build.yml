@@ -272,8 +272,22 @@ jobs:
         with:
           tool: git-cliff
 
+      - name: Determine tag range
+        id: tag_range
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT="${GITHUB_REF_NAME}"
+          PREV="$(git describe --tags --abbrev=0 "${CURRENT}^" 2>/dev/null || true)"
+          if [ -n "${PREV}" ]; then
+            RANGE="${PREV}..${CURRENT}"
+          else
+            RANGE="${CURRENT}"
+          fi
+          echo "range=${RANGE}" >> "${GITHUB_OUTPUT}"
+
       - name: Generate release notes
-        run: git cliff --tag "${{ github.ref_name }}" -c cliff.toml -o RELEASE_NOTES.md
+        run: git cliff "${{ steps.tag_range.outputs.range }}" -c cliff.toml -o RELEASE_NOTES.md
 
       - name: List files in artifacts directory
         run: ls -R artifacts
