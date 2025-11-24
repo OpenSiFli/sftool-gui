@@ -48,7 +48,7 @@ pub fn create_tool_instance_with_progress(
         BeforeOperation::NoReset,
         config.memory_type.to_lowercase(),
         config.baud_rate,
-        3,
+        1,
         false,
         progress_callback,
     );
