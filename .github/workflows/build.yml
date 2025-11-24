@@ -77,15 +77,10 @@ jobs:
       - name: Create artifacts directory
         run: mkdir -p artifacts
 
-      - name: Copy nsis to release assets
-        run: cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe"
-
       - name: Copy nsis bundle and signature to release assets
         run: |
-          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe" \
-             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe"
-          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe.sig" \
-             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe.sig"
+          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe"
+          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe.sig" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe.sig"
 
       - name: Zip portable to release assets
         run: |
