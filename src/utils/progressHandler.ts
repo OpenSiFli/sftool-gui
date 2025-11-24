@@ -232,6 +232,13 @@ export class ProgressHandler {
    * 处理下载完成
    */
   private handleDownloadComplete(finishedItem: ProgressItem, message: string): void {
+    // 若当前并非处于烧录流程（例如连接设备时的内部下载 stub），跳过完成态更新，避免误显示完成提示
+    // 但仍记录日志，以便排查
+    if (!this.store.isFlashing) {
+      this.logStore.addMessage(`[${finishedItem.fileName}] ${message}`);
+      return;
+    }
+
     // 只有下载操作完成时才标记文件为完成
     this.store.addCompletedFile(finishedItem.fileName);
     
@@ -250,7 +257,8 @@ export class ProgressHandler {
     this.logStore.addMessage(`[${finishedItem.fileName}] ${message}`, true);
     
     // 检查是否所有文件都完成了
-    if (this.store.completedFiles.size >= this.store.selectedFiles.length) {
+    const totalCount = this.store.totalProgress.totalCount || this.store.selectedFiles.length;
+    if (totalCount > 0 && this.store.completedFiles.size >= totalCount) {
       this.store.setFlashCompleted(true);
       this.store.setCurrentOperation('');
       this.store.updateProgress({ currentFileName: '' });

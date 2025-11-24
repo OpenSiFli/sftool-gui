@@ -175,7 +175,7 @@
         <!-- 进度显示区域 -->
         <div class="mt-3">
           <!-- 烧录完成提示 -->
-          <div v-if="writeFlashStore.flashCompleted" class="mb-3 p-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 rounded-lg shadow-lg">
+          <div v-if="writeFlashStore.flashCompleted && writeFlashStore.completedFiles.size > 0" class="mb-3 p-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 rounded-lg shadow-lg">
             <div class="flex items-center justify-center gap-3 text-center">
               <div class="flex-shrink-0">
                 <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -366,6 +366,11 @@ onMounted(async () => {
   // 设置跨窗口事件监听器
   logStore.setupEventListeners();
   
+  // 确保初次进入页面时进度/完成状态被清理，避免显示过期的完成提示
+  if (!writeFlashStore.isFlashing) {
+    writeFlashStore.resetProgressStates();
+  }
+
   initializeLog();
   
   // 从存储中加载文件列表
