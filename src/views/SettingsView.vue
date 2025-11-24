@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useUserStore, ThemeType } from '../stores/userStore';
 import { useI18n } from 'vue-i18n';
 import { availableLanguages, Language, getLanguageByCode } from '../i18n';
+import { check } from '@tauri-apps/plugin-updater';
 
 // 获取用户存储和国际化
 const userStore = useUserStore();
@@ -81,11 +82,6 @@ const stopPropagation = (event: Event) => {
   event.stopPropagation();
 };
 
-// 监听点击事件，用于关闭下拉菜单
-onMounted(() => {
-  document.addEventListener('click', closeLanguageDropdown);
-});
-
 // 显示设置成功的反馈
 const feedbackItems = ref(new Map<string, boolean>());
 
@@ -102,6 +98,59 @@ const themeIcons: Record<string, string> = {
   'dark': '🌙',
   'system': '💻',
 };
+
+// 更新相关状态
+const isCheckingUpdate = ref(false);
+const updateAvailable = ref(false);
+const updateError = ref('');
+const lastCheckTime = ref<string>('');
+const availableVersion = ref<string>('');
+const releaseNotes = ref<string>('');
+const hasCheckedOnce = ref(false);
+
+const checkForUpdates = async (manual = false) => {
+  if (isCheckingUpdate.value) return;
+  isCheckingUpdate.value = true;
+  updateError.value = '';
+  try {
+    const update = await check();
+    lastCheckTime.value = new Date().toLocaleTimeString();
+
+    if (update && update.shouldUpdate && update.manifest) {
+      updateAvailable.value = true;
+      availableVersion.value = update.manifest.version;
+      releaseNotes.value = update.manifest.body || '';
+
+      // 手动检查时直接触发下载安装
+      if (manual && update.downloadAndInstall) {
+        await update.downloadAndInstall();
+      }
+    } else {
+      updateAvailable.value = false;
+      availableVersion.value = '';
+      releaseNotes.value = '';
+    }
+  } catch (error: any) {
+    updateError.value = error?.message || String(error);
+  } finally {
+    isCheckingUpdate.value = false;
+    hasCheckedOnce.value = true;
+  }
+};
+
+// 监听点击事件，用于关闭下拉菜单 + 启动时检查更新
+onMounted(() => {
+  document.addEventListener('click', closeLanguageDropdown);
+  checkForUpdates(false);
+});
+
+const lastStatusText = computed(() => {
+  if (isCheckingUpdate.value) return '正在检查更新...';
+  if (updateError.value) return `检查失败：${updateError.value}`;
+  if (updateAvailable.value) return `发现新版本 ${availableVersion.value}`;
+  if (hasCheckedOnce.value) return '已是最新版本';
+  return '';
+});
 </script>
 
 <template>
@@ -139,6 +188,58 @@ const themeIcons: Record<string, string> = {
                   check_circle
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 应用更新 -->
+      <section>
+        <div class="mb-4 flex items-center">
+          <span class="material-icons text-2xl mr-3 text-primary">system_update</span>
+          <h2 class="text-2xl font-semibold">应用更新</h2>
+          <div class="ml-auto text-sm text-base-content/70">
+            {{ lastStatusText }}
+          </div>
+        </div>
+
+        <div class="card bg-base-200 shadow-sm p-4">
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-base">版本检查</div>
+                <div class="text-sm text-base-content/70">
+                  {{ lastCheckTime ? `上次检查：${lastCheckTime}` : '启动时已自动检查一次' }}
+                </div>
+              </div>
+              <button 
+                class="btn btn-primary btn-sm gap-2"
+                :disabled="isCheckingUpdate"
+                @click="checkForUpdates(true)"
+              >
+                <span v-if="isCheckingUpdate" class="loading loading-spinner loading-xs"></span>
+                <span class="material-icons text-sm">refresh</span>
+                手动检查
+              </button>
+            </div>
+
+            <div v-if="updateAvailable" class="alert alert-success flex-col items-start gap-2">
+              <div class="flex items-center gap-2">
+                <span class="material-icons text-success">new_releases</span>
+                <div class="font-semibold">发现新版本 {{ availableVersion }}</div>
+              </div>
+              <pre v-if="releaseNotes" class="text-sm whitespace-pre-wrap max-h-40 overflow-auto w-full">{{ releaseNotes }}</pre>
+              <button 
+                class="btn btn-success btn-sm mt-1"
+                :disabled="isCheckingUpdate"
+                @click="checkForUpdates(true)"
+              >
+                立即下载并安装
+              </button>
+            </div>
+
+            <div v-else class="text-sm text-base-content/70">
+              {{ updateError ? `更新检查失败：${updateError}` : hasCheckedOnce ? '当前已是最新版本' : '已在启动时检查，如需可手动再次检查' }}
             </div>
           </div>
         </div>
