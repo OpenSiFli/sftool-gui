@@ -1,6 +1,6 @@
 use crate::types::DeviceConfig;
 use sftool_lib::{
-    create_sifli_tool, ChipType, Operation, SifliToolBase, SifliTool,
+    create_sifli_tool, ChipType, BeforeOperation, SifliToolBase, SifliTool,
     progress::ProgressCallbackArc,
 };
 
@@ -17,7 +17,7 @@ pub fn create_tool_instance(config: &DeviceConfig) -> Result<Box<dyn SifliTool>,
     // 创建 SifliToolBase (无进度回调)
     let base = SifliToolBase::new_with_no_progress(
         config.port_name.clone(),
-        Operation::None,
+        BeforeOperation::NoReset,
         config.memory_type.to_lowercase(),
         config.baud_rate,
         3,
@@ -45,7 +45,7 @@ pub fn create_tool_instance_with_progress(
     // 创建 SifliToolBase (带进度回调)
     let base = SifliToolBase::new_with_progress(
         config.port_name.clone(),
-        Operation::None,
+        BeforeOperation::NoReset,
         config.memory_type.to_lowercase(),
         config.baud_rate,
         3,

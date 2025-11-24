@@ -4129,8 +4129,9 @@ dependencies = [
 
 [[package]]
 name = "sftool-lib"
-version = "0.1.12"
-source = "git+https://github.com/OpenSiFli/sftool.git?branch=master#fb4c2698dfb3850dc2e0a1735be9785b4b8d03b6"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "019678132b0edbcce634e1beb4b7d8f58014eea7c84183d386b33198e058296b"
 dependencies = [
  "bitfield 0.19.0",
  "crc",
@@ -4144,6 +4145,7 @@ dependencies = [
  "serialport",
  "strum 0.27.1",
  "tempfile",
+ "thiserror 1.0.69",
  "tracing",
 ]
 
