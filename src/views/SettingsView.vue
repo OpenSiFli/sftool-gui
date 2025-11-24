@@ -116,10 +116,10 @@ const checkForUpdates = async (manual = false) => {
     const update = await check();
     lastCheckTime.value = new Date().toLocaleTimeString();
 
-    if (update && update.shouldUpdate && update.manifest) {
+    if (update) {
       updateAvailable.value = true;
-      availableVersion.value = update.manifest.version;
-      releaseNotes.value = update.manifest.body || '';
+      availableVersion.value = update.version || '';
+      releaseNotes.value = update.body || '';
 
       // 手动检查时直接触发下载安装
       if (manual && update.downloadAndInstall) {
