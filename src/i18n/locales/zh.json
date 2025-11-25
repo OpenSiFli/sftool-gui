@@ -45,7 +45,17 @@
     "download_and_install": "立即下载并安装",
     "update_check_failed": "更新检查失败",
     "already_latest": "当前已是最新版本",
-    "startup_checked": "已在启动时检查，如需可手动再次检查"
+    "startup_checked": "已在启动时检查，如需可手动再次检查",
+    "downloading": "正在下载更新",
+    "downloading_hint": "请稍候，正在下载更新文件...",
+    "installing": "正在安装更新",
+    "installing_hint": "下载完成，正在安装更新...",
+    "update_completed": "更新完成",
+    "update_completed_hint": "更新已成功安装，请重启应用以使用新版本。",
+    "restart_now": "立即重启",
+    "restart_later": "稍后重启",
+    "update_failed": "更新失败",
+    "retry": "重试"
   },
   "writeFlash": {
     "title": "固件烧录",

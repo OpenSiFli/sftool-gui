@@ -45,7 +45,17 @@
     "download_and_install": "Download & Install",
     "update_check_failed": "Update check failed",
     "already_latest": "You're on the latest version",
-    "startup_checked": "Checked on startup. Click to check again if needed."
+    "startup_checked": "Checked on startup. Click to check again if needed.",
+    "downloading": "Downloading Update",
+    "downloading_hint": "Please wait, downloading update files...",
+    "installing": "Installing Update",
+    "installing_hint": "Download complete, installing update...",
+    "update_completed": "Update Complete",
+    "update_completed_hint": "The update has been successfully installed. Please restart the app to use the new version.",
+    "restart_now": "Restart Now",
+    "restart_later": "Later",
+    "update_failed": "Update Failed",
+    "retry": "Retry"
   },
   "writeFlash": {
     "title": "Firmware Flash",
