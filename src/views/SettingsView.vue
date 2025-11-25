@@ -143,14 +143,6 @@ onMounted(() => {
   document.addEventListener('click', closeLanguageDropdown);
   checkForUpdates(false);
 });
-
-const lastStatusText = computed(() => {
-  if (isCheckingUpdate.value) return '正在检查更新...';
-  if (updateError.value) return `检查失败：${updateError.value}`;
-  if (updateAvailable.value) return `发现新版本 ${availableVersion.value}`;
-  if (hasCheckedOnce.value) return '已是最新版本';
-  return '';
-});
 </script>
 
 <template>
@@ -195,51 +187,80 @@ const lastStatusText = computed(() => {
 
       <!-- 应用更新 -->
       <section>
-        <div class="mb-4 flex items-center">
+        <div class="mb-6 flex items-center">
           <span class="material-icons text-2xl mr-3 text-primary">system_update</span>
-          <h2 class="text-2xl font-semibold">应用更新</h2>
-          <div class="ml-auto text-sm text-base-content/70">
-            {{ lastStatusText }}
+          <h2 class="text-2xl font-semibold">{{ $t('setting.update') }}</h2>
+          <div v-if="updateAvailable" class="ml-auto">
+            <span class="inline-flex items-center px-3 py-1 bg-success/20 text-success rounded-full text-sm">
+              <span class="material-icons text-sm mr-1">new_releases</span>
+              {{ $t('setting.new_version_found') }} {{ availableVersion }}
+            </span>
           </div>
         </div>
 
-        <div class="card bg-base-200 shadow-sm p-4">
-          <div class="flex flex-col gap-3">
-            <div class="flex items-center justify-between">
+        <div class="card bg-base-200 shadow-sm overflow-hidden">
+          <!-- 版本检查区域 -->
+          <div class="p-4 flex items-center justify-between border-b border-base-300/50">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-base-300/50 flex items-center justify-center">
+                <span class="material-icons text-base-content/70">update</span>
+              </div>
               <div>
-                <div class="font-medium text-base">版本检查</div>
-                <div class="text-sm text-base-content/70">
-                  {{ lastCheckTime ? `上次检查：${lastCheckTime}` : '启动时已自动检查一次' }}
+                <div class="font-medium text-base">{{ $t('setting.version_check') }}</div>
+                <div class="text-sm text-base-content/60">
+                  {{ lastCheckTime ? `${$t('setting.last_check')}：${lastCheckTime}` : $t('setting.auto_check_on_startup') }}
                 </div>
               </div>
-              <button 
-                class="btn btn-primary btn-sm gap-2"
-                :disabled="isCheckingUpdate"
-                @click="checkForUpdates(true)"
-              >
-                <span v-if="isCheckingUpdate" class="loading loading-spinner loading-xs"></span>
-                <span class="material-icons text-sm">refresh</span>
-                手动检查
-              </button>
             </div>
+            <button 
+              class="btn btn-primary btn-sm gap-2 min-w-[100px]"
+              :disabled="isCheckingUpdate"
+              @click="checkForUpdates(true)"
+            >
+              <span v-if="isCheckingUpdate" class="loading loading-spinner loading-xs"></span>
+              <span v-else class="material-icons text-sm">refresh</span>
+              {{ $t('setting.manual_check') }}
+            </button>
+          </div>
 
-            <div v-if="updateAvailable" class="alert alert-success flex-col items-start gap-2">
-              <div class="flex items-center gap-2">
-                <span class="material-icons text-success">new_releases</span>
-                <div class="font-semibold">发现新版本 {{ availableVersion }}</div>
+          <!-- 更新可用时显示 -->
+          <div v-if="updateAvailable" class="p-4 bg-success/10">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                <span class="material-icons text-success text-2xl">rocket_launch</span>
               </div>
-              <pre v-if="releaseNotes" class="text-sm whitespace-pre-wrap max-h-40 overflow-auto w-full">{{ releaseNotes }}</pre>
-              <button 
-                class="btn btn-success btn-sm mt-1"
-                :disabled="isCheckingUpdate"
-                @click="checkForUpdates(true)"
-              >
-                立即下载并安装
-              </button>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-lg text-success">{{ $t('setting.new_version_found') }} {{ availableVersion }}</span>
+                </div>
+                <p class="text-sm text-base-content/70 mb-3">{{ $t('setting.update_available_hint') }}</p>
+                <pre v-if="releaseNotes" class="text-sm whitespace-pre-wrap max-h-32 overflow-auto w-full bg-base-100/50 rounded-lg p-3 mb-3 text-base-content/80">{{ releaseNotes }}</pre>
+                <button 
+                  class="btn btn-success gap-2"
+                  :disabled="isCheckingUpdate"
+                  @click="checkForUpdates(true)"
+                >
+                  <span v-if="isCheckingUpdate" class="loading loading-spinner loading-sm"></span>
+                  <span v-else class="material-icons">download</span>
+                  {{ $t('setting.download_and_install') }}
+                </button>
+              </div>
             </div>
+          </div>
 
-            <div v-else class="text-sm text-base-content/70">
-              {{ updateError ? `更新检查失败：${updateError}` : hasCheckedOnce ? '当前已是最新版本' : '已在启动时检查，如需可手动再次检查' }}
+          <!-- 无更新或错误时显示 -->
+          <div v-else class="p-4">
+            <div v-if="updateError" class="flex items-center gap-3 text-error">
+              <span class="material-icons">error_outline</span>
+              <span class="text-sm">{{ $t('setting.update_check_failed') }}：{{ updateError }}</span>
+            </div>
+            <div v-else-if="hasCheckedOnce" class="flex items-center gap-3 text-base-content/60">
+              <span class="material-icons text-success">check_circle</span>
+              <span class="text-sm">{{ $t('setting.already_latest') }}</span>
+            </div>
+            <div v-else class="flex items-center gap-3 text-base-content/60">
+              <span class="material-icons">info</span>
+              <span class="text-sm">{{ $t('setting.startup_checked') }}</span>
             </div>
           </div>
         </div>

@@ -34,7 +34,18 @@
     "menu_collapsed_desc": "When enabled, the menu will be collapsed when the application starts",
     "save_settings": "Save Settings",
     "settings_saved": "Settings Saved",
-    "restart_required": "Some settings require restarting the application to take effect"
+    "restart_required": "Some settings require restarting the application to take effect",
+    "update": "App Update",
+    "version_check": "Version Check",
+    "last_check": "Last check",
+    "auto_check_on_startup": "Auto checked on startup",
+    "manual_check": "Check Now",
+    "new_version_found": "New version available",
+    "update_available_hint": "A new version is ready. Click the button below to update now.",
+    "download_and_install": "Download & Install",
+    "update_check_failed": "Update check failed",
+    "already_latest": "You're on the latest version",
+    "startup_checked": "Checked on startup. Click to check again if needed."
   },
   "writeFlash": {
     "title": "Firmware Flash",
