@@ -154,31 +154,31 @@ onMounted(() => {
 
 /* 弱化的强调色，用于鼠标悬停状态 */
 .nav-item:hover, .toggle-btn:hover {
-  background-color: rgba(74, 108, 247, 0.2) !important;
-  color: #4a6cf7 !important;
-  box-shadow: 0 0 0 1px rgba(74, 108, 247, 0.3) !important;
+  background-color: rgba(82, 176, 225, 0.2) !important;
+  color: #52B0E1 !important;
+  box-shadow: 0 0 0 1px rgba(82, 176, 225, 0.3) !important;
 }
 
 /* 强调色，用于当前选中的页面 */
 .nav-item.router-link-active {
-  background-color: rgba(74, 108, 247, 0.3) !important;
-  color: #4a6cf7 !important;
+  background-color: rgba(82, 176, 225, 0.3) !important;
+  color: #52B0E1 !important;
   font-weight: 500 !important;
-  box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.5) !important, 
-              inset 4px 0 0 #4a6cf7 !important, 
+  box-shadow: 0 0 0 2px rgba(82, 176, 225, 0.5) !important, 
+              inset 4px 0 0 #52B0E1 !important, 
               0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* 悬停和激活状态下的图标效果 */
 .nav-item:hover .material-icons, 
 .toggle-btn:hover .material-icons {
-  color: #4a6cf7 !important;
+  color: #52B0E1 !important;
 }
 
 .nav-item.router-link-active .material-icons {
-  color: #4a6cf7 !important;
+  color: #52B0E1 !important;
   transform: scale(1.15);
-  text-shadow: 0 0 8px rgba(74, 108, 247, 0.5);
+  text-shadow: 0 0 8px rgba(82, 176, 225, 0.5);
 }
 
 /* 提示框样式 */
@@ -187,7 +187,7 @@ onMounted(() => {
   left: 48px;
   top: 50%;
   transform: translateY(-50%);
-  background-color: #4a6cf7 !important;
+  background-color: #52B0E1 !important;
   color: white !important;
   padding: 8px 12px;
   border-radius: 6px;
@@ -197,7 +197,7 @@ onMounted(() => {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
-  box-shadow: 0 3px 10px rgba(74, 108, 247, 0.4);
+  box-shadow: 0 3px 10px rgba(82, 176, 225, 0.4);
   font-weight: normal;
   visibility: hidden;
 }
@@ -212,24 +212,24 @@ onMounted(() => {
   .nav-item:hover,
   .toggle-btn:hover,
   .nav-item.router-link-active {
-    background-color: rgba(100, 130, 255, 0.25) !important;
-    color: #90a8ff !important;
+    background-color: rgba(94, 184, 232, 0.25) !important;
+    color: #5eb8e8 !important;
   }
   
   .nav-item:hover .material-icons,
   .toggle-btn:hover .material-icons,
   .nav-item.router-link-active .material-icons {
-    color: #90a8ff !important;
+    color: #5eb8e8 !important;
   }
   
   .nav-item.router-link-active {
-    box-shadow: 0 0 0 2px rgba(100, 130, 255, 0.5) !important, 
-                inset 4px 0 0 #90a8ff !important,
+    box-shadow: 0 0 0 2px rgba(94, 184, 232, 0.5) !important, 
+                inset 4px 0 0 #5eb8e8 !important,
                 0 4px 8px rgba(0, 0, 0, 0.2) !important;
   }
   
   .tooltip {
-    background-color: #6482ff !important;
+    background-color: #3a9ed4 !important;
   }
 }
 

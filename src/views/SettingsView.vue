@@ -434,7 +434,7 @@ onMounted(() => {
 
 .theme-system {
   background: linear-gradient(to right, #f8fafc 50%, #0f172a 50%);
-  color: #6366f1;
+  color: #52B0E1;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
