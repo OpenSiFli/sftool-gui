@@ -249,23 +249,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Windows assets
+      - name: Download all assets
         uses: actions/download-artifact@v4
         with:
-          name: windows-assets
-          path: artifacts/windows
-
-      - name: Download Linux assets
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-assets
-          path: artifacts/linux
-
-      - name: Download macOS universal assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-universal
-          path: artifacts/macos-universal
+          merge-multiple: true
+          path: artifacts
 
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
@@ -297,9 +285,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            artifacts/windows/*
-            artifacts/linux/*
-            artifacts/macos-universal/*
+            artifacts/*
           bodyFile: RELEASE_NOTES.md
           allowUpdates: true
 
@@ -308,23 +294,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download Windows assets
+      - name: Download all assets
         uses: actions/download-artifact@v4
         with:
-          name: windows-assets
-          path: artifacts/windows
-
-      - name: Download Linux assets
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-assets
-          path: artifacts/linux
-
-      - name: Download macOS universal assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-universal
-          path: artifacts/macos-universal
+          merge-multiple: true
+          path: artifacts
 
       - name: List files in artifacts directory
         run: ls -R artifacts
@@ -336,7 +310,7 @@ jobs:
           secret_key: ${{ secrets.COS_DOWNLOAD_SECRET_KEY }}
           region: ${{ secrets.COS_DOWNLOAD_REGION }}
           bucket: ${{ secrets.COS_DOWNLOAD_BUCKET }}
-          prefix: "sftool-gui"
+          prefix: "sftool-gui/${{ github.ref_name }}"
           delete_remote: true
           working_directory: "artifacts"
           artifacts: "./**/*"
@@ -349,23 +323,10 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Download Windows assets
+      - name: Download all assets
         uses: actions/download-artifact@v4
         with:
-          name: windows-assets
-          path: artifacts/windows
-
-      - name: Download Linux assets
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-assets
-          path: artifacts/linux
-
-      - name: Download macOS universal assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-universal
-          path: artifacts/macos-universal
+          path: artifacts
 
       - name: Generate latest.json (global & cn)
         env:
@@ -387,19 +348,19 @@ jobs:
             "version": "${TAG_NAME}",
             "platforms": {
               "windows-x86_64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${WINDOWS_NAME}",
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/v${TAG_NAME}/${WINDOWS_NAME}",
                 "signature": "${WINDOWS_SIG}"
               },
               "linux-x86_64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/v${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
                 "signature": "${LINUX_APPIMAGE_SIG}"
               },
               "darwin-aarch64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/v${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
                 "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               },
               "darwin-x86_64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/v${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
                 "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               }
             }
@@ -411,19 +372,19 @@ jobs:
             "version": "${TAG_NAME}",
             "platforms": {
               "windows-x86_64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${WINDOWS_NAME}",
+                "url": "https://downloads.sifli.com/sftool-gui/v${TAG_NAME}/${WINDOWS_NAME}",
                 "signature": "${WINDOWS_SIG}"
               },
               "linux-x86_64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
+                "url": "https://downloads.sifli.com/sftool-gui/v${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
                 "signature": "${LINUX_APPIMAGE_SIG}"
               },
               "darwin-aarch64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "url": "https://downloads.sifli.com/sftool-gui/v${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
                 "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               },
               "darwin-x86_64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
+                "url": "https://downloads.sifli.com/sftool-gui/v${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
                 "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
               }
             }
