@@ -1,0 +1,62 @@
+
+name: deploy-docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # 如果你文档需要 Git 子模块，取消注释下一行
+          # submodules: true
+
+      - name: 设置 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: 安装依赖
+        run: |
+          cd docs
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: 构建文档
+        env:
+          NODE_OPTIONS: --max_old_space_size=8192
+        run: |-
+          cd docs
+          pnpm run docs:build
+          > src/.vuepress/dist/.nojekyll
+
+      - name: Sync Mirror
+        uses: OpenSiFli/SiFliMirrorSync@v1
+        with:
+          secret_id: ${{ secrets.COS_DOCS_SECRET_ID }}
+          secret_key: ${{ secrets.COS_DOCS_SECRET_KEY }}
+          bucket: ${{ secrets.COS_DOCS_BUCKET }}
+          region: ${{ secrets.COS_DOCS_REGION }}
+          artifacts: "./docs/src/.vuepress/dist/"
+          prefix: "/projects/sftool/"
+          delete_remote: true
+          flush_url: "https://docs.sifli.com/projects/sftool/"
