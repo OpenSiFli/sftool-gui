@@ -1,4 +1,4 @@
-name: 'build'
+name: 'Build and Release'
 
 on:
   push:
@@ -6,9 +6,13 @@ on:
       - "master"
     tags:
       - 'v*'
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
       - 'master'
+    paths-ignore:
+      - 'docs/**'
 
 env:
   REPO_NAME: "sftool"
