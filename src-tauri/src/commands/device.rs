@@ -15,11 +15,11 @@ pub fn get_serial_ports() -> Result<Vec<PortInfo>, String> {
 
     let port_infos = ports
         .into_iter()
-        .filter(|p| {
+        .filter(|_p| {
             // 在 macOS 下过滤掉 /dev/tty* 开头的串口，只保留 /dev/cu* 的
             #[cfg(target_os = "macos")]
             {
-                if p.port_name.starts_with("/dev/tty") {
+                if _p.port_name.starts_with("/dev/tty") {
                     return false;
                 }
             }
