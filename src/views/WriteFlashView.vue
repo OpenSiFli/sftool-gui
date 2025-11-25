@@ -937,9 +937,9 @@ const startFlashing = async () => {
 
 /* 下载中的文件显示蓝色背景 */
 .downloading-file {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.2));
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgba(82, 176, 225, 0.15), rgba(82, 176, 225, 0.25), rgba(82, 176, 225, 0.2));
+  border: 1px solid rgba(82, 176, 225, 0.3);
+  box-shadow: 0 0 8px rgba(82, 176, 225, 0.2);
   transition: all 0.3s ease;
 }
 </style>

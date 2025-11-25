@@ -1,4 +1,4 @@
-name: 'build'
+name: 'Build and Release'
 
 on:
   push:
@@ -6,9 +6,13 @@ on:
       - "master"
     tags:
       - 'v*'
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
       - 'master'
+    paths-ignore:
+      - 'docs/**'
 
 env:
   REPO_NAME: "sftool"
@@ -249,23 +253,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Windows assets
+      - name: Download all assets
         uses: actions/download-artifact@v4
         with:
-          name: windows-assets
-          path: artifacts/windows
-
-      - name: Download Linux assets
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-assets
-          path: artifacts/linux
-
-      - name: Download macOS universal assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-universal
-          path: artifacts/macos-universal
+          merge-multiple: true
+          path: artifacts
 
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
@@ -297,9 +289,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            artifacts/windows/*
-            artifacts/linux/*
-            artifacts/macos-universal/*
+            artifacts/*
           bodyFile: RELEASE_NOTES.md
           allowUpdates: true
 
@@ -308,23 +298,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download Windows assets
+      - name: Download all assets
         uses: actions/download-artifact@v4
         with:
-          name: windows-assets
-          path: artifacts/windows
-
-      - name: Download Linux assets
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-assets
-          path: artifacts/linux
-
-      - name: Download macOS universal assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-universal
-          path: artifacts/macos-universal
+          merge-multiple: true
+          path: artifacts
 
       - name: List files in artifacts directory
         run: ls -R artifacts
@@ -336,7 +314,7 @@ jobs:
           secret_key: ${{ secrets.COS_DOWNLOAD_SECRET_KEY }}
           region: ${{ secrets.COS_DOWNLOAD_REGION }}
           bucket: ${{ secrets.COS_DOWNLOAD_BUCKET }}
-          prefix: "sftool-gui"
+          prefix: "sftool-gui/${{ github.ref_name }}"
           delete_remote: true
           working_directory: "artifacts"
           artifacts: "./**/*"
@@ -349,92 +327,75 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Download Windows assets
+      - name: Download all assets
         uses: actions/download-artifact@v4
         with:
-          name: windows-assets
-          path: artifacts/windows
-
-      - name: Download Linux assets
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-assets
-          path: artifacts/linux
-
-      - name: Download macOS universal assets
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-assets-universal
-          path: artifacts/macos-universal
+          merge-multiple: true
+          path: artifacts
 
       - name: Generate latest.json (global & cn)
+        uses: actions/github-script@v7
         env:
           TAG_NAME: ${{ needs.get-version.outputs.VERSION }}
           REPO_NAME: ${{ env.REPO_NAME }}
-        run: |
-          set -euo pipefail
-          mkdir -p updater/global updater/cn
-          WINDOWS_NAME="${REPO_NAME}_${TAG_NAME}_windows_x64.exe"
-          LINUX_APPIMAGE_NAME="${REPO_NAME}_${TAG_NAME}_amd64.AppImage"
-          MAC_UNIVERSAL_TGZ_NAME="${REPO_NAME}_${TAG_NAME}_macos_universal.app.tar.gz"
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
 
-          WINDOWS_SIG="$(cat artifacts/windows/${WINDOWS_NAME}.sig)"
-          LINUX_APPIMAGE_SIG="$(cat artifacts/linux/${LINUX_APPIMAGE_NAME}.sig)"
-          MAC_UNIVERSAL_TGZ_SIG="$(cat artifacts/macos-universal/${MAC_UNIVERSAL_TGZ_NAME}.sig)"
+            const tag = process.env.TAG_NAME;
+            const repo = process.env.REPO_NAME;
 
-          cat > updater/global/latest.json <<EOF
-          {
-            "version": "${TAG_NAME}",
-            "platforms": {
-              "windows-x86_64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${WINDOWS_NAME}",
-                "signature": "${WINDOWS_SIG}"
-              },
-              "linux-x86_64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
-                "signature": "${LINUX_APPIMAGE_SIG}"
-              },
-              "darwin-aarch64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
-                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
-              },
-              "darwin-x86_64": {
-                "url": "https://github.com/OpenSiFli/sftool-gui/releases/download/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
-                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
-              }
-            }
-          }
-          EOF
+            const names = {
+              windows: `${repo}_${tag}_windows_x64.exe`,
+              linux: `${repo}_${tag}_amd64.AppImage`,
+              mac: `${repo}_${tag}_macos_universal.app.tar.gz`,
+            };
 
-          cat > updater/cn/latest.json <<EOF
-          {
-            "version": "${TAG_NAME}",
-            "platforms": {
-              "windows-x86_64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${WINDOWS_NAME}",
-                "signature": "${WINDOWS_SIG}"
+            const sig = (relPath) => fs.readFileSync(relPath, 'utf8').trim();
+
+            const sigs = {
+              windows: sig(path.join('artifacts', `${names.windows}.sig`)),
+              linux: sig(path.join('artifacts', `${names.linux}.sig`)),
+              mac: sig(path.join('artifacts', `${names.mac}.sig`)),
+            };
+
+            const buildJson = (base) => ({
+              version: tag,
+              platforms: {
+                'windows-x86_64': {
+                  url: `${base}/${names.windows}`,
+                  signature: sigs.windows,
+                },
+                'linux-x86_64': {
+                  url: `${base}/${names.linux}`,
+                  signature: sigs.linux,
+                },
+                'darwin-aarch64': {
+                  url: `${base}/${names.mac}`,
+                  signature: sigs.mac,
+                },
+                'darwin-x86_64': {
+                  url: `${base}/${names.mac}`,
+                  signature: sigs.mac,
+                },
               },
-              "linux-x86_64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${LINUX_APPIMAGE_NAME}",
-                "signature": "${LINUX_APPIMAGE_SIG}"
-              },
-              "darwin-aarch64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
-                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
-              },
-              "darwin-x86_64": {
-                "url": "https://downloads.sifli.com/sftool-gui/${TAG_NAME}/${MAC_UNIVERSAL_TGZ_NAME}",
-                "signature": "${MAC_UNIVERSAL_TGZ_SIG}"
-              }
-            }
-          }
-          EOF
+            });
+
+            fs.mkdirSync('updater/global', { recursive: true });
+            fs.mkdirSync('updater/cn', { recursive: true });
+
+            const globalJson = buildJson(`https://github.com/OpenSiFli/sftool-gui/releases/download/v${tag}`);
+            const cnJson = buildJson(`https://downloads.sifli.com/sftool-gui/v${tag}`);
+
+            fs.writeFileSync(path.join('updater/global/latest.json'), JSON.stringify(globalJson, null, 2));
+            fs.writeFileSync(path.join('updater/cn/latest.json'), JSON.stringify(cnJson, null, 2));
 
       - name: Upload updater manifests
         uses: actions/upload-artifact@v4
         with:
           name: updater-manifests
-          path: updater/*.json
+          path: updater/**/*.json
 
       - name: Sync to SiFli mirror
         uses: OpenSiFli/SiFliMirrorSync@v1

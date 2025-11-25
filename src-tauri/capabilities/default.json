@@ -12,6 +12,7 @@
     "store:default",
     "dialog:default",
     "fs:default",
+    "process:default",
     "core:window:allow-start-dragging",
     "core:window:allow-show",
     "core:window:allow-hide",

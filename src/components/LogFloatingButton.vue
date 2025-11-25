@@ -322,7 +322,7 @@ const openLogWindow = async () => {
 }
 
 .shadow-info\/50 {
-  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.5);
+  box-shadow: 0 4px 14px 0 rgba(82, 176, 225, 0.5);
 }
 
 /* 深色主题优化 */

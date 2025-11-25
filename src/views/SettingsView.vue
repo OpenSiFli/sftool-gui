@@ -3,7 +3,8 @@ import { ref, onMounted, computed } from 'vue';
 import { useUserStore, ThemeType } from '../stores/userStore';
 import { useI18n } from 'vue-i18n';
 import { availableLanguages, Language, getLanguageByCode } from '../i18n';
-import { check } from '@tauri-apps/plugin-updater';
+import { check, type Update } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 
 // 获取用户存储和国际化
 const userStore = useUserStore();
@@ -108,10 +109,29 @@ const availableVersion = ref<string>('');
 const releaseNotes = ref<string>('');
 const hasCheckedOnce = ref(false);
 
-const checkForUpdates = async (manual = false) => {
+// 下载进度相关状态
+const isDownloading = ref(false);
+const downloadProgress = ref(0);
+const downloadedBytes = ref(0);
+const totalBytes = ref(0);
+const downloadStatus = ref<'idle' | 'downloading' | 'installing' | 'completed' | 'error'>('idle');
+const updateInstance = ref<Update | null>(null);
+
+// 格式化文件大小
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// 检查更新
+const checkForUpdates = async () => {
   if (isCheckingUpdate.value) return;
   isCheckingUpdate.value = true;
   updateError.value = '';
+  
   try {
     const update = await check();
     lastCheckTime.value = new Date().toLocaleTimeString();
@@ -120,15 +140,12 @@ const checkForUpdates = async (manual = false) => {
       updateAvailable.value = true;
       availableVersion.value = update.version || '';
       releaseNotes.value = update.body || '';
-
-      // 手动检查时直接触发下载安装
-      if (manual && update.downloadAndInstall) {
-        await update.downloadAndInstall();
-      }
+      updateInstance.value = update;
     } else {
       updateAvailable.value = false;
       availableVersion.value = '';
       releaseNotes.value = '';
+      updateInstance.value = null;
     }
   } catch (error: any) {
     updateError.value = error?.message || String(error);
@@ -138,18 +155,71 @@ const checkForUpdates = async (manual = false) => {
   }
 };
 
+// 下载并安装更新
+const downloadAndInstallUpdate = async () => {
+  if (!updateInstance.value || isDownloading.value) return;
+  
+  isDownloading.value = true;
+  downloadStatus.value = 'downloading';
+  downloadProgress.value = 0;
+  downloadedBytes.value = 0;
+  totalBytes.value = 0;
+  
+  try {
+    await updateInstance.value.downloadAndInstall((event) => {
+      switch (event.event) {
+        case 'Started':
+          totalBytes.value = event.data.contentLength || 0;
+          console.log(`Started downloading ${totalBytes.value} bytes`);
+          break;
+        case 'Progress':
+          downloadedBytes.value += event.data.chunkLength;
+          if (totalBytes.value > 0) {
+            downloadProgress.value = Math.min(100, (downloadedBytes.value / totalBytes.value) * 100);
+          }
+          break;
+        case 'Finished':
+          downloadProgress.value = 100;
+          downloadStatus.value = 'installing';
+          console.log('Download finished, installing...');
+          break;
+      }
+    });
+    
+    // 下载安装完成
+    downloadStatus.value = 'completed';
+    
+  } catch (error: any) {
+    downloadStatus.value = 'error';
+    updateError.value = error?.message || String(error);
+    console.error('Update failed:', error);
+  } finally {
+    isDownloading.value = false;
+  }
+};
+
+// 重启应用
+const restartApp = async () => {
+  try {
+    await relaunch();
+  } catch (error) {
+    console.error('Failed to relaunch:', error);
+  }
+};
+
+// 重置更新状态
+const resetUpdateState = () => {
+  downloadStatus.value = 'idle';
+  downloadProgress.value = 0;
+  downloadedBytes.value = 0;
+  totalBytes.value = 0;
+  updateError.value = '';
+};
+
 // 监听点击事件，用于关闭下拉菜单 + 启动时检查更新
 onMounted(() => {
   document.addEventListener('click', closeLanguageDropdown);
-  checkForUpdates(false);
-});
-
-const lastStatusText = computed(() => {
-  if (isCheckingUpdate.value) return '正在检查更新...';
-  if (updateError.value) return `检查失败：${updateError.value}`;
-  if (updateAvailable.value) return `发现新版本 ${availableVersion.value}`;
-  if (hasCheckedOnce.value) return '已是最新版本';
-  return '';
+  checkForUpdates();
 });
 </script>
 
@@ -195,51 +265,169 @@ const lastStatusText = computed(() => {
 
       <!-- 应用更新 -->
       <section>
-        <div class="mb-4 flex items-center">
+        <div class="mb-6 flex items-center">
           <span class="material-icons text-2xl mr-3 text-primary">system_update</span>
-          <h2 class="text-2xl font-semibold">应用更新</h2>
-          <div class="ml-auto text-sm text-base-content/70">
-            {{ lastStatusText }}
+          <h2 class="text-2xl font-semibold">{{ $t('setting.update') }}</h2>
+          <div v-if="updateAvailable && downloadStatus === 'idle'" class="ml-auto">
+            <span class="inline-flex items-center px-3 py-1 bg-success/20 text-success rounded-full text-sm">
+              <span class="material-icons text-sm mr-1">new_releases</span>
+              {{ $t('setting.new_version_found') }} {{ availableVersion }}
+            </span>
           </div>
         </div>
 
-        <div class="card bg-base-200 shadow-sm p-4">
-          <div class="flex flex-col gap-3">
-            <div class="flex items-center justify-between">
+        <div class="card bg-base-200 shadow-sm overflow-hidden">
+          <!-- 版本检查区域 -->
+          <div class="p-4 flex items-center justify-between border-b border-base-300/50">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-base-300/50 flex items-center justify-center">
+                <span class="material-icons text-base-content/70">update</span>
+              </div>
               <div>
-                <div class="font-medium text-base">版本检查</div>
-                <div class="text-sm text-base-content/70">
-                  {{ lastCheckTime ? `上次检查：${lastCheckTime}` : '启动时已自动检查一次' }}
+                <div class="font-medium text-base">{{ $t('setting.version_check') }}</div>
+                <div class="text-sm text-base-content/60">
+                  {{ lastCheckTime ? `${$t('setting.last_check')}：${lastCheckTime}` : $t('setting.auto_check_on_startup') }}
                 </div>
               </div>
-              <button 
-                class="btn btn-primary btn-sm gap-2"
-                :disabled="isCheckingUpdate"
-                @click="checkForUpdates(true)"
-              >
-                <span v-if="isCheckingUpdate" class="loading loading-spinner loading-xs"></span>
-                <span class="material-icons text-sm">refresh</span>
-                手动检查
-              </button>
             </div>
+            <button 
+              class="btn btn-primary btn-sm gap-2 min-w-[100px]"
+              :disabled="isCheckingUpdate || isDownloading"
+              @click="checkForUpdates"
+            >
+              <span v-if="isCheckingUpdate" class="loading loading-spinner loading-xs"></span>
+              <span v-else class="material-icons text-sm">refresh</span>
+              {{ $t('setting.manual_check') }}
+            </button>
+          </div>
 
-            <div v-if="updateAvailable" class="alert alert-success flex-col items-start gap-2">
-              <div class="flex items-center gap-2">
-                <span class="material-icons text-success">new_releases</span>
-                <div class="font-semibold">发现新版本 {{ availableVersion }}</div>
+          <!-- 更新完成提示 -->
+          <div v-if="downloadStatus === 'completed'" class="p-4 bg-success/10">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                <span class="material-icons text-success text-2xl">check_circle</span>
               </div>
-              <pre v-if="releaseNotes" class="text-sm whitespace-pre-wrap max-h-40 overflow-auto w-full">{{ releaseNotes }}</pre>
-              <button 
-                class="btn btn-success btn-sm mt-1"
-                :disabled="isCheckingUpdate"
-                @click="checkForUpdates(true)"
-              >
-                立即下载并安装
-              </button>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-lg text-success">{{ $t('setting.update_completed') }}</span>
+                </div>
+                <p class="text-sm text-base-content/70 mb-3">{{ $t('setting.update_completed_hint') }}</p>
+                <div class="flex gap-2">
+                  <button 
+                    class="btn btn-success gap-2"
+                    @click="restartApp"
+                  >
+                    <span class="material-icons">restart_alt</span>
+                    {{ $t('setting.restart_now') }}
+                  </button>
+                  <button 
+                    class="btn btn-ghost btn-sm"
+                    @click="resetUpdateState"
+                  >
+                    {{ $t('setting.restart_later') }}
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div v-else class="text-sm text-base-content/70">
-              {{ updateError ? `更新检查失败：${updateError}` : hasCheckedOnce ? '当前已是最新版本' : '已在启动时检查，如需可手动再次检查' }}
+          <!-- 下载进度显示 -->
+          <div v-else-if="downloadStatus === 'downloading' || downloadStatus === 'installing'" class="p-4 bg-primary/10">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <span v-if="downloadStatus === 'downloading'" class="loading loading-spinner loading-md text-primary"></span>
+                <span v-else class="material-icons text-primary text-2xl animate-pulse">install_desktop</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="font-bold text-lg text-primary">
+                    {{ downloadStatus === 'downloading' ? $t('setting.downloading') : $t('setting.installing') }}
+                  </span>
+                  <span class="text-sm text-base-content/70">{{ availableVersion }}</span>
+                </div>
+                
+                <!-- 进度条 -->
+                <div class="w-full mb-2">
+                  <div class="flex justify-between text-sm text-base-content/70 mb-1">
+                    <span>{{ formatBytes(downloadedBytes) }} / {{ formatBytes(totalBytes) }}</span>
+                    <span>{{ Math.round(downloadProgress) }}%</span>
+                  </div>
+                  <div class="w-full bg-base-300 rounded-full h-2.5 overflow-hidden">
+                    <div 
+                      class="h-2.5 rounded-full transition-all duration-300 ease-out"
+                      :class="downloadStatus === 'installing' ? 'bg-success animate-pulse' : 'bg-primary'"
+                      :style="{ width: `${downloadProgress}%` }"
+                    ></div>
+                  </div>
+                </div>
+                
+                <p class="text-sm text-base-content/60">
+                  {{ downloadStatus === 'downloading' ? $t('setting.downloading_hint') : $t('setting.installing_hint') }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 更新可用时显示 -->
+          <div v-else-if="updateAvailable" class="p-4 bg-success/10">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                <span class="material-icons text-success text-2xl">rocket_launch</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-lg text-success">{{ $t('setting.new_version_found') }} {{ availableVersion }}</span>
+                </div>
+                <p class="text-sm text-base-content/70 mb-3">{{ $t('setting.update_available_hint') }}</p>
+                <pre v-if="releaseNotes" class="text-sm whitespace-pre-wrap max-h-32 overflow-auto w-full bg-base-100/50 rounded-lg p-3 mb-3 text-base-content/80">{{ releaseNotes }}</pre>
+                <button 
+                  class="btn btn-success gap-2"
+                  :disabled="isDownloading"
+                  @click="downloadAndInstallUpdate"
+                >
+                  <span v-if="isDownloading" class="loading loading-spinner loading-sm"></span>
+                  <span v-else class="material-icons">download</span>
+                  {{ $t('setting.download_and_install') }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 下载错误显示 -->
+          <div v-else-if="downloadStatus === 'error'" class="p-4 bg-error/10">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-full bg-error/20 flex items-center justify-center flex-shrink-0">
+                <span class="material-icons text-error text-2xl">error</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-lg text-error">{{ $t('setting.update_failed') }}</span>
+                </div>
+                <p class="text-sm text-base-content/70 mb-3">{{ updateError }}</p>
+                <button 
+                  class="btn btn-error btn-outline gap-2"
+                  @click="resetUpdateState"
+                >
+                  <span class="material-icons">refresh</span>
+                  {{ $t('setting.retry') }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 无更新或错误时显示 -->
+          <div v-else class="p-4">
+            <div v-if="updateError" class="flex items-center gap-3 text-error">
+              <span class="material-icons">error_outline</span>
+              <span class="text-sm">{{ $t('setting.update_check_failed') }}：{{ updateError }}</span>
+            </div>
+            <div v-else-if="hasCheckedOnce" class="flex items-center gap-3 text-base-content/60">
+              <span class="material-icons text-success">check_circle</span>
+              <span class="text-sm">{{ $t('setting.already_latest') }}</span>
+            </div>
+            <div v-else class="flex items-center gap-3 text-base-content/60">
+              <span class="material-icons">info</span>
+              <span class="text-sm">{{ $t('setting.startup_checked') }}</span>
             </div>
           </div>
         </div>
@@ -413,7 +601,7 @@ const lastStatusText = computed(() => {
 
 .theme-system {
   background: linear-gradient(to right, #f8fafc 50%, #0f172a 50%);
-  color: #6366f1;
+  color: #52B0E1;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
