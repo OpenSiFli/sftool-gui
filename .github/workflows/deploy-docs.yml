@@ -55,7 +55,8 @@ jobs:
           secret_key: ${{ secrets.COS_DOCS_SECRET_KEY }}
           bucket: ${{ secrets.COS_DOCS_BUCKET }}
           region: ${{ secrets.COS_DOCS_REGION }}
-          artifacts: "./docs/src/.vuepress/dist/"
+          artifacts: "./**"
+          working_directory: "docs/src/.vuepress/dist"
           prefix: "/projects/sftool/"
           delete_remote: true
           flush_url: "https://docs.sifli.com/projects/sftool/"
