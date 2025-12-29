@@ -30,7 +30,7 @@
         <li>
           <router-link to="/read-flash" class="nav-item">
             <div class="icon-box">
-              <span class="material-icons">save_alt</span>
+              <span class="material-icons">file_upload</span>
               <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.read_flash') }}</div>
             </div>
             <span class="label" :class="{'hidden-label': isCollapsed}">

@@ -3,7 +3,7 @@
     "home": "主页",
     "device_setting": "设备设置",
     "device_upgrade": "设备升级",
-    "flash": "烧录",
+    "flash": "烧录固件",
     "read_flash": "读取固件",
     "erase_flash": "擦除Flash",
     "setting": "设置",
