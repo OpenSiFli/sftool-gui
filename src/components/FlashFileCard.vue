@@ -1,8 +1,9 @@
 <template>
   <div 
-    class="card card-compact shadow-sm file-list-item border transition-all duration-300 cursor-pointer"
+    class="card card-compact shadow-sm file-list-item border transition-all duration-300 cursor-pointer outline-none ring-offset-2 focus:ring-2 focus:ring-primary/50"
     :class="[getCardClass(), { 'hover:shadow-md': file.collapsed }]"
-    @mouseleave="setCollapsed(true)"
+    tabindex="0"
+    @focusout="handleFocusOut"
     @click="setCollapsed(false)"
   >
     <div class="card-body p-3">
@@ -119,6 +120,19 @@ const { t } = useI18n();
 
 const setCollapsed = (collapsed: boolean) => {
   store.setFileCollapsed(props.index, collapsed);
+};
+
+const handleFocusOut = (event: FocusEvent) => {
+  const currentTarget = event.currentTarget as HTMLElement;
+  const relatedTarget = event.relatedTarget as HTMLElement;
+  
+  // 如果焦点移动到组件内部的元素（如输入框），不折叠
+  if (currentTarget.contains(relatedTarget)) {
+    return;
+  }
+  
+  // 焦点移出组件，折叠
+  setCollapsed(true);
 };
 
 const removeFile = () => {
