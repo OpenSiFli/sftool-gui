@@ -188,8 +188,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
         path: file.path,
         address: file.address,
         addressError: file.addressError,
-        size: file.size,
-        collapsed: file.collapsed
+        size: file.size
       }));
       await storeInstance.set('selectedFiles', { value: filesToSave });
       await storeInstance.save();
@@ -225,7 +224,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
                 address: fileData.address || (isAutoAddressFile(fileData.name) ? '' : '0x10000000'),
                 addressError: fileData.addressError || '',
                 size: fileData.size || 0,
-                collapsed: fileData.collapsed ?? false
+                collapsed: true // 默认为折叠状态
               });
             }
           } catch (error) {
