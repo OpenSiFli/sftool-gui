@@ -5,6 +5,7 @@
     "device_upgrade": "Device upgrade",
     "flash": "Flash",
     "read_flash": "Read Firmware",
+    "erase_flash": "Erase Flash",
     "setting": "Settings",
     "about": "About",
     "collapse_menu": "Collapse menu",
@@ -182,6 +183,28 @@
     "allCompleted": "All completed",
     "waitingForTasks": "Waiting for read tasks...",
     "completedMessage": "Successfully read {count} files"
+  },
+  "eraseFlash": {
+    "title": "Erase Flash",
+    "warning": "Warning",
+    "warningMessage": "Erasing will clear all data on the Flash. This operation cannot be undone!",
+    "address": "Erase Address",
+    "addressPlaceholder": "Enter hex address, e.g.: 0x10000000",
+    "startErase": "Start Erase",
+    "validation": {
+      "addressRequired": "Please enter erase address",
+      "invalidAddress": "Invalid address format, please enter a valid hexadecimal address",
+      "addressTooLarge": "Address cannot exceed 0xFFFFFFFF"
+    },
+    "status": {
+      "erasing": "Erasing...",
+      "completed": "Erase completed!",
+      "failed": "Erase failed"
+    },
+    "log": {
+      "startErasing": "Starting Flash erase..."
+    },
+    "completedMessage": "Flash erased successfully"
   },
   "logWindow": {
     "autoScroll": "Auto Scroll",

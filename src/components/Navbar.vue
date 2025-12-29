@@ -39,6 +39,17 @@
           </router-link>
         </li>
         <li>
+          <router-link to="/erase-flash" class="nav-item">
+            <div class="icon-box">
+              <span class="material-icons">delete_forever</span>
+              <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.erase_flash') }}</div>
+            </div>
+            <span class="label" :class="{'hidden-label': isCollapsed}">
+              {{ $t('navbar.erase_flash') }}
+            </span>
+          </router-link>
+        </li>
+        <li>
           <router-link to="/setting" class="nav-item">
             <div class="icon-box">
               <span class="material-icons">settings</span>

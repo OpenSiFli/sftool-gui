@@ -5,6 +5,7 @@
     "device_upgrade": "设备升级",
     "flash": "烧录",
     "read_flash": "读取固件",
+    "erase_flash": "擦除Flash",
     "setting": "设置",
     "about": "关于",
     "collapse_menu": "收起菜单",
@@ -182,6 +183,28 @@
     "allCompleted": "全部完成",
     "waitingForTasks": "等待读取任务...",
     "completedMessage": "成功读取了 {count} 个文件"
+  },
+  "eraseFlash": {
+    "title": "擦除Flash",
+    "warning": "警告",
+    "warningMessage": "擦除操作将清除Flash中的所有数据，此操作不可撤销！",
+    "address": "擦除地址",
+    "addressPlaceholder": "请输入十六进制地址，如：0x10000000",
+    "startErase": "开始擦除",
+    "validation": {
+      "addressRequired": "请输入擦除地址",
+      "invalidAddress": "地址格式不正确，请输入有效的十六进制地址",
+      "addressTooLarge": "地址不能超过 0xFFFFFFFF"
+    },
+    "status": {
+      "erasing": "擦除中...",
+      "completed": "擦除完成！",
+      "failed": "擦除失败"
+    },
+    "log": {
+      "startErasing": "开始擦除Flash..."
+    },
+    "completedMessage": "Flash擦除成功"
   },
   "logWindow": {
     "autoScroll": "自动滚动",
