@@ -44,6 +44,7 @@ export default {
           return false;
         case '/':
         case '/write-flash':
+        case '/read-flash':
         default:
           return true;
       }
