@@ -12,6 +12,7 @@
     "store:default",
     "dialog:default",
     "fs:default",
+    "fs:allow-write-text-file",
     "process:default",
     "core:window:allow-start-dragging",
     "core:window:allow-show",
