@@ -312,23 +312,27 @@ watch(
 );
 
 // 键盘快捷键
+const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 const handleKeydown = (event: KeyboardEvent) => {
-  // Ctrl+L 清除日志
-  if (event.ctrlKey && event.key === 'l') {
+  // macOS 使用 Cmd，其他平台使用 Ctrl
+  const modKey = isMac ? event.metaKey : event.ctrlKey;
+  
+  // Cmd/Ctrl+L 清除日志
+  if (modKey && event.key === 'l') {
     event.preventDefault();
     if (!logStore.isFlashing) {
       clearLogs();
     }
   }
   
-  // Ctrl+S 导出日志
-  if (event.ctrlKey && event.key === 's') {
+  // Cmd/Ctrl+S 导出日志
+  if (modKey && event.key === 's') {
     event.preventDefault();
     exportLogs();
   }
   
-  // Ctrl+T 切换置顶
-  if (event.ctrlKey && event.key === 't') {
+  // Cmd/Ctrl+T 切换置顶
+  if (modKey && event.key === 't') {
     event.preventDefault();
     toggleAlwaysOnTop();
   }

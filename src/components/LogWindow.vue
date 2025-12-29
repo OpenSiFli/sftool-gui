@@ -333,24 +333,28 @@ watch(isVisible, (visible) => {
 });
 
 // 键盘快捷键
+const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 const handleKeydown = (event: KeyboardEvent) => {
   if (!isVisible.value) return;
+  
+  // macOS 使用 Cmd，其他平台使用 Ctrl
+  const modKey = isMac ? event.metaKey : event.ctrlKey;
   
   // ESC 键关闭窗口
   if (event.key === 'Escape') {
     closeWindow();
   }
   
-  // Ctrl+L 清除日志
-  if (event.ctrlKey && event.key === 'l') {
+  // Cmd/Ctrl+L 清除日志
+  if (modKey && event.key === 'l') {
     event.preventDefault();
     if (!isFlashing.value) {
       clearLogs();
     }
   }
   
-  // Ctrl+S 导出日志
-  if (event.ctrlKey && event.key === 's') {
+  // Cmd/Ctrl+S 导出日志
+  if (modKey && event.key === 's') {
     event.preventDefault();
     exportLogs();
   }
