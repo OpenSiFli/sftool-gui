@@ -169,9 +169,7 @@ const getFileName = (path: string) => {
 };
 
 const getCardClass = () => {
-  const filePath = props.task.filePath;
-  
-  if (store.currentReadingFile === filePath && store.isReading) {
+  if (store.currentReadingTaskId === props.task.id && store.isReading) {
     return 'downloading-file';
   }
   

@@ -32,6 +32,7 @@ export const useReadFlashStore = defineStore('readFlash', () => {
 
     // 进度状态
     const currentReadingFile = ref<string>('');
+    const currentReadingTaskId = ref<string>('');
     const currentOperation = ref<string>('');
     const completedTasks = ref<Set<string>>(new Set());
     const readCompleted = ref(false);
@@ -132,6 +133,7 @@ export const useReadFlashStore = defineStore('readFlash', () => {
 
     const resetProgressStates = () => {
         currentReadingFile.value = '';
+        currentReadingTaskId.value = '';
         currentOperation.value = '';
         completedTasks.value.clear();
         readCompleted.value = false;
@@ -159,6 +161,10 @@ export const useReadFlashStore = defineStore('readFlash', () => {
 
     const setCurrentReadingFile = (fileName: string) => {
         currentReadingFile.value = fileName;
+    };
+
+    const setCurrentReadingTaskId = (id: string) => {
+        currentReadingTaskId.value = id;
     };
 
     const setCurrentOperation = (operation: string) => {
@@ -230,7 +236,9 @@ export const useReadFlashStore = defineStore('readFlash', () => {
         // 状态
         tasks,
         isReading,
+
         currentReadingFile,
+        currentReadingTaskId,
         currentOperation,
         completedTasks,
         readCompleted,
@@ -256,7 +264,9 @@ export const useReadFlashStore = defineStore('readFlash', () => {
         setReadingState,
         resetProgressStates,
         updateProgress,
+
         setCurrentReadingFile,
+        setCurrentReadingTaskId,
         setCurrentOperation,
         addCompletedTask,
         setReadCompleted,

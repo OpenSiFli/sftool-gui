@@ -349,9 +349,24 @@ const handleProgressEvent = (event: any) => {
     currentProgressBytes = event.current || 0;
     totalProgressBytes = event.total || 0;
     
-    // 解析文件名
+    // 尝试从消息中解析地址以匹配任务
+    // 消息格式通常为 "Reading from 0x12000000..."
     if (event.message) {
-      const fileName = event.message.split('/').pop() || event.message;
+      const addressMatch = event.message.match(/0x[0-9a-fA-F]+/);
+      let fileName = event.message.split('/').pop() || event.message;
+      
+      if (addressMatch) {
+        const addressHex = addressMatch[0];
+        const addressVal = parseInt(addressHex, 16);
+        const task = readFlashStore.tasks.find(t => parseInt(t.address, 16) === addressVal);
+        
+        if (task) {
+          readFlashStore.setCurrentReadingTaskId(task.id);
+          readFlashStore.setCurrentReadingFile(task.filePath);
+          fileName = task.filePath.split(/[/\\]/).pop() || task.filePath;
+        }
+      }
+      
       readFlashStore.updateProgress({
         currentFileName: fileName,
         totalCount: readFlashStore.tasks.length,
@@ -391,6 +406,14 @@ const handleProgressEvent = (event: any) => {
       speed: speed,
       eta: eta
     });
+
+    // 检测单个任务完成 (当前进度 >= 总进度)
+    if (totalProgressBytes > 0 && currentProgressBytes >= totalProgressBytes) {
+      if (readFlashStore.currentReadingTaskId) {
+        readFlashStore.addCompletedTask(readFlashStore.currentReadingTaskId);
+      }
+    }
+
   } else if (event.event_type === 'update') {
     // update 事件可能包含绝对值
     if (event.current !== undefined && event.total !== undefined) {
@@ -403,6 +426,13 @@ const handleProgressEvent = (event: any) => {
         total: totalProgressBytes,
         percentage: percentage
       });
+      
+      // 检测单个任务完成
+      if (totalProgressBytes > 0 && currentProgressBytes >= totalProgressBytes) {
+        if (readFlashStore.currentReadingTaskId) {
+          readFlashStore.addCompletedTask(readFlashStore.currentReadingTaskId);
+        }
+      }
     }
   } else if (event.event_type === 'finish') {
     readFlashStore.updateProgress({
@@ -410,6 +440,11 @@ const handleProgressEvent = (event: any) => {
       speed: 0,
       eta: 0
     });
+    // 最后一次确认完成状态
+    if (readFlashStore.currentReadingTaskId) {
+      readFlashStore.addCompletedTask(readFlashStore.currentReadingTaskId);
+    }
+
     // 重置进度跟踪变量
     currentProgressBytes = 0;
     totalProgressBytes = 0;
