@@ -400,6 +400,8 @@ const parseSizeWithUnit = (sizeStr: string): number | null => {
 // 进度计算相关变量
 let lastProgressUpdate = 0;
 let lastProgressBytes = 0;
+let currentProgressBytes = 0;  // 累计的进度字节数
+let totalProgressBytes = 0;    // 总字节数
 
 // 初始化日志
 const initializeLog = () => {
@@ -448,48 +450,73 @@ onUnmounted(() => {
 
 // 处理进度事件
 const handleProgressEvent = (event: any) => {
+  // 只在读取进行中时处理进度事件，避免捕获设备连接等其他操作的进度
+  if (!readFlashStore.isReading) {
+    return;
+  }
+  
   const now = Date.now();
   
   if (event.event_type === 'start') {
     readFlashStore.setCurrentOperation(event.step);
     lastProgressUpdate = now;
     lastProgressBytes = 0;
+    currentProgressBytes = event.current || 0;
+    totalProgressBytes = event.total || 0;
     
     // 解析文件名
     if (event.message) {
       const fileName = event.message.split('/').pop() || event.message;
       readFlashStore.updateProgress({
         currentFileName: fileName,
-        totalCount: readFlashStore.tasks.length
+        totalCount: readFlashStore.tasks.length,
+        current: currentProgressBytes,
+        total: totalProgressBytes,
+        percentage: 0
       });
     }
-  } else if (event.event_type === 'update' || event.event_type === 'increment') {
+  } else if (event.event_type === 'increment') {
+    // increment 事件的 current 是增量 (delta)，不是绝对值
+    const delta = event.current || 0;
+    currentProgressBytes += delta;
+    
+    const percentage = totalProgressBytes > 0 ? (currentProgressBytes / totalProgressBytes) * 100 : 0;
+    
+    // 计算速度
+    const timeDiff = (now - lastProgressUpdate) / 1000; // 转换为秒
+    const bytesDiff = currentProgressBytes - lastProgressBytes;
+    let speed = 0;
+    
+    if (timeDiff > 0.1) { // 至少100ms才计算速度，避免抖动
+      speed = bytesDiff / timeDiff;
+      lastProgressUpdate = now;
+      lastProgressBytes = currentProgressBytes;
+    } else if (readFlashStore.totalProgress.speed) {
+      speed = readFlashStore.totalProgress.speed; // 保持上一次的速度
+    }
+    
+    // 计算预计剩余时间
+    const remaining = totalProgressBytes - currentProgressBytes;
+    const eta = speed > 0 ? remaining / speed : 0;
+    
+    readFlashStore.updateProgress({
+      current: currentProgressBytes,
+      total: totalProgressBytes,
+      percentage: percentage,
+      speed: speed,
+      eta: eta
+    });
+  } else if (event.event_type === 'update') {
+    // update 事件可能包含绝对值
     if (event.current !== undefined && event.total !== undefined) {
-      const percentage = event.total > 0 ? (event.current / event.total) * 100 : 0;
-      
-      // 计算速度
-      const timeDiff = (now - lastProgressUpdate) / 1000; // 转换为秒
-      const bytesDiff = event.current - lastProgressBytes;
-      let speed = 0;
-      
-      if (timeDiff > 0.1) { // 至少100ms才计算速度，避免抖动
-        speed = bytesDiff / timeDiff;
-        lastProgressUpdate = now;
-        lastProgressBytes = event.current;
-      } else if (readFlashStore.totalProgress.speed) {
-        speed = readFlashStore.totalProgress.speed; // 保持上一次的速度
-      }
-      
-      // 计算预计剩余时间
-      const remaining = event.total - event.current;
-      const eta = speed > 0 ? remaining / speed : 0;
+      currentProgressBytes = event.current;
+      totalProgressBytes = event.total;
+      const percentage = totalProgressBytes > 0 ? (currentProgressBytes / totalProgressBytes) * 100 : 0;
       
       readFlashStore.updateProgress({
-        current: event.current,
-        total: event.total,
-        percentage: percentage,
-        speed: speed,
-        eta: eta
+        current: currentProgressBytes,
+        total: totalProgressBytes,
+        percentage: percentage
       });
     }
   } else if (event.event_type === 'finish') {
@@ -498,6 +525,11 @@ const handleProgressEvent = (event: any) => {
       speed: 0,
       eta: 0
     });
+    // 重置进度跟踪变量
+    currentProgressBytes = 0;
+    totalProgressBytes = 0;
+    lastProgressBytes = 0;
+    
     readFlashStore.setReadCompleted(true);
     readFlashStore.setReadingState(false);
   }
