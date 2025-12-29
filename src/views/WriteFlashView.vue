@@ -60,67 +60,91 @@
                   class="card card-compact shadow-sm file-list-item border transition-all duration-300"
                   :class="getFileCardClass(file)"
                 >
-                  <div class="card-body p-4">
-                    <div class="flex flex-col gap-3">
-                      <!-- 第一行：文件名和移除按钮 -->
+                  <div class="card-body p-3">
+                    <div class="flex flex-col gap-2">
+                      <!-- 第一行：文件名、折叠按钮和操作按钮 -->
                       <div class="flex items-center justify-between gap-2">
-                        <div class="flex-1 min-w-0">
+                        <div class="flex-1 min-w-0 flex items-center gap-2 cursor-pointer select-none" @click="writeFlashStore.toggleFileCollapse(index)">
+                          <!-- 折叠图标 -->
+                          <button class="btn btn-xs btn-ghost btn-square flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" :class="{ '-rotate-90': file.collapsed }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          
                           <div class="font-medium text-sm truncate flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            {{ file.name }}
+                            <span class="truncate">{{ file.name }}</span>
+                            <!-- 折叠时显示地址信息 -->
+                            <span v-if="file.collapsed && !writeFlashStore.isAutoAddressFile(file.name) && file.address" class="text-xs text-base-content/60 font-mono flex-shrink-0">
+                              @ {{ file.address }}
+                            </span>
+                            <span v-if="file.collapsed && writeFlashStore.isAutoAddressFile(file.name)" class="badge badge-success badge-xs gap-0.5 flex-shrink-0">
+                              <span class="text-[10px]">{{ $t('writeFlash.autoAddress') }}</span>
+                            </span>
                           </div>
-                          <div class="text-xs text-base-content/60 mt-1" v-if="file.size && file.size > 0">
+                          <!-- 折叠时显示大小 -->
+                          <div class="text-xs text-base-content/60 flex-shrink-0" v-if="file.collapsed && file.size && file.size > 0">
                             {{ formatFileSize(file.size) }}
                           </div>
                         </div>
+                        
                         <button 
-                          class="btn btn-xs btn-error btn-outline hover:btn-error flex-shrink-0"
-                          @click="removeFile(index)"
+                          class="btn btn-xs btn-error btn-ghost hover:bg-error/10 flex-shrink-0"
+                          @click.stop="removeFile(index)"
                           :disabled="writeFlashStore.isFlashing"
+                          :title="$t('writeFlash.removeFile')"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          {{ $t('writeFlash.removeFile') }}
                         </button>
                       </div>
                       
-                      <!-- 第二行：文件路径 -->
-                      <div class="text-xs text-base-content/70 font-mono bg-base-200/20 border border-base-300/30 rounded px-2 py-1 truncate">
-                        {{ file.path }}
-                      </div>
-                      
-                      <!-- 第三行：地址设置 -->
-                      <div class="flex gap-2 items-center" v-if="!writeFlashStore.isAutoAddressFile(file.name)">
-                        <span class="text-xs text-base-content/60 flex-shrink-0">{{ $t('writeFlash.address') }}:</span>
-                        <div class="flex-1">
-                          <input 
-                            type="text" 
-                            v-model="file.address"
-                            class="input input-xs w-full text-xs font-mono bg-base-100/50 border-base-300/40 focus:border-primary/50 focus:bg-base-100/70 transition-all duration-200"
-                            :class="{ 'border-error/50 bg-error/5': file.addressError }"
-                            :placeholder="$t('writeFlash.addressPlaceholder')"
-                            @input="validateAddress(index)"
-                          />
+                      <!-- 展开内容：路径和地址设置 -->
+                      <div v-show="!file.collapsed" class="flex flex-col gap-3 ml-8">
+                        <!-- 大小显示 (展开时) -->
+                        <div class="text-xs text-base-content/60 -mt-1" v-if="file.size && file.size > 0">
+                          {{ formatFileSize(file.size) }}
                         </div>
-                      </div>
-                      <div v-else class="flex items-center justify-center">
-                        <div class="badge badge-success badge-sm gap-1">
+                        
+                        <!-- 文件路径 -->
+                        <div class="text-xs text-base-content/70 font-mono bg-base-200/50 border border-base-300/50 rounded px-2 py-1.5 truncate select-all" :title="file.path">
+                          {{ file.path }}
+                        </div>
+                        
+                        <!-- 地址设置 -->
+                        <div class="flex gap-2 items-center" v-if="!writeFlashStore.isAutoAddressFile(file.name)">
+                          <span class="text-xs text-base-content/60 flex-shrink-0 w-16 text-right">{{ $t('writeFlash.address') }}:</span>
+                          <div class="flex-1">
+                            <input 
+                              type="text" 
+                              v-model="file.address"
+                              class="input input-xs w-full text-xs font-mono bg-base-100 border-base-300 focus:border-primary focus:bg-base-100 transition-all duration-200 shadow-sm"
+                              :class="{ 'border-error bg-error/5': file.addressError }"
+                              :placeholder="$t('writeFlash.addressPlaceholder')"
+                              @input="validateAddress(index)"
+                            />
+                          </div>
+                        </div>
+                        <div v-else class="flex items-center pl-[4.5rem]">
+                          <div class="badge badge-success badge-sm badge-outline gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            {{ $t('writeFlash.autoAddress') }}
+                          </div>
+                        </div>
+                        
+                        <!-- 地址错误信息 -->
+                        <div v-if="file.addressError && !writeFlashStore.isAutoAddressFile(file.name)" class="text-xs text-error flex items-center gap-1 pl-[4.5rem]">
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {{ $t('writeFlash.autoAddress') }}
+                          {{ file.addressError }}
                         </div>
-                      </div>
-                      
-                      <!-- 地址错误信息 -->
-                      <div v-if="file.addressError && !writeFlashStore.isAutoAddressFile(file.name)" class="text-xs text-error flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {{ file.addressError }}
                       </div>
                     </div>
                   </div>

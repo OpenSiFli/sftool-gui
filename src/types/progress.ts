@@ -10,12 +10,13 @@ export interface FlashFile {
   address?: string;
   addressError?: string;
   size?: number;
+  collapsed?: boolean;
 }
 
 // 操作类型枚举
 export enum OperationType {
   ERASE = 'erase',
-  DOWNLOAD = 'download', 
+  DOWNLOAD = 'download',
   VERIFY = 'verify',
   UNKNOWN = 'unknown'
 }
@@ -23,7 +24,7 @@ export enum OperationType {
 // 进度项状态枚举
 export enum ProgressStatus {
   WAITING = 'waiting',
-  ACTIVE = 'active', 
+  ACTIVE = 'active',
   COMPLETED = 'completed',
   ERROR = 'error'
 }

@@ -110,6 +110,14 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     }
   };
 
+  const toggleFileCollapse = (index: number) => {
+    if (index >= 0 && index < selectedFiles.value.length) {
+      const file = selectedFiles.value[index];
+      file.collapsed = !file.collapsed;
+      saveFilesToStorage();
+    }
+  };
+
   const setFlashingState = (flashing: boolean) => {
     isFlashing.value = flashing;
   };
@@ -170,7 +178,8 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
         path: file.path,
         address: file.address,
         addressError: file.addressError,
-        size: file.size
+        size: file.size,
+        collapsed: file.collapsed
       }));
       await storeInstance.set('selectedFiles', { value: filesToSave });
       await storeInstance.save();
@@ -205,7 +214,8 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
                 path: fileData.path,
                 address: fileData.address || (isAutoAddressFile(fileData.name) ? '' : '0x10000000'),
                 addressError: fileData.addressError || '',
-                size: fileData.size || 0
+                size: fileData.size || 0,
+                collapsed: fileData.collapsed ?? false
               });
             }
           } catch (error) {
@@ -263,6 +273,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     clearFiles,
     updateFileAddress,
     updateFileAddressError,
+    toggleFileCollapse,
     setFlashingState,
     setWindowDragging,
     resetProgressStates,
