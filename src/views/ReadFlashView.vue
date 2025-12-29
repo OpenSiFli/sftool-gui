@@ -15,16 +15,7 @@
             <label class="label">
               <span class="label-text font-semibold">{{ $t('readFlash.taskList') }}</span>
               <!-- 添加任务按钮 -->
-              <button 
-                class="btn btn-outline btn-xs gap-1"
-                @click="handleAddTask"
-                :disabled="readFlashStore.isReading"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                {{ $t('readFlash.addTask') }}
-              </button>
+
             </label>
              
             <!-- 任务列表 -->
@@ -35,105 +26,12 @@
                 tag="div" 
                 class="space-y-2 mb-3 task-list-container"
               >
-                <div 
+                <ReadTaskCard 
                   v-for="(task, index) in readFlashStore.tasks" 
                   :key="task.id"
-                  class="card card-compact shadow-sm task-list-item border transition-all duration-300"
-                  :class="getTaskCardClass(task)"
-                >
-                  <div class="card-body p-4">
-                    <div class="flex flex-col gap-3">
-                      <!-- 第一行：任务标题和移除按钮 -->
-                      <div class="flex items-center justify-between gap-2">
-                        <div class="flex-1 min-w-0">
-                          <div class="font-medium text-sm truncate flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            {{ $t('readFlash.task') }} {{ index + 1 }}
-                          </div>
-                        </div>
-                        <button 
-                          class="btn btn-xs btn-error btn-outline hover:btn-error flex-shrink-0"
-                          @click="removeTask(index)"
-                          :disabled="readFlashStore.isReading"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          {{ $t('readFlash.removeTask') }}
-                        </button>
-                      </div>
-                      
-                      <!-- 保存路径 -->
-                      <div class="flex gap-2 items-center">
-                        <span class="text-xs text-base-content/60 flex-shrink-0 w-20">{{ $t('readFlash.filePath') }}:</span>
-                        <div class="flex-1 flex gap-2">
-                          <input 
-                            type="text" 
-                            v-model="task.filePath"
-                            class="input input-xs flex-1 text-xs font-mono bg-base-100/50 border-base-300/40 focus:border-primary/50 focus:bg-base-100/70 transition-all duration-200"
-                            :placeholder="$t('readFlash.filePathPlaceholder')"
-                            readonly
-                          />
-                          <button 
-                            class="btn btn-xs btn-outline"
-                            @click="handleSelectSavePath(index)"
-                            :disabled="readFlashStore.isReading"
-                          >
-                            {{ $t('readFlash.selectSavePath') }}
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <!-- 起始地址 -->
-                      <div class="flex gap-2 items-center">
-                        <span class="text-xs text-base-content/60 flex-shrink-0 w-20">{{ $t('readFlash.address') }}:</span>
-                        <div class="flex-1">
-                          <input 
-                            type="text" 
-                            v-model="task.address"
-                            class="input input-xs w-full text-xs font-mono bg-base-100/50 border-base-300/40 focus:border-primary/50 focus:bg-base-100/70 transition-all duration-200"
-                            :class="{ 'border-error/50 bg-error/5': task.addressError }"
-                            :placeholder="$t('readFlash.addressPlaceholder')"
-                            @input="validateAddress(index)"
-                          />
-                        </div>
-                      </div>
-                      
-                      <!-- 地址错误信息 -->
-                      <div v-if="task.addressError" class="text-xs text-error flex items-center gap-1 ml-20">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {{ task.addressError }}
-                      </div>
-                      
-                      <!-- 读取大小 -->
-                      <div class="flex gap-2 items-center">
-                        <span class="text-xs text-base-content/60 flex-shrink-0 w-20">{{ $t('readFlash.size') }}:</span>
-                        <div class="flex-1">
-                          <input 
-                            type="text" 
-                            v-model="task.size"
-                            class="input input-xs w-full text-xs font-mono bg-base-100/50 border-base-300/40 focus:border-primary/50 focus:bg-base-100/70 transition-all duration-200"
-                            :class="{ 'border-error/50 bg-error/5': task.sizeError }"
-                            :placeholder="$t('readFlash.sizePlaceholder')"
-                            @input="validateSize(index)"
-                          />
-                        </div>
-                      </div>
-                      
-                      <!-- 大小错误信息 -->
-                      <div v-if="task.sizeError" class="text-xs text-error flex items-center gap-1 ml-20">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {{ task.sizeError }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  :task="task"
+                  :index="index"
+                />
               </transition-group>
             </div>
             
@@ -297,7 +195,8 @@ import { onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { listen } from '@tauri-apps/api/event';
 import { useLogStore } from '../stores/logStore';
-import { useReadFlashStore, type ReadFlashTask } from '../stores/readFlashStore';
+import { useReadFlashStore } from '../stores/readFlashStore';
+import ReadTaskCard from '../components/ReadTaskCard.vue';
 
 const { t } = useI18n();
 const logStore = useLogStore();
@@ -317,21 +216,7 @@ const formatBytes = (bytes: number | undefined): string => {
   return formatFileSize(bytes);
 };
 
-// 获取任务卡片样式
-const getTaskCardClass = (task: ReadFlashTask) => {
-  // 检查当前是否正在读取这个任务
-  if (readFlashStore.currentReadingFile === task.filePath) {
-    return 'downloading-file';
-  }
-  
-  // 检查任务是否已完成
-  if (readFlashStore.completedTasks.has(task.id)) {
-    return 'bg-gradient-to-r from-green-50/20 to-green-100/30 border-green-300/50 ring-2 ring-green-300/30 shadow-lg';
-  }
-  
-  // 默认样式
-  return 'bg-base-200/30 border-base-300/40 hover:shadow-md transition-all duration-300';
-};
+
 
 // 格式化速度
 const formatSpeed = (bytesPerSecond: number | undefined): string => {
@@ -535,59 +420,6 @@ const handleProgressEvent = (event: any) => {
   }
 };
 
-// 验证地址格式
-const validateAddress = (index: number) => {
-  const task = readFlashStore.tasks[index];
-  if (!task.address) {
-    readFlashStore.updateTaskAddressError(index, t('readFlash.validation.addressRequired'));
-    return false;
-  }
-  
-  const hexPattern = /^0x[0-9a-fA-F]+$/;
-  if (!hexPattern.test(task.address)) {
-    readFlashStore.updateTaskAddressError(index, t('readFlash.validation.invalidAddress'));
-    return false;
-  }
-  
-  const addressValue = parseInt(task.address, 16);
-  if (addressValue > 0xFFFFFFFF) {
-    readFlashStore.updateTaskAddressError(index, t('readFlash.validation.addressTooLarge'));
-    return false;
-  }
-  
-  readFlashStore.updateTaskAddressError(index, '');
-  // 保存到存储
-  readFlashStore.saveTasksToStorage();
-  return true;
-};
-
-// 验证大小
-const validateSize = (index: number) => {
-  const task = readFlashStore.tasks[index];
-  if (!task.size) {
-    readFlashStore.updateTaskSizeError(index, t('readFlash.validation.sizeRequired'));
-    return false;
-  }
-  
-  // 使用支持SI单位的解析函数
-  const sizeValue = parseSizeWithUnit(task.size);
-  
-  if (sizeValue === null || sizeValue <= 0) {
-    readFlashStore.updateTaskSizeError(index, t('readFlash.validation.invalidSize'));
-    return false;
-  }
-  
-  if (sizeValue > 0xFFFFFFFF) {
-    readFlashStore.updateTaskSizeError(index, t('readFlash.validation.sizeTooLarge'));
-    return false;
-  }
-  
-  readFlashStore.updateTaskSizeError(index, '');
-  // 保存到存储
-  readFlashStore.saveTasksToStorage();
-  return true;
-};
-
 // 验证所有任务
 const validateAllTasks = (): boolean => {
   if (readFlashStore.tasks.length === 0) {
@@ -595,21 +427,8 @@ const validateAllTasks = (): boolean => {
     return false;
   }
   
-  let isValid = true;
-  readFlashStore.tasks.forEach((_, index) => {
-    if (!validateAddress(index)) {
-      isValid = false;
-    }
-    if (!validateSize(index)) {
-      isValid = false;
-    }
-    if (!readFlashStore.tasks[index].filePath) {
-      logStore.addMessage(t('readFlash.validation.filePathRequired'));
-      isValid = false;
-    }
-  });
-  
-  return isValid;
+  // 组件层级已进行验证，此处仅检查store状态
+  return readFlashStore.canStartReading;
 };
 
 // 添加任务
@@ -619,35 +438,7 @@ const handleAddTask = () => {
   logStore.addMessage(t('readFlash.log.taskAdded'));
 };
 
-// 移除任务
-const removeTask = (index: number) => {
-  readFlashStore.removeTask(index);
-  logStore.addMessage(t('readFlash.log.taskRemoved'));
-};
 
-// 选择保存路径
-const handleSelectSavePath = async (index: number) => {
-  if (readFlashStore.isReading) return;
-  
-  try {
-    const { save } = await import('@tauri-apps/plugin-dialog');
-    
-    const filePath = await save({
-      filters: [{
-        name: 'Binary Files',
-        extensions: ['bin']
-      }],
-      defaultPath: 'firmware.bin'
-    });
-    
-    if (filePath) {
-      readFlashStore.updateTaskFilePath(index, filePath);
-      logStore.addMessage(`${t('readFlash.log.savePathSelected')}: ${filePath}`);
-    }
-  } catch (error) {
-    logStore.addMessage(`${t('readFlash.status.failed')}: ${error}`, true);
-  }
-};
 
 // 开始读取
 const startReading = async () => {

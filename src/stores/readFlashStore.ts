@@ -11,6 +11,7 @@ export interface ReadFlashTask {
     size: string;
     addressError?: string;
     sizeError?: string;
+    collapsed?: boolean;
 }
 
 // 存储实例
@@ -70,8 +71,10 @@ export const useReadFlashStore = defineStore('readFlash', () => {
             filePath: task?.filePath || '',
             address: task?.address || '0x10000000',
             size: task?.size || '',
+
             addressError: '',
-            sizeError: ''
+            sizeError: '',
+            collapsed: false // 新任务默认展开以便编辑
         };
         tasks.value.push(newTask);
         saveTasksToStorage();
@@ -144,6 +147,12 @@ export const useReadFlashStore = defineStore('readFlash', () => {
         };
     };
 
+    const setTaskCollapsed = (index: number, collapsed: boolean) => {
+        if (index >= 0 && index < tasks.value.length) {
+            tasks.value[index].collapsed = collapsed;
+        }
+    };
+
     const updateProgress = (progress: Partial<TotalProgress>) => {
         Object.assign(totalProgress.value, progress);
     };
@@ -169,7 +178,6 @@ export const useReadFlashStore = defineStore('readFlash', () => {
         try {
             const storeInstance = await initStore();
             const tasksToSave = tasks.value.map(task => ({
-                id: task.id,
                 filePath: task.filePath,
                 address: task.address,
                 size: task.size
@@ -198,7 +206,8 @@ export const useReadFlashStore = defineStore('readFlash', () => {
                     address: taskData.address || '0x10000000',
                     size: taskData.size || '',
                     addressError: '',
-                    sizeError: ''
+                    sizeError: '',
+                    collapsed: true // 加载的任务默认折叠
                 }));
                 console.log(`从存储中加载了 ${tasks.value.length} 个任务`);
             }
@@ -242,6 +251,8 @@ export const useReadFlashStore = defineStore('readFlash', () => {
         updateTaskSize,
         updateTaskAddressError,
         updateTaskSizeError,
+
+        setTaskCollapsed,
         setReadingState,
         resetProgressStates,
         updateProgress,
