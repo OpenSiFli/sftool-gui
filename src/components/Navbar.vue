@@ -28,6 +28,17 @@
           </router-link>
         </li>
         <li>
+          <router-link to="/read-flash" class="nav-item">
+            <div class="icon-box">
+              <span class="material-icons">save_alt</span>
+              <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.read_flash') }}</div>
+            </div>
+            <span class="label" :class="{'hidden-label': isCollapsed}">
+              {{ $t('navbar.read_flash') }}
+            </span>
+          </router-link>
+        </li>
+        <li>
           <router-link to="/setting" class="nav-item">
             <div class="icon-box">
               <span class="material-icons">settings</span>
