@@ -1,10 +1,7 @@
 <template>
   <div class="device-connection-panel">
-    <div class="card bg-base-100 shadow-lg p-3">
-      <!-- <h3 class="text-lg font-bold mb-2">设备连接</h3> -->
-      
       <!-- 芯片信息卡片 -->
-      <div class="card bg-base-200 shadow-sm p-2 mb-2">
+      <div class="card bg-base-100 shadow-sm p-3 mb-3">
         <div class="flex justify-center mb-1">
           <h4 class="font-bold text-sm">{{ t('deviceConnection.chipSelection') }}</h4>
         </div>
@@ -116,7 +113,7 @@
       </div>
       
       <!-- 接口设置卡片 -->
-      <div class="card bg-base-200 shadow-sm p-2 mb-2">
+      <div class="card bg-base-100 shadow-sm p-3 mb-3">
         <div class="flex justify-center mb-1">
           <h4 class="font-bold text-sm">{{ t('deviceConnection.interfaceSettings') }}</h4>
         </div>
@@ -298,11 +295,9 @@
           </div>
         </div>
       </transition>
-    </div>
-    
     <!-- 日志预览区域 -->
     <div class="mt-3">
-      <div class="card bg-base-200 shadow-sm">
+      <div class="card bg-base-100 shadow-sm">
         <div class="card-body p-3">
           <div class="flex items-center justify-between mb-2">
             <h4 class="font-bold text-sm flex items-center gap-1">
@@ -693,8 +688,7 @@ const openLogWindow = async () => {
 
 <style scoped>
 .device-connection-panel {
-  width: 100%;
-  max-width: 300px;
+  width: 300px;
 }
 
 @keyframes pulse {
