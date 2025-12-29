@@ -21,8 +21,33 @@
             </div>
           </div>
 
-          <!-- 擦除地址输入 -->
+          <!-- 擦除模式选择 -->
           <div class="form-control w-full mb-6">
+            <label class="label">
+              <span class="label-text font-semibold">{{ $t('eraseFlash.eraseMode') }}</span>
+            </label>
+            <div class="flex gap-2">
+              <button 
+                class="btn flex-1"
+                :class="eraseFlashStore.eraseMode === 'full' ? 'btn-primary' : 'btn-outline'"
+                @click="eraseFlashStore.setEraseMode('full')"
+                :disabled="eraseFlashStore.isErasing"
+              >
+                {{ $t('eraseFlash.fullErase') }}
+              </button>
+              <button 
+                class="btn flex-1"
+                :class="eraseFlashStore.eraseMode === 'region' ? 'btn-primary' : 'btn-outline'"
+                @click="eraseFlashStore.setEraseMode('region')"
+                :disabled="eraseFlashStore.isErasing"
+              >
+                {{ $t('eraseFlash.regionErase') }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 擦除地址输入 -->
+          <div class="form-control w-full mb-4">
             <label class="label">
               <span class="label-text font-semibold">{{ $t('eraseFlash.address') }}</span>
             </label>
@@ -37,6 +62,25 @@
             />
             <label class="label" v-if="eraseFlashStore.addressError">
               <span class="label-text-alt text-error">{{ eraseFlashStore.addressError }}</span>
+            </label>
+          </div>
+
+          <!-- 擦除大小输入 (仅区域擦除模式) -->
+          <div v-if="eraseFlashStore.eraseMode === 'region'" class="form-control w-full mb-6">
+            <label class="label">
+              <span class="label-text font-semibold">{{ $t('eraseFlash.size') }}</span>
+            </label>
+            <input 
+              type="text" 
+              v-model="eraseFlashStore.size"
+              class="input input-bordered w-full font-mono"
+              :class="{ 'input-error': eraseFlashStore.sizeError }"
+              :placeholder="$t('eraseFlash.sizePlaceholder')"
+              @input="validateSize"
+              :disabled="eraseFlashStore.isErasing"
+            />
+            <label class="label" v-if="eraseFlashStore.sizeError">
+              <span class="label-text-alt text-error">{{ eraseFlashStore.sizeError }}</span>
             </label>
           </div>
           
@@ -87,12 +131,45 @@ const { t } = useI18n();
 const logStore = useLogStore();
 const eraseFlashStore = useEraseFlashStore();
 
+// 解析带SI单位的大小值
+const parseSizeWithUnit = (sizeStr: string): number | null => {
+  if (!sizeStr) return null;
+  
+  const trimmed = sizeStr.trim().toUpperCase();
+  
+  if (trimmed.startsWith('0X')) {
+    const value = parseInt(trimmed, 16);
+    return isNaN(value) ? null : value;
+  }
+  
+  const match = trimmed.match(/^([\d.]+)\s*([KMGT]?)(I?B?)?$/i);
+  if (!match) {
+    const value = parseFloat(trimmed);
+    return isNaN(value) ? null : Math.floor(value);
+  }
+  
+  const value = parseFloat(match[1]);
+  if (isNaN(value)) return null;
+  
+  const unit = match[2].toUpperCase();
+  const base = 1024;
+  
+  let multiplier = 1;
+  switch (unit) {
+    case 'K': multiplier = base; break;
+    case 'M': multiplier = base * base; break;
+    case 'G': multiplier = base * base * base; break;
+    case 'T': multiplier = base * base * base * base; break;
+  }
+  
+  return Math.floor(value * multiplier);
+};
+
 // 组件挂载时初始化
 onMounted(() => {
   logStore.setupEventListeners();
   logStore.initializeLog();
   
-  // 重置完成状态
   if (!eraseFlashStore.isErasing) {
     eraseFlashStore.resetState();
   }
@@ -123,22 +200,61 @@ const validateAddress = () => {
   return true;
 };
 
+// 验证大小
+const validateSize = () => {
+  const size = eraseFlashStore.size;
+  
+  if (!size) {
+    eraseFlashStore.setSizeError(t('eraseFlash.validation.sizeRequired'));
+    return false;
+  }
+  
+  const sizeValue = parseSizeWithUnit(size);
+  
+  if (sizeValue === null || sizeValue <= 0) {
+    eraseFlashStore.setSizeError(t('eraseFlash.validation.invalidSize'));
+    return false;
+  }
+  
+  if (sizeValue > 0xFFFFFFFF) {
+    eraseFlashStore.setSizeError(t('eraseFlash.validation.sizeTooLarge'));
+    return false;
+  }
+  
+  eraseFlashStore.setSizeError('');
+  return true;
+};
+
 // 开始擦除
 const startErasing = async () => {
   if (!validateAddress()) return;
+  if (eraseFlashStore.eraseMode === 'region' && !validateSize()) return;
   
   eraseFlashStore.setErasingState(true);
   eraseFlashStore.setEraseCompleted(false);
   
-  logStore.addMessage(t('eraseFlash.log.startErasing'));
+  const modeText = eraseFlashStore.eraseMode === 'full' 
+    ? t('eraseFlash.fullErase') 
+    : t('eraseFlash.regionErase');
+  
+  logStore.addMessage(`${t('eraseFlash.log.startErasing')} (${modeText})`);
   logStore.addMessage(`${t('eraseFlash.address')}: ${eraseFlashStore.address}`);
+  
+  if (eraseFlashStore.eraseMode === 'region') {
+    logStore.addMessage(`${t('eraseFlash.size')}: ${eraseFlashStore.size}`);
+  }
   
   try {
     const { invoke } = await import('@tauri-apps/api/core');
     
     const addressValue = parseInt(eraseFlashStore.address, 16);
 
-    await invoke('erase_flash', { address: addressValue });
+    if (eraseFlashStore.eraseMode === 'full') {
+      await invoke('erase_flash', { address: addressValue });
+    } else {
+      const sizeValue = parseSizeWithUnit(eraseFlashStore.size) || 0;
+      await invoke('erase_region', { address: addressValue, size: sizeValue });
+    }
     
     eraseFlashStore.setEraseCompleted(true);
     logStore.addMessage(t('eraseFlash.status.completed'));

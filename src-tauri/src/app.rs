@@ -1,8 +1,8 @@
-use crate::state::AppState;
 use crate::commands::*;
+use crate::state::AppState;
 use std::sync::Mutex;
-use tauri::Manager;
 use std::time::Duration;
+use tauri::Manager;
 
 fn set_dynamic_updater_endpoint<R: tauri::Runtime>(context: &mut tauri::Context<R>) {
     const CN_ENDPOINT: &str = "https://downloads.sifli.com/sftool-gui/cn/latest.json";
@@ -28,10 +28,7 @@ fn set_dynamic_updater_endpoint<R: tauri::Runtime>(context: &mut tauri::Context<
     // 更新 Tauri 配置中的 updater endpoints
     if let Some(cfg) = context.config_mut().plugins.0.get_mut("updater") {
         if let Some(obj) = cfg.as_object_mut() {
-            obj.insert(
-                "endpoints".to_string(),
-                serde_json::json!([endpoint]),
-            );
+            obj.insert("endpoints".to_string(), serde_json::json!([endpoint]));
         }
     }
 }
@@ -61,6 +58,7 @@ pub fn run() {
             write_flash,
             read_flash,
             erase_flash,
+            erase_region,
             set_speed,
             soft_reset
         ])

@@ -187,14 +187,22 @@
   "eraseFlash": {
     "title": "Erase Flash",
     "warning": "Warning",
-    "warningMessage": "Erasing will clear all data on the Flash. This operation cannot be undone!",
-    "address": "Erase Address",
+    "warningMessage": "Erasing will clear data on the Flash. This operation cannot be undone!",
+    "eraseMode": "Erase Mode",
+    "fullErase": "Full Erase",
+    "regionErase": "Region Erase",
+    "address": "Start Address",
     "addressPlaceholder": "Enter hex address, e.g.: 0x10000000",
+    "size": "Erase Size",
+    "sizePlaceholder": "Enter erase size (e.g.: 1M, 512K, 0x100000)",
     "startErase": "Start Erase",
     "validation": {
       "addressRequired": "Please enter erase address",
       "invalidAddress": "Invalid address format, please enter a valid hexadecimal address",
-      "addressTooLarge": "Address cannot exceed 0xFFFFFFFF"
+      "addressTooLarge": "Address cannot exceed 0xFFFFFFFF",
+      "sizeRequired": "Please enter erase size",
+      "invalidSize": "Invalid size format, please enter a valid number",
+      "sizeTooLarge": "Erase size cannot exceed 0xFFFFFFFF"
     },
     "status": {
       "erasing": "Erasing...",

@@ -1,6 +1,9 @@
-use crate::types::{WriteFlashRequest, ReadFlashRequest};
 use crate::state::AppState;
-use sftool_lib::{WriteFlashParams, ReadFlashParams, ReadFlashFile, EraseFlashParams, utils::Utils};
+use crate::types::{ReadFlashRequest, WriteFlashRequest};
+use sftool_lib::{
+    utils::Utils, EraseFlashParams, EraseRegionFile, EraseRegionParams, ReadFlashFile,
+    ReadFlashParams, WriteFlashParams,
+};
 use std::sync::Mutex;
 use tauri::State;
 
@@ -11,7 +14,9 @@ pub async fn write_flash(
 ) -> Result<(), String> {
     let sftool = {
         let app_state = state.lock().unwrap();
-        app_state.sftool.as_ref()
+        app_state
+            .sftool
+            .as_ref()
             .ok_or("设备未连接，请先连接设备")?
             .clone()
     };
@@ -61,17 +66,23 @@ pub async fn read_flash(
 ) -> Result<(), String> {
     let sftool = {
         let app_state = state.lock().unwrap();
-        app_state.sftool.as_ref()
+        app_state
+            .sftool
+            .as_ref()
             .ok_or("设备未连接，请先连接设备")?
             .clone()
     };
 
     // 准备读取文件参数
-    let files = request.files.into_iter().map(|file_info| ReadFlashFile {
-        file_path: file_info.file_path,
-        address: file_info.address,
-        size: file_info.size,
-    }).collect();
+    let files = request
+        .files
+        .into_iter()
+        .map(|file_info| ReadFlashFile {
+            file_path: file_info.file_path,
+            address: file_info.address,
+            size: file_info.size,
+        })
+        .collect();
 
     let params = ReadFlashParams { files };
 
@@ -83,13 +94,12 @@ pub async fn read_flash(
 }
 
 #[tauri::command]
-pub async fn erase_flash(
-    state: State<'_, Mutex<AppState>>,
-    address: u32,
-) -> Result<(), String> {
+pub async fn erase_flash(state: State<'_, Mutex<AppState>>, address: u32) -> Result<(), String> {
     let sftool = {
         let app_state = state.lock().unwrap();
-        app_state.sftool.as_ref()
+        app_state
+            .sftool
+            .as_ref()
             .ok_or("设备未连接，请先连接设备")?
             .clone()
     };
@@ -99,6 +109,32 @@ pub async fn erase_flash(
     let mut tool = sftool.lock().unwrap();
     tool.erase_flash(&params)
         .map_err(|e| format!("擦除 Flash 失败: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn erase_region(
+    state: State<'_, Mutex<AppState>>,
+    address: u32,
+    size: u32,
+) -> Result<(), String> {
+    let sftool = {
+        let app_state = state.lock().unwrap();
+        app_state
+            .sftool
+            .as_ref()
+            .ok_or("设备未连接，请先连接设备")?
+            .clone()
+    };
+
+    let params = EraseRegionParams {
+        regions: vec![EraseRegionFile { address, size }],
+    };
+
+    let mut tool = sftool.lock().unwrap();
+    tool.erase_region(&params)
+        .map_err(|e| format!("擦除区域失败: {}", e))?;
 
     Ok(())
 }
