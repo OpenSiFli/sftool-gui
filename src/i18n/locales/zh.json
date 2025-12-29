@@ -4,6 +4,7 @@
     "device_setting": "设备设置",
     "device_upgrade": "设备升级",
     "flash": "烧录",
+    "read_flash": "读取固件",
     "setting": "设置",
     "about": "关于",
     "collapse_menu": "收起菜单",
@@ -78,7 +79,7 @@
     "startFlash": "开始烧录",
     "clearLog": "清除日志",
     "dragDropSuccess": "拖拽添加了 {count} 个文件",
-  "logLabel": "日志输出",
+    "logLabel": "日志输出",
     "supportedFormats": "支持的文件格式：.bin, .hex, .elf, .axf, sftool_param.json",
     "validation": {
       "noFiles": "请选择至少一个固件文件",
@@ -98,15 +99,13 @@
       "validating": "正在验证文件...",
       "connecting": "正在连接设备...",
       "unsupportedFileFormat": "不支持的文件格式"
-    }
-    ,
+    },
     "operationInProgress": "{operation} 中...",
     "preparing": "准备中...",
     "waitingToStart": "等待开始...",
     "allCompleted": "全部完成",
     "waitingForTasks": "等待下载任务...",
-    "completedMessage": "成功烧录了 {count} 个文件，可以开始下一次烧录了"
-    ,
+    "completedMessage": "成功烧录了 {count} 个文件，可以开始下一次烧录了",
     "log": {
       "dragEnter": "检测到文件拖拽进入窗口",
       "dragLeave": "文件拖拽离开窗口",
@@ -139,6 +138,50 @@
       "fileNotFound": "配置文件中引用的文件不存在",
       "invalidConfig": "无效的配置文件格式"
     }
+  },
+  "readFlash": {
+    "title": "读取固件",
+    "taskList": "读取任务列表",
+    "task": "任务",
+    "addTask": "添加任务",
+    "removeTask": "移除",
+    "clickToAddTask": "点击添加读取任务",
+    "filePath": "保存路径",
+    "filePathPlaceholder": "请选择保存路径",
+    "selectSavePath": "选择",
+    "address": "起始地址",
+    "addressPlaceholder": "请输入十六进制地址，如：0x10000000",
+    "size": "读取大小",
+    "sizePlaceholder": "请输入读取大小（字节），支持十六进制",
+    "startRead": "开始读取",
+    "validation": {
+      "noTasks": "请添加至少一个读取任务",
+      "addressRequired": "请输入起始地址",
+      "invalidAddress": "地址格式不正确，请输入有效的十六进制地址",
+      "addressTooLarge": "地址不能超过 0xFFFFFFFF",
+      "sizeRequired": "请输入读取大小",
+      "invalidSize": "大小格式不正确，请输入有效的数值",
+      "sizeTooLarge": "读取大小不能超过 0xFFFFFFFF",
+      "filePathRequired": "请选择保存路径"
+    },
+    "status": {
+      "ready": "系统就绪，请添加读取任务...",
+      "progress": "读取中...",
+      "completed": "读取完成！",
+      "failed": "读取失败"
+    },
+    "log": {
+      "taskAdded": "已添加读取任务",
+      "taskRemoved": "已移除读取任务",
+      "savePathSelected": "已选择保存路径",
+      "startReading": "开始读取固件..."
+    },
+    "operationInProgress": "{operation} 中...",
+    "preparing": "准备中...",
+    "waitingToStart": "等待开始...",
+    "allCompleted": "全部完成",
+    "waitingForTasks": "等待读取任务...",
+    "completedMessage": "成功读取了 {count} 个文件"
   },
   "logWindow": {
     "autoScroll": "自动滚动",
@@ -193,12 +236,11 @@
     "pleaseCompleteConfig": "请完成所有必要的设备配置",
     "connectFailedMessage": "连接设备失败，请检查设备连接后重试",
     "connectError": "连接设备时出错"
-  }
-  ,
+  },
   "errors": {
     "getPortsFailed": "获取串口列表失败:",
     "disconnectFailed": "断开设备失败:",
-  "connectFailed": "连接设备失败:",
-  "openLogWindowFailed": "打开日志窗口失败:"
+    "connectFailed": "连接设备失败:",
+    "openLogWindowFailed": "打开日志窗口失败:"
   }
 }

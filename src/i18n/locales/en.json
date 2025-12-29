@@ -4,6 +4,7 @@
     "device_setting": "Device settings",
     "device_upgrade": "Device upgrade",
     "flash": "Flash",
+    "read_flash": "Read Firmware",
     "setting": "Settings",
     "about": "About",
     "collapse_menu": "Collapse menu",
@@ -78,7 +79,7 @@
     "startFlash": "Start Flash",
     "clearLog": "Clear Log",
     "dragDropSuccess": "Added {count} files via drag and drop",
-  "logLabel": "Log Output",
+    "logLabel": "Log Output",
     "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf, sftool_param.json",
     "validation": {
       "noFiles": "Please select at least one firmware file",
@@ -98,8 +99,7 @@
       "validating": "Validating file...",
       "connecting": "Connecting to device...",
       "unsupportedFileFormat": "Unsupported file format"
-    }
-    ,
+    },
     "operationInProgress": "{operation} in progress...",
     "preparing": "Preparing...",
     "waitingToStart": "Waiting to start...",
@@ -138,6 +138,50 @@
       "fileNotFound": "File referenced in config not found",
       "invalidConfig": "Invalid config file format"
     }
+  },
+  "readFlash": {
+    "title": "Read Firmware",
+    "taskList": "Read Task List",
+    "task": "Task",
+    "addTask": "Add Task",
+    "removeTask": "Remove",
+    "clickToAddTask": "Click to add read task",
+    "filePath": "Save Path",
+    "filePathPlaceholder": "Please select save path",
+    "selectSavePath": "Select",
+    "address": "Start Address",
+    "addressPlaceholder": "Enter hex address, e.g.: 0x10000000",
+    "size": "Read Size",
+    "sizePlaceholder": "Enter read size (bytes), hex supported",
+    "startRead": "Start Read",
+    "validation": {
+      "noTasks": "Please add at least one read task",
+      "addressRequired": "Please enter start address",
+      "invalidAddress": "Invalid address format, please enter a valid hexadecimal address",
+      "addressTooLarge": "Address cannot exceed 0xFFFFFFFF",
+      "sizeRequired": "Please enter read size",
+      "invalidSize": "Invalid size format, please enter a valid number",
+      "sizeTooLarge": "Read size cannot exceed 0xFFFFFFFF",
+      "filePathRequired": "Please select save path"
+    },
+    "status": {
+      "ready": "System ready, please add read tasks...",
+      "progress": "Reading...",
+      "completed": "Read completed!",
+      "failed": "Read failed"
+    },
+    "log": {
+      "taskAdded": "Read task added",
+      "taskRemoved": "Read task removed",
+      "savePathSelected": "Save path selected",
+      "startReading": "Starting firmware read..."
+    },
+    "operationInProgress": "{operation} in progress...",
+    "preparing": "Preparing...",
+    "waitingToStart": "Waiting to start...",
+    "allCompleted": "All completed",
+    "waitingForTasks": "Waiting for read tasks...",
+    "completedMessage": "Successfully read {count} files"
   },
   "logWindow": {
     "autoScroll": "Auto Scroll",
@@ -196,7 +240,7 @@
   "errors": {
     "getPortsFailed": "Failed to get serial ports:",
     "disconnectFailed": "Failed to disconnect device:",
-  "connectFailed": "Failed to connect device:",
-  "openLogWindowFailed": "Failed to open log window:"
+    "connectFailed": "Failed to connect device:",
+    "openLogWindowFailed": "Failed to open log window:"
   }
 }
