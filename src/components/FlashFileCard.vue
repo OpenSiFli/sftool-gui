@@ -6,8 +6,8 @@
     @focusout="handleFocusOut"
     @click="setCollapsed(false)"
   >
-    <div class="card-body p-3">
-      <div class="flex flex-col gap-2">
+    <div class="card-body p-2">
+      <div class="flex flex-col gap-1">
         <!-- Header: Filename and actions -->
         <div class="flex items-center justify-between gap-2">
           <div class="flex-1 min-w-0 flex items-center gap-2 select-none">
@@ -155,7 +155,7 @@ const getCardClass = () => {
   }
   
   if (store.completedFiles.has(fileName)) {
-    return 'bg-gradient-to-r from-green-50/20 to-green-100/30 border-green-300/50 ring-2 ring-green-300/30 shadow-lg';
+    return 'bg-green-50/10 border-green-400/30 hover:shadow-md transition-all duration-300';
   }
   
   return 'bg-base-200/30 border-base-300/40 hover:shadow-md transition-all duration-300';
