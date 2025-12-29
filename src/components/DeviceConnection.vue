@@ -614,7 +614,8 @@ const connectDevice = async () => {
     } catch (error) {
       console.error(t('errors.connectFailed'), error);
       deviceStore.setConnected(false);
-      alert(t('deviceConnection.connectError'));
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`${t('deviceConnection.connectError')}: ${errorMessage}`);
     } finally {
       deviceStore.setConnecting(false);
     }
