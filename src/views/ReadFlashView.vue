@@ -556,6 +556,8 @@ const validateAddress = (index: number) => {
   }
   
   readFlashStore.updateTaskAddressError(index, '');
+  // 保存到存储
+  readFlashStore.saveTasksToStorage();
   return true;
 };
 
@@ -581,6 +583,8 @@ const validateSize = (index: number) => {
   }
   
   readFlashStore.updateTaskSizeError(index, '');
+  // 保存到存储
+  readFlashStore.saveTasksToStorage();
   return true;
 };
 

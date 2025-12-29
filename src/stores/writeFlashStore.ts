@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { load } from '@tauri-apps/plugin-store';
-import type { 
-  FlashFile, 
-  ProgressItem, 
-  TotalProgress 
+import type {
+  FlashFile,
+  ProgressItem,
+  TotalProgress
 } from '../types/progress';
 
 // 存储实例
@@ -23,7 +23,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
   const selectedFiles = ref<FlashFile[]>([]);
   const isFlashing = ref(false);
   const isWindowDragging = ref(false);
-  
+
   // 进度状态
   const progressMap = ref<Map<number, ProgressItem>>(new Map());
   const currentFlashingFile = ref<string>('');
@@ -40,40 +40,40 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     completedCount: 0,
     totalCount: 0
   });
-  
+
   // 计算属性
   const canStartFlashing = computed(() => {
     if (selectedFiles.value.length === 0) return false;
-    
+
     return selectedFiles.value.every((file) => {
       if (isAutoAddressFile(file.name)) return true;
       return file.address && !file.addressError;
     });
   });
-  
+
   // 工具函数
   const generateFileId = () => {
     return Date.now().toString() + Math.random().toString(36).substr(2, 9);
   };
-  
+
   const isAutoAddressFile = (fileName: string): boolean => {
     const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
     const AUTO_ADDRESS_EXTENSIONS = ['.elf', '.axf', '.hex'];
     return AUTO_ADDRESS_EXTENSIONS.includes(extension);
   };
-  
+
   const isSupportedFile = (fileName: string): boolean => {
     const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
     const SUPPORTED_EXTENSIONS = ['.bin', '.hex', '.elf', '.axf'];
-    
+
     // 检查是否是sftool配置文件
     if (fileName.toLowerCase().includes('sftool_param.json')) {
       return true;
     }
-    
+
     return SUPPORTED_EXTENSIONS.includes(extension);
   };
-  
+
   // Actions
   const addFile = (file: FlashFile) => {
     const existingIndex = selectedFiles.value.findIndex(f => f.path === file.path);
@@ -84,40 +84,40 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     }
     return false; // 文件已存在
   };
-  
+
   const removeFile = (index: number) => {
     if (index >= 0 && index < selectedFiles.value.length) {
       selectedFiles.value.splice(index, 1);
       saveFilesToStorage();
     }
   };
-  
+
   const clearFiles = () => {
     selectedFiles.value = [];
     saveFilesToStorage();
   };
-  
+
   const updateFileAddress = (index: number, address: string) => {
     if (index >= 0 && index < selectedFiles.value.length) {
       selectedFiles.value[index].address = address;
       saveFilesToStorage();
     }
   };
-  
+
   const updateFileAddressError = (index: number, error: string) => {
     if (index >= 0 && index < selectedFiles.value.length) {
       selectedFiles.value[index].addressError = error;
     }
   };
-  
+
   const setFlashingState = (flashing: boolean) => {
     isFlashing.value = flashing;
   };
-  
+
   const setWindowDragging = (dragging: boolean) => {
     isWindowDragging.value = dragging;
   };
-  
+
   const resetProgressStates = () => {
     progressMap.value.clear();
     currentFlashingFile.value = '';
@@ -135,31 +135,31 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
       totalCount: 0
     };
   };
-  
+
   const updateProgress = (progress: Partial<TotalProgress>) => {
     Object.assign(totalProgress.value, progress);
   };
-  
+
   const setCurrentFlashingFile = (fileName: string) => {
     currentFlashingFile.value = fileName;
   };
-  
+
   const setCurrentOperation = (operation: string) => {
     currentOperation.value = operation;
   };
-  
+
   const addCompletedFile = (fileName: string) => {
     completedFiles.value.add(fileName);
   };
-  
+
   const setFlashCompleted = (completed: boolean) => {
     flashCompleted.value = completed;
   };
-  
+
   const updateProgressMap = (key: number, item: ProgressItem) => {
     progressMap.value.set(key, item);
   };
-  
+
   // 持久化存储相关
   const saveFilesToStorage = async () => {
     try {
@@ -178,8 +178,14 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
       console.error('保存文件列表失败:', error);
     }
   };
-  
+
   const loadFilesFromStorage = async () => {
+    // 如果内存中已有文件，不从存储中覆盖，保持当前会话状态
+    if (selectedFiles.value.length > 0) {
+      console.log(`已有 ${selectedFiles.value.length} 个文件在内存中，跳过存储加载`);
+      return;
+    }
+
     try {
       const storeInstance = await initStore();
       const val = await storeInstance.get('selectedFiles');
@@ -187,7 +193,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
         // 验证文件是否仍然存在
         const { exists } = await import('@tauri-apps/plugin-fs');
         const validFiles: FlashFile[] = [];
-        
+
         for (const fileData of val.value) {
           try {
             // 检查文件是否仍然存在
@@ -206,21 +212,21 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
             console.warn(`验证文件存在性失败: ${fileData.path}`, error);
           }
         }
-        
+
         selectedFiles.value = validFiles;
-        
+
         // 如果有文件被移除，更新存储
         if (validFiles.length !== val.value.length) {
           await saveFilesToStorage();
         }
-        
+
         console.log(`从存储中加载了 ${validFiles.length} 个有效文件`);
       }
     } catch (error) {
       console.error('加载文件列表失败:', error);
     }
   };
-  
+
   const clearStorage = async () => {
     try {
       const storeInstance = await initStore();
@@ -230,7 +236,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
       console.error('清除文件列表存储失败:', error);
     }
   };
-  
+
   return {
     // 状态
     selectedFiles,
@@ -242,15 +248,15 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     completedFiles,
     flashCompleted,
     totalProgress,
-    
+
     // 计算属性
     canStartFlashing,
-    
+
     // 工具函数
     generateFileId,
     isAutoAddressFile,
     isSupportedFile,
-    
+
     // Actions
     addFile,
     removeFile,
@@ -266,7 +272,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     addCompletedFile,
     setFlashCompleted,
     updateProgressMap,
-    
+
     // 持久化存储
     saveFilesToStorage,
     loadFilesFromStorage,

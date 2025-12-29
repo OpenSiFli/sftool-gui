@@ -25,8 +25,8 @@ export const useLogStore = defineStore('log', () => {
   const hasErrors = computed(() => {
     return messages.value.some(message => {
       const lowerMessage = message.toLowerCase();
-      return lowerMessage.includes('error') || lowerMessage.includes('failed') || 
-             lowerMessage.includes('错误') || lowerMessage.includes('失败');
+      return lowerMessage.includes('error') || lowerMessage.includes('failed') ||
+        lowerMessage.includes('错误') || lowerMessage.includes('失败');
     });
   });
 
@@ -34,9 +34,9 @@ export const useLogStore = defineStore('log', () => {
   const addMessage = (message: string, important: boolean = false) => {
     const timestamp = new Date().toLocaleTimeString();
     const formattedMessage = `[${timestamp}] ${message}`;
-    
+
     messages.value.push(formattedMessage);
-    
+
     // 限制日志条数，避免内存过度使用
     if (messages.value.length > maxMessages.value) {
       messages.value = messages.value.slice(-maxMessages.value);
@@ -56,7 +56,7 @@ export const useLogStore = defineStore('log', () => {
     const timestamp = new Date().toLocaleTimeString();
     const clearMessage = `[${timestamp}] 日志已清空`;
     messages.value.push(clearMessage);
-    
+
     // 发送清空日志事件
     emitLogEvent('log-clear', {});
   };
@@ -68,14 +68,20 @@ export const useLogStore = defineStore('log', () => {
     } else {
       addMessage('烧录会话结束');
     }
-    
+
     // 发送烧录状态事件
     emitLogEvent('log-flashing', { isFlashing: flashing });
   };
 
+  // 标记是否已初始化
+  const initialized = ref(false);
+
   const initializeLog = () => {
-    messages.value = [];
-    addMessage('系统就绪');
+    // 只在首次初始化时添加系统就绪消息，不清除已有日志
+    if (!initialized.value) {
+      addMessage('系统就绪');
+      initialized.value = true;
+    }
   };
 
   // 跨窗口事件处理
@@ -93,7 +99,7 @@ export const useLogStore = defineStore('log', () => {
 
     try {
       const { listen } = await import('@tauri-apps/api/event');
-      
+
       // 监听日志消息事件
       await listen('log-message', (event: any) => {
         const { message } = event.payload;
@@ -123,9 +129,9 @@ export const useLogStore = defineStore('log', () => {
         if (messages.value.length === 0) return;
         try {
           const { emit } = await import('@tauri-apps/api/event');
-          await emit('log-sync-data', { 
-            messages: messages.value, 
-            isFlashing: isFlashing.value 
+          await emit('log-sync-data', {
+            messages: messages.value,
+            isFlashing: isFlashing.value
           });
         } catch (error) {
           console.warn('Failed to sync log data:', error);
@@ -156,11 +162,11 @@ export const useLogStore = defineStore('log', () => {
     // 状态
     messages: messages,
     isFlashing: isFlashing,
-    
+
     // 计算属性
     latestMessage,
     hasErrors,
-    
+
     // 方法
     addMessage,
     clearLogs,

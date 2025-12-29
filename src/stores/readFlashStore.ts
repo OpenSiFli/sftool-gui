@@ -182,6 +182,12 @@ export const useReadFlashStore = defineStore('readFlash', () => {
     };
 
     const loadTasksFromStorage = async () => {
+        // 如果内存中已有任务，不从存储中覆盖，保持当前会话状态
+        if (tasks.value.length > 0) {
+            console.log(`已有 ${tasks.value.length} 个任务在内存中，跳过存储加载`);
+            return;
+        }
+
         try {
             const storeInstance = await initStore();
             const val = await storeInstance.get('tasks');
