@@ -38,7 +38,7 @@ export interface EraseRegionCommand {
 }
 
 export interface SftoolParamConfig {
-  chip: "SF32LB52" | "SF32LB56" | "SF32LB58";
+  chip: "SF32LB52" | "SF32LB55" | "SF32LB56" | "SF32LB58";
   memory?: "nor" | "nand" | "sd";
   port?: string;
   baud?: number;

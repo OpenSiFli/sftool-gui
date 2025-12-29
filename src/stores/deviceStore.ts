@@ -24,22 +24,22 @@ export const useDeviceStore = defineStore('device', {
     // 设备连接状态
     isConnected: false,
     isConnecting: false,
-    
+
     // 芯片选择
     selectedChip: null as ChipModel | null,
     chipSearchInput: 'SF32LB52',
     showChipDropdown: false,
     tempChipInput: 'SF32LB52',
-    
+
     // 存储器类型
     selectedMemoryType: 'NOR' as string | null,
     memoryTypeInput: 'NOR',
     showMemoryTypeDropdown: false,
     tempMemoryTypeInput: 'NOR',
-    
+
     // 接口设置
     selectedInterface: 'UART',
-    
+
     // 串口设置
     availablePorts: [] as PortInfo[],
     isLoadingPorts: false,
@@ -47,16 +47,17 @@ export const useDeviceStore = defineStore('device', {
     portSearchInput: '',
     showPortDropdown: false,
     tempPortInput: '',
-    
+
     // 波特率设置
     baudRateInput: '1000000',
     showBaudRateDropdown: false,
     tempBaudRateInput: '',
     baudRates: [1000000, 1500000, 3000000, 6000000],
-    
+
     // 芯片与存储器映射
     chipMemoryTypes: {
       'SF32LB52': ['NOR', 'NAND', 'SD'],
+      'SF32LB55': ['NOR', 'SD'],
       'default': ['NOR']
     } as Record<string, string[]>
   }),
@@ -71,7 +72,7 @@ export const useDeviceStore = defineStore('device', {
     // 连接验证
     isConnectionValid(): boolean {
       if (!this.selectedChip || !this.selectedMemoryType) return false;
-      
+
       if (this.selectedInterface === 'UART') {
         return !!this.selectedPort && !!this.baudRateInput;
       } else {
@@ -82,9 +83,9 @@ export const useDeviceStore = defineStore('device', {
     // 过滤的芯片列表
     filteredChips(): ChipModel[] {
       if (!this.chipSearchInput) return CHIP_MODELS;
-      
+
       const search = this.chipSearchInput.toLowerCase();
-      return CHIP_MODELS.filter(chip => 
+      return CHIP_MODELS.filter(chip =>
         chip.name.toLowerCase().includes(search)
       );
     },
@@ -92,9 +93,9 @@ export const useDeviceStore = defineStore('device', {
     // 过滤的串口列表
     filteredPorts(): PortInfo[] {
       if (!this.portSearchInput) return this.availablePorts;
-      
+
       const search = this.portSearchInput.toLowerCase();
-      return this.availablePorts.filter(port => 
+      return this.availablePorts.filter(port =>
         port.name.toLowerCase().includes(search) ||
         port.port_type.toLowerCase().includes(search)
       );
@@ -120,7 +121,7 @@ export const useDeviceStore = defineStore('device', {
         // 重置存储器类型
         this.selectedMemoryType = null;
         this.memoryTypeInput = '';
-        
+
         // 如果只有一种存储器类型，则自动选择
         if (this.availableMemoryTypes.length === 1) {
           this.setSelectedMemoryType(this.availableMemoryTypes[0]);
@@ -224,7 +225,7 @@ export const useDeviceStore = defineStore('device', {
     async loadFromStorage() {
       try {
         const storeInstance = await initStore();
-        
+
         // 加载芯片设置
         const chipData = await storeInstance.get('selectedChip');
         if (chipData?.value) {
@@ -292,7 +293,7 @@ export const useDeviceStore = defineStore('device', {
     async saveToStorage() {
       try {
         const storeInstance = await initStore();
-        
+
         // 保存选中的芯片
         if (this.selectedChip) {
           await storeInstance.set('selectedChip', { value: this.selectedChip });
@@ -325,22 +326,22 @@ export const useDeviceStore = defineStore('device', {
       this.selectedChip = CHIP_MODELS.find(chip => chip.id === 'SF32LB52') || null;
       this.chipSearchInput = 'SF32LB52';
       this.tempChipInput = 'SF32LB52';
-      
+
       this.selectedMemoryType = 'NOR';
       this.memoryTypeInput = 'NOR';
       this.tempMemoryTypeInput = 'NOR';
-      
+
       this.selectedInterface = 'UART';
-      
+
       this.selectedPort = null;
       this.portSearchInput = '';
       this.tempPortInput = '';
-      
+
       this.baudRateInput = '1000000';
-      
+
       this.isConnected = false;
       this.isConnecting = false;
-      
+
       await this.saveToStorage();
     }
   }
