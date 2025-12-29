@@ -348,6 +348,59 @@ const formatETA = (seconds: number | undefined): string => {
   return `${minutes}分${remainingSeconds.toFixed(2)}秒`;
 };
 
+// 解析带SI单位的大小值 (支持 K, M, G, Ki, Mi, Gi)
+const parseSizeWithUnit = (sizeStr: string): number | null => {
+  if (!sizeStr) return null;
+  
+  const trimmed = sizeStr.trim().toUpperCase();
+  
+  // 支持十六进制
+  if (trimmed.startsWith('0X')) {
+    const value = parseInt(trimmed, 16);
+    return isNaN(value) ? null : value;
+  }
+  
+  // 匹配数字和可选的单位
+  const match = trimmed.match(/^([\d.]+)\s*([KMGT]?)(I?B?)?$/i);
+  if (!match) {
+    // 尝试纯数字
+    const value = parseFloat(trimmed);
+    return isNaN(value) ? null : Math.floor(value);
+  }
+  
+  const value = parseFloat(match[1]);
+  if (isNaN(value)) return null;
+  
+  const unit = match[2].toUpperCase();
+  const isBinary = match[3]?.toUpperCase().startsWith('I'); // Ki, Mi, Gi 使用 1024
+  
+  const base = isBinary ? 1024 : 1024; // 统一使用 1024 作为基数
+  
+  let multiplier = 1;
+  switch (unit) {
+    case 'K':
+      multiplier = base;
+      break;
+    case 'M':
+      multiplier = base * base;
+      break;
+    case 'G':
+      multiplier = base * base * base;
+      break;
+    case 'T':
+      multiplier = base * base * base * base;
+      break;
+    default:
+      multiplier = 1;
+  }
+  
+  return Math.floor(value * multiplier);
+};
+
+// 进度计算相关变量
+let lastProgressUpdate = 0;
+let lastProgressBytes = 0;
+
 // 初始化日志
 const initializeLog = () => {
   logStore.initializeLog();
@@ -395,19 +448,56 @@ onUnmounted(() => {
 
 // 处理进度事件
 const handleProgressEvent = (event: any) => {
-  // 简化的进度处理逻辑
+  const now = Date.now();
+  
   if (event.event_type === 'start') {
     readFlashStore.setCurrentOperation(event.step);
+    lastProgressUpdate = now;
+    lastProgressBytes = 0;
+    
+    // 解析文件名
+    if (event.message) {
+      const fileName = event.message.split('/').pop() || event.message;
+      readFlashStore.updateProgress({
+        currentFileName: fileName,
+        totalCount: readFlashStore.tasks.length
+      });
+    }
   } else if (event.event_type === 'update' || event.event_type === 'increment') {
     if (event.current !== undefined && event.total !== undefined) {
       const percentage = event.total > 0 ? (event.current / event.total) * 100 : 0;
+      
+      // 计算速度
+      const timeDiff = (now - lastProgressUpdate) / 1000; // 转换为秒
+      const bytesDiff = event.current - lastProgressBytes;
+      let speed = 0;
+      
+      if (timeDiff > 0.1) { // 至少100ms才计算速度，避免抖动
+        speed = bytesDiff / timeDiff;
+        lastProgressUpdate = now;
+        lastProgressBytes = event.current;
+      } else if (readFlashStore.totalProgress.speed) {
+        speed = readFlashStore.totalProgress.speed; // 保持上一次的速度
+      }
+      
+      // 计算预计剩余时间
+      const remaining = event.total - event.current;
+      const eta = speed > 0 ? remaining / speed : 0;
+      
       readFlashStore.updateProgress({
         current: event.current,
         total: event.total,
-        percentage: percentage
+        percentage: percentage,
+        speed: speed,
+        eta: eta
       });
     }
   } else if (event.event_type === 'finish') {
+    readFlashStore.updateProgress({
+      percentage: 100,
+      speed: 0,
+      eta: 0
+    });
     readFlashStore.setReadCompleted(true);
     readFlashStore.setReadingState(false);
   }
@@ -445,15 +535,10 @@ const validateSize = (index: number) => {
     return false;
   }
   
-  // 支持十进制和十六进制
-  let sizeValue: number;
-  if (task.size.toLowerCase().startsWith('0x')) {
-    sizeValue = parseInt(task.size, 16);
-  } else {
-    sizeValue = parseInt(task.size, 10);
-  }
+  // 使用支持SI单位的解析函数
+  const sizeValue = parseSizeWithUnit(task.size);
   
-  if (isNaN(sizeValue) || sizeValue <= 0) {
+  if (sizeValue === null || sizeValue <= 0) {
     readFlashStore.updateTaskSizeError(index, t('readFlash.validation.invalidSize'));
     return false;
   }
@@ -542,12 +627,8 @@ const startReading = async () => {
     
     const readFlashRequest = {
       files: readFlashStore.tasks.map(task => {
-        let sizeValue: number;
-        if (task.size.toLowerCase().startsWith('0x')) {
-          sizeValue = parseInt(task.size, 16);
-        } else {
-          sizeValue = parseInt(task.size, 10);
-        }
+        // 使用支持SI单位的解析函数
+        const sizeValue = parseSizeWithUnit(task.size) || 0;
         
         return {
           file_path: task.filePath,

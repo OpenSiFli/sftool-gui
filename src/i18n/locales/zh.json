@@ -152,7 +152,7 @@
     "address": "起始地址",
     "addressPlaceholder": "请输入十六进制地址，如：0x10000000",
     "size": "读取大小",
-    "sizePlaceholder": "请输入读取大小（字节），支持十六进制",
+    "sizePlaceholder": "请输入读取大小（如：1M, 512K, 0x100000）",
     "startRead": "开始读取",
     "validation": {
       "noTasks": "请添加至少一个读取任务",
