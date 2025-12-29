@@ -110,6 +110,16 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     }
   };
 
+  const setFileCollapsed = (index: number, collapsed: boolean) => {
+    if (index >= 0 && index < selectedFiles.value.length) {
+      const file = selectedFiles.value[index];
+      if (file.collapsed !== collapsed) {
+        file.collapsed = collapsed;
+        saveFilesToStorage();
+      }
+    }
+  };
+
   const toggleFileCollapse = (index: number) => {
     if (index >= 0 && index < selectedFiles.value.length) {
       const file = selectedFiles.value[index];
@@ -274,6 +284,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     updateFileAddress,
     updateFileAddressError,
     toggleFileCollapse,
+    setFileCollapsed,
     setFlashingState,
     setWindowDragging,
     resetProgressStates,
