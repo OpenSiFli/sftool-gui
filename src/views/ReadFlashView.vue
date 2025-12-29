@@ -67,7 +67,7 @@
           >
             <span v-if="readFlashStore.isReading" class="loading loading-spinner loading-sm"></span>
             <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
             <span class="text-sm font-medium">
               {{ readFlashStore.isReading ? $t('readFlash.status.progress') : $t('readFlash.startRead') }}
@@ -435,23 +435,22 @@ const handleProgressEvent = (event: any) => {
       }
     }
   } else if (event.event_type === 'finish') {
-    readFlashStore.updateProgress({
-      percentage: 100,
-      speed: 0,
-      eta: 0
-    });
-    // 最后一次确认完成状态
+    // 单个文件读取完成
     if (readFlashStore.currentReadingTaskId) {
       readFlashStore.addCompletedTask(readFlashStore.currentReadingTaskId);
     }
-
+    
+    // 这里的 finish 只是单个 invoke 调用的结束
+    // 整个任务队列的结束由 startReading 函数控制
+    readFlashStore.updateProgress({
+      speed: 0,
+      eta: 0
+    });
+    
     // 重置进度跟踪变量
     currentProgressBytes = 0;
     totalProgressBytes = 0;
     lastProgressBytes = 0;
-    
-    readFlashStore.setReadCompleted(true);
-    readFlashStore.setReadingState(false);
   }
 };
 
@@ -487,22 +486,40 @@ const startReading = async () => {
   try {
     const { invoke } = await import('@tauri-apps/api/core');
     
-    const readFlashRequest = {
-      files: readFlashStore.tasks.map(task => {
-        // 使用支持SI单位的解析函数
-        const sizeValue = parseSizeWithUnit(task.size) || 0;
+    // 顺序执行任务，避免后端并发处理问题
+    const tasks = readFlashStore.tasks;
+    for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
         
-        return {
-          file_path: task.filePath,
-          address: parseInt(task.address, 16),
-          size: sizeValue
-        };
-      })
-    };
+        // 更新总体进度信息（文件计数）
+        readFlashStore.updateProgress({
+            completedCount: i,
+            totalCount: tasks.length
+        });
 
-    await invoke('read_flash', { request: readFlashRequest });
+        // 构造单文件请求
+        const sizeValue = parseSizeWithUnit(task.size) || 0;
+        const readFlashRequest = {
+            files: [{
+                file_path: task.filePath,
+                address: parseInt(task.address, 16),
+                size: sizeValue
+            }]
+        };
+
+        logStore.addMessage(`${t('readFlash.log.processingFile', { name: task.filePath, path: task.address })}`);
+        
+        // 调用后端
+        await invoke('read_flash', { request: readFlashRequest });
+    }
     
+    // 所有任务完成
     readFlashStore.setReadCompleted(true);
+    readFlashStore.updateProgress({
+        percentage: 100,
+        completedCount: tasks.length,
+        totalCount: tasks.length
+    });
     logStore.addMessage(t('readFlash.status.completed'));
     
   } catch (error) {
