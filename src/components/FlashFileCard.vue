@@ -1,12 +1,12 @@
 <template>
   <div 
-    class="card card-compact shadow-sm file-list-item border transition-all duration-300 cursor-pointer outline-none ring-offset-2 focus:ring-2 focus:ring-primary/50"
+    class="card card-compact shadow-sm file-list-item border transition-all duration-300 cursor-pointer outline-none focus:border-primary/50"
     :class="[getCardClass(), { 'hover:shadow-md': file.collapsed }]"
     tabindex="0"
     @focusout="handleFocusOut"
     @click="setCollapsed(false)"
   >
-    <div class="card-body p-2">
+    <div class="card-body py-1 px-2">
       <div class="flex flex-col gap-1">
         <!-- Header: Filename and actions -->
         <div class="flex items-center justify-between gap-2">
