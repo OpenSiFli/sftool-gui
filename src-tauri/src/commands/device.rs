@@ -1,6 +1,6 @@
-use crate::types::{PortInfo, DeviceConfig};
-use crate::state::AppState;
 use crate::progress::TauriProgressCallback;
+use crate::state::AppState;
+use crate::types::{DeviceConfig, PortInfo};
 use crate::utils::create_tool_instance_with_progress;
 use sftool_lib::progress::ProgressCallbackArc;
 use std::sync::{Arc, Mutex};
@@ -64,7 +64,7 @@ pub async fn connect_device(
 
     // 创建 Tauri 进度回调
     let progress_callback: ProgressCallbackArc = Arc::new(TauriProgressCallback::new(app_handle));
-    
+
     // 创建带进度回调的工具实例
     let tool = create_tool_instance_with_progress(&device_config, progress_callback)?;
 
@@ -85,13 +85,12 @@ pub fn disconnect_device(state: State<'_, Mutex<AppState>>) -> Result<(), String
 }
 
 #[tauri::command]
-pub async fn set_speed(
-    state: State<'_, Mutex<AppState>>,
-    baud_rate: u32,
-) -> Result<(), String> {
+pub async fn set_speed(state: State<'_, Mutex<AppState>>, baud_rate: u32) -> Result<(), String> {
     let sftool = {
         let app_state = state.lock().unwrap();
-        app_state.sftool.as_ref()
+        app_state
+            .sftool
+            .as_ref()
             .ok_or("设备未连接，请先连接设备")?
             .clone()
     };
@@ -104,12 +103,12 @@ pub async fn set_speed(
 }
 
 #[tauri::command]
-pub async fn soft_reset(
-    state: State<'_, Mutex<AppState>>,
-) -> Result<(), String> {
+pub async fn soft_reset(state: State<'_, Mutex<AppState>>) -> Result<(), String> {
     let sftool = {
         let app_state = state.lock().unwrap();
-        app_state.sftool.as_ref()
+        app_state
+            .sftool
+            .as_ref()
             .ok_or("设备未连接，请先连接设备")?
             .clone()
     };

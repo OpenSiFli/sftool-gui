@@ -28,10 +28,11 @@ const filteredLanguages = computed(() => {
   if (!searchQuery.value) return availableLanguages;
 
   const query = searchQuery.value.toLowerCase();
-  return availableLanguages.filter(lang =>
-    lang.nativeName.toLowerCase().includes(query) ||
-    lang.englishName.toLowerCase().includes(query) ||
-    lang.code.toLowerCase().includes(query)
+  return availableLanguages.filter(
+    lang =>
+      lang.nativeName.toLowerCase().includes(query) ||
+      lang.englishName.toLowerCase().includes(query) ||
+      lang.code.toLowerCase().includes(query)
   );
 });
 
@@ -71,9 +72,7 @@ const closeLanguageDropdown = (event: Event) => {
   const dropdown = document.querySelector('.language-dropdown');
   const selector = document.querySelector('.language-selector');
 
-  if (dropdown && selector &&
-    !dropdown.contains(target) &&
-    !selector.contains(target)) {
+  if (dropdown && selector && !dropdown.contains(target) && !selector.contains(target)) {
     isLanguageDropdownOpen.value = false;
   }
 };
@@ -95,9 +94,9 @@ const showFeedback = (settingType: string) => {
 
 // 主题图标映射
 const themeIcons: Record<string, string> = {
-  'light': '☀️',
-  'dark': '🌙',
-  'system': '💻',
+  light: '☀️',
+  dark: '🌙',
+  system: '💻',
 };
 
 // 更新相关状态
@@ -131,7 +130,7 @@ const checkForUpdates = async () => {
   if (isCheckingUpdate.value) return;
   isCheckingUpdate.value = true;
   updateError.value = '';
-  
+
   try {
     const update = await check();
     lastCheckTime.value = new Date().toLocaleTimeString();
@@ -158,15 +157,15 @@ const checkForUpdates = async () => {
 // 下载并安装更新
 const downloadAndInstallUpdate = async () => {
   if (!updateInstance.value || isDownloading.value) return;
-  
+
   isDownloading.value = true;
   downloadStatus.value = 'downloading';
   downloadProgress.value = 0;
   downloadedBytes.value = 0;
   totalBytes.value = 0;
-  
+
   try {
-    await updateInstance.value.downloadAndInstall((event) => {
+    await updateInstance.value.downloadAndInstall(event => {
       switch (event.event) {
         case 'Started':
           totalBytes.value = event.data.contentLength || 0;
@@ -185,10 +184,9 @@ const downloadAndInstallUpdate = async () => {
           break;
       }
     });
-    
+
     // 下载安装完成
     downloadStatus.value = 'completed';
-    
   } catch (error: any) {
     downloadStatus.value = 'error';
     updateError.value = error?.message || String(error);
@@ -236,8 +234,10 @@ onMounted(() => {
         <div class="mb-6 flex items-center">
           <span class="material-icons text-2xl mr-3 text-primary">palette</span>
           <h2 class="text-2xl font-semibold">{{ $t('setting.theme') }}</h2>
-          <div class="ml-auto transition-all duration-300"
-            :class="{ 'opacity-100': feedbackItems.get('theme'), 'opacity-0': !feedbackItems.get('theme') }">
+          <div
+            class="ml-auto transition-all duration-300"
+            :class="{ 'opacity-100': feedbackItems.get('theme'), 'opacity-0': !feedbackItems.get('theme') }"
+          >
             <span class="inline-flex items-center px-3 py-1 bg-success/20 text-success rounded-full">
               <span class="material-icons text-sm mr-1">check_circle</span>
               <span>{{ $t('setting.feedback_applied') }}</span>
@@ -246,15 +246,20 @@ onMounted(() => {
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div v-for="theme in ['light', 'dark', 'system']" :key="theme" class="theme-card"
-            :class="{ 'active': activeTheme === theme }" @click="updateTheme(theme as ThemeType)">
+          <div
+            v-for="theme in ['light', 'dark', 'system']"
+            :key="theme"
+            class="theme-card"
+            :class="{ active: activeTheme === theme }"
+            @click="updateTheme(theme as ThemeType)"
+          >
             <div class="theme-icon" :class="`theme-${theme}`">
               <span class="text-2xl">{{ themeIcons[theme] }}</span>
             </div>
             <div class="theme-info">
               <h3 class="text-lg font-medium">{{ $t(`setting.theme_options.${theme}`) }}</h3>
               <div class="theme-check">
-                <span class="material-icons check-icon" :class="{ 'visible': activeTheme === theme }">
+                <span class="material-icons check-icon" :class="{ visible: activeTheme === theme }">
                   check_circle
                 </span>
               </div>
@@ -286,11 +291,15 @@ onMounted(() => {
               <div>
                 <div class="font-medium text-base">{{ $t('setting.version_check') }}</div>
                 <div class="text-sm text-base-content/60">
-                  {{ lastCheckTime ? `${$t('setting.last_check')}：${lastCheckTime}` : $t('setting.auto_check_on_startup') }}
+                  {{
+                    lastCheckTime
+                      ? `${$t('setting.last_check')}：${lastCheckTime}`
+                      : $t('setting.auto_check_on_startup')
+                  }}
                 </div>
               </div>
             </div>
-            <button 
+            <button
               class="btn btn-primary btn-sm gap-2 min-w-[100px]"
               :disabled="isCheckingUpdate || isDownloading"
               @click="checkForUpdates"
@@ -313,17 +322,11 @@ onMounted(() => {
                 </div>
                 <p class="text-sm text-base-content/70 mb-3">{{ $t('setting.update_completed_hint') }}</p>
                 <div class="flex gap-2">
-                  <button 
-                    class="btn btn-success gap-2"
-                    @click="restartApp"
-                  >
+                  <button class="btn btn-success gap-2" @click="restartApp">
                     <span class="material-icons">restart_alt</span>
                     {{ $t('setting.restart_now') }}
                   </button>
-                  <button 
-                    class="btn btn-ghost btn-sm"
-                    @click="resetUpdateState"
-                  >
+                  <button class="btn btn-ghost btn-sm" @click="resetUpdateState">
                     {{ $t('setting.restart_later') }}
                   </button>
                 </div>
@@ -332,10 +335,16 @@ onMounted(() => {
           </div>
 
           <!-- 下载进度显示 -->
-          <div v-else-if="downloadStatus === 'downloading' || downloadStatus === 'installing'" class="p-4 bg-primary/10">
+          <div
+            v-else-if="downloadStatus === 'downloading' || downloadStatus === 'installing'"
+            class="p-4 bg-primary/10"
+          >
             <div class="flex items-start gap-4">
               <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                <span v-if="downloadStatus === 'downloading'" class="loading loading-spinner loading-md text-primary"></span>
+                <span
+                  v-if="downloadStatus === 'downloading'"
+                  class="loading loading-spinner loading-md text-primary"
+                ></span>
                 <span v-else class="material-icons text-primary text-2xl animate-pulse">install_desktop</span>
               </div>
               <div class="flex-1 min-w-0">
@@ -345,7 +354,7 @@ onMounted(() => {
                   </span>
                   <span class="text-sm text-base-content/70">{{ availableVersion }}</span>
                 </div>
-                
+
                 <!-- 进度条 -->
                 <div class="w-full mb-2">
                   <div class="flex justify-between text-sm text-base-content/70 mb-1">
@@ -353,16 +362,18 @@ onMounted(() => {
                     <span>{{ Math.round(downloadProgress) }}%</span>
                   </div>
                   <div class="w-full bg-base-300 rounded-full h-2.5 overflow-hidden">
-                    <div 
+                    <div
                       class="h-2.5 rounded-full transition-all duration-300 ease-out"
                       :class="downloadStatus === 'installing' ? 'bg-success animate-pulse' : 'bg-primary'"
                       :style="{ width: `${downloadProgress}%` }"
                     ></div>
                   </div>
                 </div>
-                
+
                 <p class="text-sm text-base-content/60">
-                  {{ downloadStatus === 'downloading' ? $t('setting.downloading_hint') : $t('setting.installing_hint') }}
+                  {{
+                    downloadStatus === 'downloading' ? $t('setting.downloading_hint') : $t('setting.installing_hint')
+                  }}
                 </p>
               </div>
             </div>
@@ -376,15 +387,17 @@ onMounted(() => {
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
-                  <span class="font-bold text-lg text-success">{{ $t('setting.new_version_found') }} {{ availableVersion }}</span>
+                  <span class="font-bold text-lg text-success"
+                    >{{ $t('setting.new_version_found') }} {{ availableVersion }}</span
+                  >
                 </div>
                 <p class="text-sm text-base-content/70 mb-3">{{ $t('setting.update_available_hint') }}</p>
-                <pre v-if="releaseNotes" class="text-sm whitespace-pre-wrap max-h-32 overflow-auto w-full bg-base-100/50 rounded-lg p-3 mb-3 text-base-content/80">{{ releaseNotes }}</pre>
-                <button 
-                  class="btn btn-success gap-2"
-                  :disabled="isDownloading"
-                  @click="downloadAndInstallUpdate"
+                <pre
+                  v-if="releaseNotes"
+                  class="text-sm whitespace-pre-wrap max-h-32 overflow-auto w-full bg-base-100/50 rounded-lg p-3 mb-3 text-base-content/80"
+                  >{{ releaseNotes }}</pre
                 >
+                <button class="btn btn-success gap-2" :disabled="isDownloading" @click="downloadAndInstallUpdate">
                   <span v-if="isDownloading" class="loading loading-spinner loading-sm"></span>
                   <span v-else class="material-icons">download</span>
                   {{ $t('setting.download_and_install') }}
@@ -404,10 +417,7 @@ onMounted(() => {
                   <span class="font-bold text-lg text-error">{{ $t('setting.update_failed') }}</span>
                 </div>
                 <p class="text-sm text-base-content/70 mb-3">{{ updateError }}</p>
-                <button 
-                  class="btn btn-error btn-outline gap-2"
-                  @click="resetUpdateState"
-                >
+                <button class="btn btn-error btn-outline gap-2" @click="resetUpdateState">
                   <span class="material-icons">refresh</span>
                   {{ $t('setting.retry') }}
                 </button>
@@ -438,8 +448,10 @@ onMounted(() => {
         <div class="mb-6 flex items-center">
           <span class="material-icons text-2xl mr-3 text-primary">translate</span>
           <h2 class="text-2xl font-semibold">{{ $t('setting.language') }}</h2>
-          <div class="ml-auto transition-all duration-300"
-            :class="{ 'opacity-100': feedbackItems.get('language'), 'opacity-0': !feedbackItems.get('language') }">
+          <div
+            class="ml-auto transition-all duration-300"
+            :class="{ 'opacity-100': feedbackItems.get('language'), 'opacity-0': !feedbackItems.get('language') }"
+          >
             <span class="inline-flex items-center px-3 py-1 bg-success/20 text-success rounded-full">
               <span class="material-icons text-sm mr-1">check_circle</span>
               <span>{{ $t('setting.feedback_applied') }}</span>
@@ -450,11 +462,12 @@ onMounted(() => {
         <div class="relative z-10 w-full">
           <!-- 语言选择器 -->
           <div class="language-selector" @click="toggleLanguageDropdown">
-            <div class="flex items-center">                <div class="lang-char-container mr-3">
-                  <div class="lang-char">
-                    <span class="lang-char-text">{{ currentLanguage.langChar }}</span>
-                  </div>
+            <div class="flex items-center">
+              <div class="lang-char-container mr-3">
+                <div class="lang-char">
+                  <span class="lang-char-text">{{ currentLanguage.langChar }}</span>
                 </div>
+              </div>
               <div class="language-info flex-grow">
                 <div class="language-name font-medium">{{ currentLanguage.nativeName }}</div>
                 <div class="language-english text-sm text-base-content/70">{{ currentLanguage.englishName }}</div>
@@ -476,18 +489,28 @@ onMounted(() => {
               <!-- 搜索框 -->
               <div class="language-search">
                 <div class="relative">
-                  <input type="text"
+                  <input
+                    type="text"
                     class="language-search-input w-full py-2 pl-10 pr-4 border-b border-base-300 focus:outline-none focus:border-primary"
-                    :placeholder="$t('setting.search_language')" v-model="searchQuery" @click="stopPropagation">
-                  <span
-                    class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-base-content/50">search</span>
+                    :placeholder="$t('setting.search_language')"
+                    v-model="searchQuery"
+                    @click="stopPropagation"
+                  />
+                  <span class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-base-content/50"
+                    >search</span
+                  >
                 </div>
               </div>
 
               <!-- 语言列表 -->
               <div class="dropdown-items">
-                <div v-for="language in filteredLanguages" :key="language.code" class="dropdown-item"
-                  :class="{ 'active': activeLanguage === language.code }" @click="updateLanguage(language.code)">
+                <div
+                  v-for="language in filteredLanguages"
+                  :key="language.code"
+                  class="dropdown-item"
+                  :class="{ active: activeLanguage === language.code }"
+                  @click="updateLanguage(language.code)"
+                >
                   <div class="lang-char-container mr-3">
                     <div class="lang-char">
                       <span class="lang-char-text">{{ language.langChar }}</span>
@@ -537,7 +560,9 @@ onMounted(() => {
   padding: 1.25rem;
   border-radius: 1rem;
   background-color: hsl(var(--b1));
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid transparent;
@@ -547,7 +572,9 @@ onMounted(() => {
 
 .theme-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .theme-card.active {
@@ -601,7 +628,7 @@ onMounted(() => {
 
 .theme-system {
   background: linear-gradient(to right, #f8fafc 50%, #0f172a 50%);
-  color: #52B0E1;
+  color: #52b0e1;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
@@ -630,7 +657,9 @@ onMounted(() => {
   width: 100%;
   background-color: hsl(var(--b1));
   border-radius: 1rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
   border: 1px solid hsl(var(--b2));
   overflow: hidden;
   z-index: 20;
@@ -733,7 +762,6 @@ onMounted(() => {
 
 /* 动画效果 */
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;

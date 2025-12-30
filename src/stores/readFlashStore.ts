@@ -5,13 +5,13 @@ import type { TotalProgress } from '../types/progress';
 
 // 读取任务接口
 export interface ReadFlashTask {
-    id: string;
-    filePath: string;
-    address: string;
-    size: string;
-    addressError?: string;
-    sizeError?: string;
-    collapsed?: boolean;
+  id: string;
+  filePath: string;
+  address: string;
+  size: string;
+  addressError?: string;
+  sizeError?: string;
+  collapsed?: boolean;
 }
 
 // 存储实例
@@ -19,261 +19,257 @@ let store: any = null;
 
 // 初始化存储
 const initStore = async () => {
-    if (!store) {
-        store = await load('readFlash.json', { autoSave: false });
-    }
-    return store;
+  if (!store) {
+    store = await load('readFlash.json', { autoSave: false });
+  }
+  return store;
 };
 
 export const useReadFlashStore = defineStore('readFlash', () => {
-    // 基本状态
-    const tasks = ref<ReadFlashTask[]>([]);
-    const isReading = ref(false);
+  // 基本状态
+  const tasks = ref<ReadFlashTask[]>([]);
+  const isReading = ref(false);
 
-    // 进度状态
-    const currentReadingFile = ref<string>('');
-    const currentReadingTaskId = ref<string>('');
-    const currentOperation = ref<string>('');
-    const completedTasks = ref<Set<string>>(new Set());
-    const readCompleted = ref(false);
-    const totalProgress = ref<TotalProgress>({
-        current: 0,
-        total: 0,
-        percentage: 0,
-        speed: 0,
-        eta: 0,
-        currentFileName: '',
-        completedCount: 0,
-        totalCount: 0
+  // 进度状态
+  const currentReadingFile = ref<string>('');
+  const currentReadingTaskId = ref<string>('');
+  const currentOperation = ref<string>('');
+  const completedTasks = ref<Set<string>>(new Set());
+  const readCompleted = ref(false);
+  const totalProgress = ref<TotalProgress>({
+    current: 0,
+    total: 0,
+    percentage: 0,
+    speed: 0,
+    eta: 0,
+    currentFileName: '',
+    completedCount: 0,
+    totalCount: 0,
+  });
+
+  // 计算属性
+  const canStartReading = computed(() => {
+    if (tasks.value.length === 0) return false;
+
+    return tasks.value.every(task => {
+      return task.filePath && task.address && !task.addressError && task.size && !task.sizeError;
     });
+  });
+
+  // 工具函数
+  const generateTaskId = () => {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  };
+
+  // Actions
+  const addTask = (task?: Partial<ReadFlashTask>) => {
+    const newTask: ReadFlashTask = {
+      id: generateTaskId(),
+      filePath: task?.filePath || '',
+      address: task?.address || '0x10000000',
+      size: task?.size || '',
+
+      addressError: '',
+      sizeError: '',
+      collapsed: false, // 新任务默认展开以便编辑
+    };
+    tasks.value.push(newTask);
+    saveTasksToStorage();
+    return newTask;
+  };
+
+  const removeTask = (index: number) => {
+    if (index >= 0 && index < tasks.value.length) {
+      tasks.value.splice(index, 1);
+      saveTasksToStorage();
+    }
+  };
+
+  const clearTasks = () => {
+    tasks.value = [];
+    saveTasksToStorage();
+  };
+
+  const updateTaskFilePath = (index: number, filePath: string) => {
+    if (index >= 0 && index < tasks.value.length) {
+      tasks.value[index].filePath = filePath;
+      saveTasksToStorage();
+    }
+  };
+
+  const updateTaskAddress = (index: number, address: string) => {
+    if (index >= 0 && index < tasks.value.length) {
+      tasks.value[index].address = address;
+      saveTasksToStorage();
+    }
+  };
+
+  const updateTaskSize = (index: number, size: string) => {
+    if (index >= 0 && index < tasks.value.length) {
+      tasks.value[index].size = size;
+      saveTasksToStorage();
+    }
+  };
+
+  const updateTaskAddressError = (index: number, error: string) => {
+    if (index >= 0 && index < tasks.value.length) {
+      tasks.value[index].addressError = error;
+    }
+  };
+
+  const updateTaskSizeError = (index: number, error: string) => {
+    if (index >= 0 && index < tasks.value.length) {
+      tasks.value[index].sizeError = error;
+    }
+  };
+
+  const setReadingState = (reading: boolean) => {
+    isReading.value = reading;
+  };
+
+  const resetProgressStates = () => {
+    currentReadingFile.value = '';
+    currentReadingTaskId.value = '';
+    currentOperation.value = '';
+    completedTasks.value.clear();
+    readCompleted.value = false;
+    totalProgress.value = {
+      current: 0,
+      total: 0,
+      percentage: 0,
+      speed: 0,
+      eta: 0,
+      currentFileName: '',
+      completedCount: 0,
+      totalCount: 0,
+    };
+  };
+
+  const setTaskCollapsed = (index: number, collapsed: boolean) => {
+    if (index >= 0 && index < tasks.value.length) {
+      tasks.value[index].collapsed = collapsed;
+    }
+  };
+
+  const updateProgress = (progress: Partial<TotalProgress>) => {
+    Object.assign(totalProgress.value, progress);
+  };
+
+  const setCurrentReadingFile = (fileName: string) => {
+    currentReadingFile.value = fileName;
+  };
+
+  const setCurrentReadingTaskId = (id: string) => {
+    currentReadingTaskId.value = id;
+  };
+
+  const setCurrentOperation = (operation: string) => {
+    currentOperation.value = operation;
+  };
+
+  const addCompletedTask = (taskId: string) => {
+    completedTasks.value.add(taskId);
+  };
+
+  const setReadCompleted = (completed: boolean) => {
+    readCompleted.value = completed;
+  };
+
+  // 持久化存储相关
+  const saveTasksToStorage = async () => {
+    try {
+      const storeInstance = await initStore();
+      const tasksToSave = tasks.value.map(task => ({
+        filePath: task.filePath,
+        address: task.address,
+        size: task.size,
+      }));
+      await storeInstance.set('tasks', { value: tasksToSave });
+      await storeInstance.save();
+    } catch (error) {
+      console.error('保存任务列表失败:', error);
+    }
+  };
+
+  const loadTasksFromStorage = async () => {
+    // 如果内存中已有任务，不从存储中覆盖，保持当前会话状态
+    if (tasks.value.length > 0) {
+      console.log(`已有 ${tasks.value.length} 个任务在内存中，跳过存储加载`);
+      return;
+    }
+
+    try {
+      const storeInstance = await initStore();
+      const val = await storeInstance.get('tasks');
+      if (val && val.value && Array.isArray(val.value)) {
+        tasks.value = val.value.map((taskData: any) => ({
+          id: taskData.id || generateTaskId(),
+          filePath: taskData.filePath || '',
+          address: taskData.address || '0x10000000',
+          size: taskData.size || '',
+          addressError: '',
+          sizeError: '',
+          collapsed: true, // 加载的任务默认折叠
+        }));
+        console.log(`从存储中加载了 ${tasks.value.length} 个任务`);
+      }
+    } catch (error) {
+      console.error('加载任务列表失败:', error);
+    }
+  };
+
+  const clearStorage = async () => {
+    try {
+      const storeInstance = await initStore();
+      await storeInstance.delete('tasks');
+      await storeInstance.save();
+    } catch (error) {
+      console.error('清除任务列表存储失败:', error);
+    }
+  };
+
+  return {
+    // 状态
+    tasks,
+    isReading,
+
+    currentReadingFile,
+    currentReadingTaskId,
+    currentOperation,
+    completedTasks,
+    readCompleted,
+    totalProgress,
 
     // 计算属性
-    const canStartReading = computed(() => {
-        if (tasks.value.length === 0) return false;
-
-        return tasks.value.every((task) => {
-            return task.filePath &&
-                task.address &&
-                !task.addressError &&
-                task.size &&
-                !task.sizeError;
-        });
-    });
+    canStartReading,
 
     // 工具函数
-    const generateTaskId = () => {
-        return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    };
+    generateTaskId,
 
     // Actions
-    const addTask = (task?: Partial<ReadFlashTask>) => {
-        const newTask: ReadFlashTask = {
-            id: generateTaskId(),
-            filePath: task?.filePath || '',
-            address: task?.address || '0x10000000',
-            size: task?.size || '',
+    addTask,
+    removeTask,
+    clearTasks,
+    updateTaskFilePath,
+    updateTaskAddress,
+    updateTaskSize,
+    updateTaskAddressError,
+    updateTaskSizeError,
 
-            addressError: '',
-            sizeError: '',
-            collapsed: false // 新任务默认展开以便编辑
-        };
-        tasks.value.push(newTask);
-        saveTasksToStorage();
-        return newTask;
-    };
+    setTaskCollapsed,
+    setReadingState,
+    resetProgressStates,
+    updateProgress,
 
-    const removeTask = (index: number) => {
-        if (index >= 0 && index < tasks.value.length) {
-            tasks.value.splice(index, 1);
-            saveTasksToStorage();
-        }
-    };
+    setCurrentReadingFile,
+    setCurrentReadingTaskId,
+    setCurrentOperation,
+    addCompletedTask,
+    setReadCompleted,
 
-    const clearTasks = () => {
-        tasks.value = [];
-        saveTasksToStorage();
-    };
-
-    const updateTaskFilePath = (index: number, filePath: string) => {
-        if (index >= 0 && index < tasks.value.length) {
-            tasks.value[index].filePath = filePath;
-            saveTasksToStorage();
-        }
-    };
-
-    const updateTaskAddress = (index: number, address: string) => {
-        if (index >= 0 && index < tasks.value.length) {
-            tasks.value[index].address = address;
-            saveTasksToStorage();
-        }
-    };
-
-    const updateTaskSize = (index: number, size: string) => {
-        if (index >= 0 && index < tasks.value.length) {
-            tasks.value[index].size = size;
-            saveTasksToStorage();
-        }
-    };
-
-    const updateTaskAddressError = (index: number, error: string) => {
-        if (index >= 0 && index < tasks.value.length) {
-            tasks.value[index].addressError = error;
-        }
-    };
-
-    const updateTaskSizeError = (index: number, error: string) => {
-        if (index >= 0 && index < tasks.value.length) {
-            tasks.value[index].sizeError = error;
-        }
-    };
-
-    const setReadingState = (reading: boolean) => {
-        isReading.value = reading;
-    };
-
-    const resetProgressStates = () => {
-        currentReadingFile.value = '';
-        currentReadingTaskId.value = '';
-        currentOperation.value = '';
-        completedTasks.value.clear();
-        readCompleted.value = false;
-        totalProgress.value = {
-            current: 0,
-            total: 0,
-            percentage: 0,
-            speed: 0,
-            eta: 0,
-            currentFileName: '',
-            completedCount: 0,
-            totalCount: 0
-        };
-    };
-
-    const setTaskCollapsed = (index: number, collapsed: boolean) => {
-        if (index >= 0 && index < tasks.value.length) {
-            tasks.value[index].collapsed = collapsed;
-        }
-    };
-
-    const updateProgress = (progress: Partial<TotalProgress>) => {
-        Object.assign(totalProgress.value, progress);
-    };
-
-    const setCurrentReadingFile = (fileName: string) => {
-        currentReadingFile.value = fileName;
-    };
-
-    const setCurrentReadingTaskId = (id: string) => {
-        currentReadingTaskId.value = id;
-    };
-
-    const setCurrentOperation = (operation: string) => {
-        currentOperation.value = operation;
-    };
-
-    const addCompletedTask = (taskId: string) => {
-        completedTasks.value.add(taskId);
-    };
-
-    const setReadCompleted = (completed: boolean) => {
-        readCompleted.value = completed;
-    };
-
-    // 持久化存储相关
-    const saveTasksToStorage = async () => {
-        try {
-            const storeInstance = await initStore();
-            const tasksToSave = tasks.value.map(task => ({
-                filePath: task.filePath,
-                address: task.address,
-                size: task.size
-            }));
-            await storeInstance.set('tasks', { value: tasksToSave });
-            await storeInstance.save();
-        } catch (error) {
-            console.error('保存任务列表失败:', error);
-        }
-    };
-
-    const loadTasksFromStorage = async () => {
-        // 如果内存中已有任务，不从存储中覆盖，保持当前会话状态
-        if (tasks.value.length > 0) {
-            console.log(`已有 ${tasks.value.length} 个任务在内存中，跳过存储加载`);
-            return;
-        }
-
-        try {
-            const storeInstance = await initStore();
-            const val = await storeInstance.get('tasks');
-            if (val && val.value && Array.isArray(val.value)) {
-                tasks.value = val.value.map((taskData: any) => ({
-                    id: taskData.id || generateTaskId(),
-                    filePath: taskData.filePath || '',
-                    address: taskData.address || '0x10000000',
-                    size: taskData.size || '',
-                    addressError: '',
-                    sizeError: '',
-                    collapsed: true // 加载的任务默认折叠
-                }));
-                console.log(`从存储中加载了 ${tasks.value.length} 个任务`);
-            }
-        } catch (error) {
-            console.error('加载任务列表失败:', error);
-        }
-    };
-
-    const clearStorage = async () => {
-        try {
-            const storeInstance = await initStore();
-            await storeInstance.delete('tasks');
-            await storeInstance.save();
-        } catch (error) {
-            console.error('清除任务列表存储失败:', error);
-        }
-    };
-
-    return {
-        // 状态
-        tasks,
-        isReading,
-
-        currentReadingFile,
-        currentReadingTaskId,
-        currentOperation,
-        completedTasks,
-        readCompleted,
-        totalProgress,
-
-        // 计算属性
-        canStartReading,
-
-        // 工具函数
-        generateTaskId,
-
-        // Actions
-        addTask,
-        removeTask,
-        clearTasks,
-        updateTaskFilePath,
-        updateTaskAddress,
-        updateTaskSize,
-        updateTaskAddressError,
-        updateTaskSizeError,
-
-        setTaskCollapsed,
-        setReadingState,
-        resetProgressStates,
-        updateProgress,
-
-        setCurrentReadingFile,
-        setCurrentReadingTaskId,
-        setCurrentOperation,
-        addCompletedTask,
-        setReadCompleted,
-
-        // 持久化存储
-        saveTasksToStorage,
-        loadTasksFromStorage,
-        clearStorage
-    };
+    // 持久化存储
+    saveTasksToStorage,
+    loadTasksFromStorage,
+    clearStorage,
+  };
 });

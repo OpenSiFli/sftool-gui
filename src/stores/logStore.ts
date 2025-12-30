@@ -25,8 +25,12 @@ export const useLogStore = defineStore('log', () => {
   const hasErrors = computed(() => {
     return messages.value.some(message => {
       const lowerMessage = message.toLowerCase();
-      return lowerMessage.includes('error') || lowerMessage.includes('failed') ||
-        lowerMessage.includes('错误') || lowerMessage.includes('失败');
+      return (
+        lowerMessage.includes('error') ||
+        lowerMessage.includes('failed') ||
+        lowerMessage.includes('错误') ||
+        lowerMessage.includes('失败')
+      );
     });
   });
 
@@ -131,7 +135,7 @@ export const useLogStore = defineStore('log', () => {
           const { emit } = await import('@tauri-apps/api/event');
           await emit('log-sync-data', {
             messages: messages.value,
-            isFlashing: isFlashing.value
+            isFlashing: isFlashing.value,
           });
         } catch (error) {
           console.warn('Failed to sync log data:', error);
@@ -172,6 +176,6 @@ export const useLogStore = defineStore('log', () => {
     clearLogs,
     setFlashing,
     initializeLog,
-    setupEventListeners
+    setupEventListeners,
   };
 });

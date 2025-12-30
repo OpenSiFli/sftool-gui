@@ -1,7 +1,7 @@
-pub mod device;
 pub mod config;
+pub mod device;
 pub mod flash;
 
-pub use device::*;
 pub use config::*;
+pub use device::*;
 pub use flash::*;

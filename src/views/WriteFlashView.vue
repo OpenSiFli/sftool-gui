@@ -1,29 +1,40 @@
 <template>
-  <div 
-    class="p-4 h-screen flex flex-col overflow-hidden relative" 
+  <div
+    class="p-4 h-screen flex flex-col overflow-hidden relative"
     :class="{ 'bg-primary/5 transition-colors duration-200': writeFlashStore.isWindowDragging }"
   >
     <!-- 拖拽提示覆盖层 -->
-    <div 
-      v-if="writeFlashStore.isWindowDragging" 
+    <div
+      v-if="writeFlashStore.isWindowDragging"
       class="fixed inset-0 bg-primary/20 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none"
     >
       <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border-2 border-dashed border-primary">
         <div class="text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-primary mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-16 w-16 mx-auto text-primary mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
           </svg>
           <h2 class="text-2xl font-bold text-primary mb-2">{{ $t('writeFlash.dropFilesHere') }}</h2>
           <p class="text-gray-600 dark:text-gray-300">{{ $t('writeFlash.supportedFormats') }}</p>
         </div>
       </div>
     </div>
-    
+
     <!-- 页面标题栏 -->
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-3xl font-bold text-base-content">{{ $t('writeFlash.title') }}</h1>
     </div>
-    
+
     <!-- 主要内容区域 -->
     <div class="flex flex-col space-y-4 flex-1 min-h-0">
       <!-- 文件选择区域 -->
@@ -34,47 +45,60 @@
             <label class="label">
               <span class="label-text font-semibold">{{ $t('writeFlash.selectFiles') }}</span>
               <!-- 批量选择按钮 -->
-              <button 
+              <button
                 class="btn btn-outline btn-xs gap-1"
                 @click="handleSelectMultipleFiles"
                 :disabled="writeFlashStore.isFlashing"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-3 w-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 {{ $t('writeFlash.addMultipleFiles') }}
               </button>
             </label>
-             
+
             <!-- 文件选择列表 -->
             <div class="mb-4 flex-1 min-h-0 overflow-y-auto scrollable-container">
               <!-- 已选择的文件 -->
-              <transition-group 
-                name="file-list" 
-                tag="div" 
-                class="space-y-2 mb-3 file-list-container"
-              >
-                <FlashFileCard 
-                  v-for="(file, index) in writeFlashStore.selectedFiles" 
+              <transition-group name="file-list" tag="div" class="space-y-2 mb-3 file-list-container">
+                <FlashFileCard
+                  v-for="(file, index) in writeFlashStore.selectedFiles"
                   :key="file.id"
                   :file="file"
                   :index="index"
                 />
               </transition-group>
             </div>
-            
+
             <!-- 空白选择框 -->
-            <div 
+            <div
               class="card card-compact bg-base-100 border-2 border-dashed border-base-300 hover:border-primary cursor-pointer transition-all duration-200 flex-shrink-0 hover:shadow-sm"
               @click="handleSelectFile"
-              :class="{ 
+              :class="{
                 'opacity-50 cursor-not-allowed': writeFlashStore.isFlashing,
-                'border-primary bg-primary/5': writeFlashStore.isWindowDragging
+                'border-primary bg-primary/5': writeFlashStore.isWindowDragging,
               }"
             >
               <div class="card-body p-4">
                 <div class="flex flex-col items-center justify-center gap-2 text-base-content/60">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
                   <div class="text-center">
@@ -87,18 +111,25 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 操作按钮区域 -->
       <div class="flex-shrink-0">
         <div class="flex items-center justify-center">
           <!-- 下载按钮 -->
-            <button 
-            class="btn btn-primary btn-md gap-2 px-6" 
-            :disabled="!writeFlashStore.canStartFlashing || writeFlashStore.isFlashing" 
+          <button
+            class="btn btn-primary btn-md gap-2 px-6"
+            :disabled="!writeFlashStore.canStartFlashing || writeFlashStore.isFlashing"
             @click="startFlashing"
           >
             <span v-if="writeFlashStore.isFlashing" class="loading loading-spinner loading-sm"></span>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <span class="text-sm font-medium">
@@ -106,16 +137,30 @@
             </span>
           </button>
         </div>
-        
+
         <!-- 进度显示区域 -->
         <div class="mt-3">
           <!-- 烧录完成提示 -->
-          <div v-if="writeFlashStore.flashCompleted && writeFlashStore.completedFiles.size > 0" class="mb-3 p-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 rounded-lg shadow-lg">
+          <div
+            v-if="writeFlashStore.flashCompleted && writeFlashStore.completedFiles.size > 0"
+            class="mb-3 p-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 rounded-lg shadow-lg"
+          >
             <div class="flex items-center justify-center gap-3 text-center">
               <div class="flex-shrink-0">
                 <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-7 w-7 text-green-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
               </div>
@@ -127,26 +172,30 @@
               </div>
             </div>
           </div>
-          
+
           <div v-if="writeFlashStore.totalProgress.totalCount > 0 || writeFlashStore.isFlashing" class="space-y-3">
             <div class="p-3 bg-base-200/50 rounded-lg transition-all duration-300">
-              
               <!-- 文件名和进度百分比 -->
               <div class="flex justify-between items-center mb-2">
                 <div class="flex-1 min-w-0">
                   <div class="font-medium text-sm truncate text-base-content">
                     <span v-if="writeFlashStore.totalProgress.currentFileName">
-                      <span v-if="writeFlashStore.currentOperation" class="text-primary">{{ writeFlashStore.currentOperation }}：</span>{{ writeFlashStore.totalProgress.currentFileName }}
+                      <span v-if="writeFlashStore.currentOperation" class="text-primary"
+                        >{{ writeFlashStore.currentOperation }}：</span
+                      >{{ writeFlashStore.totalProgress.currentFileName }}
                       <span v-if="writeFlashStore.totalProgress.totalCount > 1" class="text-base-content/60 ml-2">
-                        ({{ writeFlashStore.totalProgress.completedCount + 1 }}/{{ writeFlashStore.totalProgress.totalCount }})
+                        ({{ writeFlashStore.totalProgress.completedCount + 1 }}/{{
+                          writeFlashStore.totalProgress.totalCount
+                        }})
                       </span>
                     </span>
-                    <span v-else-if="writeFlashStore.currentOperation && !writeFlashStore.totalProgress.currentFileName" class="text-primary">
+                    <span
+                      v-else-if="writeFlashStore.currentOperation && !writeFlashStore.totalProgress.currentFileName"
+                      class="text-primary"
+                    >
                       {{ t('writeFlash.operationInProgress', { operation: writeFlashStore.currentOperation }) }}
                     </span>
-                    <span v-else-if="writeFlashStore.flashCompleted" class="text-success">
-                      烧录完成！
-                    </span>
+                    <span v-else-if="writeFlashStore.flashCompleted" class="text-success"> 烧录完成！ </span>
                     <span v-else>
                       {{ t('writeFlash.preparing') }}
                     </span>
@@ -156,29 +205,40 @@
                   {{ Math.round(writeFlashStore.totalProgress.percentage) }}%
                 </div>
               </div>
-              
+
               <!-- 进度条 -->
               <div class="w-full bg-base-300 rounded-full h-2 mb-2 overflow-hidden">
-                <div 
+                <div
                   class="h-2 rounded-full transition-all duration-300 ease-out"
                   :class="writeFlashStore.flashCompleted ? 'bg-success' : 'bg-primary'"
                   :style="{ width: `${writeFlashStore.totalProgress.percentage}%` }"
                 ></div>
               </div>
-              
+
               <!-- 详细信息：大小、速度、剩余时间 -->
               <div class="flex justify-between items-center text-xs text-base-content/70">
                 <span v-if="writeFlashStore.totalProgress.total > 0">
-                  {{ formatBytes(writeFlashStore.totalProgress.current) }} / {{ formatBytes(writeFlashStore.totalProgress.total) }}
+                  {{ formatBytes(writeFlashStore.totalProgress.current) }} /
+                  {{ formatBytes(writeFlashStore.totalProgress.total) }}
                 </span>
                 <span v-else>
                   {{ t('writeFlash.waitingToStart') }}
                 </span>
                 <div class="flex items-center gap-4">
-                  <span v-if="writeFlashStore.totalProgress.speed && writeFlashStore.totalProgress.speed > 0" class="text-primary font-medium">
+                  <span
+                    v-if="writeFlashStore.totalProgress.speed && writeFlashStore.totalProgress.speed > 0"
+                    class="text-primary font-medium"
+                  >
                     {{ formatSpeed(writeFlashStore.totalProgress.speed) }}
                   </span>
-                  <span v-if="writeFlashStore.totalProgress.eta && writeFlashStore.totalProgress.eta > 0 && writeFlashStore.totalProgress.percentage < 100" class="text-warning font-medium">
+                  <span
+                    v-if="
+                      writeFlashStore.totalProgress.eta &&
+                      writeFlashStore.totalProgress.eta > 0 &&
+                      writeFlashStore.totalProgress.percentage < 100
+                    "
+                    class="text-warning font-medium"
+                  >
                     {{ formatETA(writeFlashStore.totalProgress.eta) }}
                   </span>
                   <span v-if="writeFlashStore.flashCompleted" class="text-success font-medium">
@@ -188,7 +248,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- 空状态占位 -->
           <div v-else class="p-3 bg-base-200/30 rounded-lg">
             <div class="flex justify-between items-center mb-2">
@@ -197,16 +257,14 @@
                   {{ t('writeFlash.waitingForTasks') }}
                 </div>
               </div>
-              <div class="ml-4 text-sm font-bold text-base-content/50">
-                0%
-              </div>
+              <div class="ml-4 text-sm font-bold text-base-content/50">0%</div>
             </div>
-            
+
             <!-- 空进度条 -->
             <div class="w-full bg-base-300 rounded-full h-2 mb-2 overflow-hidden">
               <div class="h-2 rounded-full bg-base-300"></div>
             </div>
-            
+
             <!-- 空详细信息 -->
             <div class="flex justify-between items-center text-xs text-base-content/50">
               <span>0 B / 0 B</span>
@@ -231,14 +289,8 @@ import { useLogStore } from '../stores/logStore';
 import { useWriteFlashStore } from '../stores/writeFlashStore';
 import { useDeviceStore } from '../stores/deviceStore';
 import { ProgressHandler } from '../utils/progressHandler';
-import { 
-  parseSftoolParamFile, 
-  isSftoolParamFile,
-  formatValidationErrors 
-} from '../utils/sftoolParamParser';
-import type { 
-  FlashFile
-} from '../types/progress';
+import { parseSftoolParamFile, isSftoolParamFile, formatValidationErrors } from '../utils/sftoolParamParser';
+import type { FlashFile } from '../types/progress';
 import FlashFileCard from '../components/FlashFileCard.vue';
 
 const { t } = useI18n();
@@ -263,8 +315,6 @@ const formatBytes = (bytes: number | undefined): string => {
   return formatFileSize(bytes);
 };
 
-
-
 // 格式化速度（模板中使用）
 const formatSpeed = (bytesPerSecond: number | undefined): string => {
   if (!bytesPerSecond) return '-- KB/s';
@@ -285,20 +335,20 @@ const initializeLog = () => {
 onMounted(async () => {
   // 设置跨窗口事件监听器
   logStore.setupEventListeners();
-  
+
   // 确保初次进入页面时进度/完成状态被清理，避免显示过期的完成提示
   if (!writeFlashStore.isFlashing) {
     writeFlashStore.resetProgressStates();
   }
 
   initializeLog();
-  
+
   // 从存储中加载文件列表
   await writeFlashStore.loadFilesFromStorage();
-  
+
   try {
     // 监听进度事件
-    const unlistenProgress = await listen('flash-progress', (event) => {
+    const unlistenProgress = await listen('flash-progress', event => {
       handleProgressEvent(event.payload);
     });
 
@@ -327,22 +377,21 @@ onMounted(async () => {
     });
 
     // 监听文件拖拽释放事件
-    const unlistenDragDrop = await listen(TauriEvent.DRAG_DROP, (event) => {
+    const unlistenDragDrop = await listen(TauriEvent.DRAG_DROP, event => {
       console.log('Tauri file drop event:', event);
       logStore.addMessage(t('writeFlash.log.drop'));
       handleTauriFileDrop(event.payload);
       writeFlashStore.setWindowDragging(false);
     });
-    
+
     // 存储清理函数
     (window as any).__tauriUnlisteners = {
       unlistenProgress,
       unlistenDragEnter,
       unlistenDragLeave,
       unlistenDragOver,
-      unlistenDragDrop
+      unlistenDragDrop,
     };
-
   } catch (error) {
     console.warn(t('writeFlash.log.cannotSetupDragListeners'), error);
     logStore.addMessage(t('writeFlash.log.cannotSetupDragListenersHint'), true);
@@ -366,7 +415,7 @@ onUnmounted(() => {
 const addFilesWithDeduplication = (newFiles: FlashFile[], source: string) => {
   const addedFiles: FlashFile[] = [];
   const duplicatedFiles: string[] = [];
-  
+
   for (const newFile of newFiles) {
     const added = writeFlashStore.addFile(newFile);
     if (added) {
@@ -375,12 +424,12 @@ const addFilesWithDeduplication = (newFiles: FlashFile[], source: string) => {
       duplicatedFiles.push(newFile.name);
     }
   }
-  
+
   // 添加新文件
   if (addedFiles.length > 0) {
     logStore.addMessage(`${t('writeFlash.status.fileSelected')}: ${source}添加了 ${addedFiles.length} 个文件`);
-    
-    addedFiles.forEach((file) => {
+
+    addedFiles.forEach(file => {
       if (file.size && file.size > 0) {
         logStore.addMessage(`- ${file.name} (${formatFileSize(file.size)})`);
       } else {
@@ -388,12 +437,12 @@ const addFilesWithDeduplication = (newFiles: FlashFile[], source: string) => {
       }
     });
   }
-  
+
   // 提示重复文件
   if (duplicatedFiles.length > 0) {
     logStore.addMessage(`跳过重复文件 (${duplicatedFiles.length}个): ${duplicatedFiles.join(', ')}`);
   }
-  
+
   if (addedFiles.length === 0 && duplicatedFiles.length === 0) {
     logStore.addMessage('没有有效的固件文件被添加');
   }
@@ -406,18 +455,14 @@ const handleSftoolConfigFile = async (filePath: string): Promise<FlashFile[]> =>
     logStore.addMessage(t('writeFlash.sftoolConfig.parsing'));
 
     // 解析配置文件（通过Rust后端）
-    const parseResult = await parseSftoolParamFile(
-      filePath, 
-      deviceStore.selectedChip, 
-      deviceStore.selectedMemoryType
-    );
-    
+    const parseResult = await parseSftoolParamFile(filePath, deviceStore.selectedChip, deviceStore.selectedMemoryType);
+
     logStore.addMessage(t('writeFlash.sftoolConfig.parseSuccess'));
 
     // 如果验证失败，显示错误并询问是否继续
     if (!parseResult.validation.isValid) {
       const errorMessages = formatValidationErrors(parseResult.validation);
-      
+
       logStore.addMessage(t('writeFlash.sftoolConfig.validationFailed'), true);
       errorMessages.forEach(error => {
         logStore.addMessage(`- ${error}`, true);
@@ -427,21 +472,22 @@ const handleSftoolConfigFile = async (filePath: string): Promise<FlashFile[]> =>
       logStore.addMessage(
         t('writeFlash.sftoolConfig.currentDevice', {
           chip: parseResult.validation.currentChip,
-          memory: parseResult.validation.currentMemory
+          memory: parseResult.validation.currentMemory,
         })
       );
       logStore.addMessage(
         t('writeFlash.sftoolConfig.configDevice', {
           chip: parseResult.validation.configChip,
-          memory: parseResult.validation.configMemory
+          memory: parseResult.validation.configMemory,
         })
       );
 
       // 弹出警告对话框
       const shouldContinue = confirm(
         `${t('writeFlash.sftoolConfig.configMismatchWarning')}\n\n` +
-        errorMessages.join('\n') + '\n\n' +
-        t('writeFlash.sftoolConfig.continueAnyway')
+          errorMessages.join('\n') +
+          '\n\n' +
+          t('writeFlash.sftoolConfig.continueAnyway')
       );
 
       if (!shouldContinue) {
@@ -457,12 +503,11 @@ const handleSftoolConfigFile = async (filePath: string): Promise<FlashFile[]> =>
       path: extractedFile.path,
       address: writeFlashStore.isAutoAddressFile(extractedFile.name) ? '' : extractedFile.address,
       addressError: '',
-      size: extractedFile.size
+      size: extractedFile.size,
     }));
 
     logStore.addMessage(t('writeFlash.sftoolConfig.extractedFiles', { count: flashFiles.length }));
     return flashFiles;
-
   } catch (error) {
     const errorMessage = `${t('writeFlash.sftoolConfig.parseFailed')}: ${error instanceof Error ? error.message : String(error)}`;
     logStore.addMessage(errorMessage, true);
@@ -479,9 +524,9 @@ const handleTauriFileDrop = async (payload: any) => {
   }
 
   const paths: string[] = payload?.paths || [];
-  
+
   logStore.addMessage(t('writeFlash.log.detectedPaths', { count: paths.length }));
-  
+
   if (paths.length === 0) {
     logStore.addMessage(t('writeFlash.log.cannotParseDrop'), true);
     logStore.addMessage(t('writeFlash.log.payloadContent', { payload: JSON.stringify(payload) }));
@@ -495,12 +540,15 @@ const handleTauriFileDrop = async (payload: any) => {
       logStore.addMessage(t('writeFlash.log.skippingInvalidPath', { path: JSON.stringify(path) }));
       continue;
     }
-    
+
     const fileName = path.split(/[\/\\]/).pop() || path;
     logStore.addMessage(t('writeFlash.log.processingFile', { name: fileName, path }));
 
     if (!writeFlashStore.isSupportedFile(fileName)) {
-      logStore.addMessage(`${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${fileName}`, true);
+      logStore.addMessage(
+        `${t('writeFlash.status.failed')}: ${t('writeFlash.status.unsupportedFileFormat')} - ${fileName}`,
+        true
+      );
       continue;
     }
 
@@ -527,7 +575,7 @@ const handleTauriFileDrop = async (payload: any) => {
       path: path,
       address: defaultAddress,
       addressError: '',
-      size: 0 
+      size: 0,
     });
   }
 
@@ -543,7 +591,7 @@ const validateAllFiles = (): boolean => {
     logStore.addMessage(t('writeFlash.validation.noFiles'));
     return false;
   }
-  
+
   // 组件层级已进行验证，此处仅检查store状态
   return writeFlashStore.canStartFlashing;
 };
@@ -562,20 +610,22 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
   try {
     const { open } = await import('@tauri-apps/plugin-dialog');
     const { readFile, exists } = await import('@tauri-apps/plugin-fs');
-    
+
     const selected = await open({
       multiple,
-      filters: [{
-        name: 'Firmware Files',
-        extensions: ['bin', 'hex', 'elf', 'axf', 'json']
-      }]
+      filters: [
+        {
+          name: 'Firmware Files',
+          extensions: ['bin', 'hex', 'elf', 'axf', 'json'],
+        },
+      ],
     });
-    
+
     if (!selected) return [];
-    
+
     const files: FlashFile[] = [];
     const paths = Array.isArray(selected) ? selected : [selected];
-    
+
     for (const filePath of paths) {
       try {
         const fileExists = await exists(filePath);
@@ -583,9 +633,9 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
           logStore.addMessage(`${t('writeFlash.status.failed')}: 文件不存在 - ${filePath}`);
           continue;
         }
-        
+
         const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
-        
+
         // 检查是否是sftool配置文件
         if (isSftoolParamFile(fileName)) {
           const configFiles = await handleSftoolConfigFile(filePath);
@@ -593,21 +643,21 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
         } else {
           // 常规固件文件处理
           const fileContent = await readFile(filePath);
-          
+
           files.push({
             id: writeFlashStore.generateFileId(),
             name: fileName,
             path: filePath,
             address: writeFlashStore.isAutoAddressFile(fileName) ? '' : '0x10000000',
             addressError: '',
-            size: fileContent.length
+            size: fileContent.length,
           });
         }
       } catch (error) {
         logStore.addMessage(`${t('writeFlash.status.failed')}: 读取文件失败 - ${filePath}: ${error}`);
       }
     }
-    
+
     return files;
   } catch (error) {
     logStore.addMessage(`${t('writeFlash.status.failed')}: ${error}`);
@@ -618,7 +668,7 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
 // 选择单个文件
 const handleSelectFile = async () => {
   if (writeFlashStore.isFlashing) return;
-  
+
   try {
     const newFiles = await selectFile(false);
     if (newFiles.length > 0) {
@@ -632,7 +682,7 @@ const handleSelectFile = async () => {
 // 选择多个文件
 const handleSelectMultipleFiles = async () => {
   if (writeFlashStore.isFlashing) return;
-  
+
   try {
     const newFiles = await selectFile(true);
     if (newFiles.length > 0) {
@@ -647,19 +697,18 @@ const handleSelectMultipleFiles = async () => {
 const flashProcess = async () => {
   try {
     const { invoke } = await import('@tauri-apps/api/core');
-    
+
     const writeFlashRequest = {
       files: writeFlashStore.selectedFiles.map(file => ({
         file_path: file.path,
-        address: writeFlashStore.isAutoAddressFile(file.name) ? 0 : parseInt(file.address || '0x10000000', 16)
+        address: writeFlashStore.isAutoAddressFile(file.name) ? 0 : parseInt(file.address || '0x10000000', 16),
       })),
       verify: true,
       no_compress: false,
-      erase_all: false
+      erase_all: false,
     };
 
     await invoke('write_flash', { request: writeFlashRequest });
-    
   } catch (error) {
     throw new Error(`烧录失败: ${error}`);
   }
@@ -667,33 +716,32 @@ const flashProcess = async () => {
 
 // 移除文件
 
-
 // 开始烧录
 const startFlashing = async () => {
   if (!validateAllFiles()) return;
-  
+
   writeFlashStore.setFlashingState(true);
   logStore.setFlashing(true);
-  
+
   // 重置所有状态
   progressHandler.resetAllStates();
-  
+
   logStore.addMessage(`${t('writeFlash.status.starting')}`);
   logStore.addMessage(`准备烧录 ${writeFlashStore.selectedFiles.length} 个文件...`);
-  
+
   try {
     for (const file of writeFlashStore.selectedFiles) {
       logStore.addMessage(`${t('writeFlash.status.validating')}: ${file.name}`);
-      
+
       const { invoke } = await import('@tauri-apps/api/core');
       const isValid = await invoke('validate_firmware_file', { filePath: file.path });
       if (!isValid) {
         throw new Error(`文件验证失败: ${file.name}`);
       }
     }
-    
+
     logStore.addMessage('所有文件验证通过，开始烧录过程...');
-    
+
     await flashProcess();
     logStore.addMessage(`${t('writeFlash.status.completed')}`, true);
   } catch (error) {
@@ -810,8 +858,12 @@ const startFlashing = async () => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* 下载中的文件显示蓝色背景 */

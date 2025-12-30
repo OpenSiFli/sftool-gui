@@ -18,7 +18,7 @@ export enum OperationType {
   ERASE = 'erase',
   DOWNLOAD = 'download',
   VERIFY = 'verify',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
 }
 
 // 进度项状态枚举
@@ -26,7 +26,7 @@ export enum ProgressStatus {
   WAITING = 'waiting',
   ACTIVE = 'active',
   COMPLETED = 'completed',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 // 进度项接口

@@ -1,0 +1,12 @@
+node_modules
+pnpm-lock.yaml
+dist
+.github
+.vscode
+docs
+README.md
+scripts
+src-tauri
+src-tauri/target
+src-tauri/gen
+sftool-lib

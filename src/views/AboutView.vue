@@ -5,7 +5,7 @@
       <div class="p-6 text-center mb-6">
         <h1 class="text-3xl font-bold">{{ $t('navbar.about') }}</h1>
       </div>
-      
+
       <!-- 关于内容 -->
       <div class="p-6 space-y-6">
         <!-- 应用信息卡片 -->
@@ -14,27 +14,27 @@
             <span class="material-icons mr-2">apps</span>
             SFTool GUI
           </h2>
-          
+
           <!-- 版本号 -->
           <div class="flex items-center py-2 border-b border-base-300">
             <span class="material-icons text-info mr-2">new_releases</span>
             <span class="font-medium">{{ $t('about.version') }}:</span>
             <span class="ml-auto">v{{ appVersion }}</span>
           </div>
-          
+
           <!-- 开源协议 -->
           <div class="flex items-center py-2 border-b border-base-300">
             <span class="material-icons text-success mr-2">gavel</span>
             <span class="font-medium">{{ $t('about.license') }}:</span>
             <span class="ml-auto">Apache-2.0</span>
           </div>
-          
+
           <!-- 开源地址 -->
           <div class="flex items-center py-2 border-b border-base-300">
             <span class="material-icons text-secondary mr-2">code</span>
             <span class="font-medium">{{ $t('about.repository') }}:</span>
-            <a 
-              href="https://github.com/OpenSiFli/sftool-gui" 
+            <a
+              href="https://github.com/OpenSiFli/sftool-gui"
               target="_blank"
               class="ml-auto text-primary hover:underline flex items-center"
             >
@@ -46,7 +46,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 底部版权信息 - 移到页面最底部 -->
     <div class="w-full text-center mt-auto py-4">
       <div class="flex items-center justify-center">
@@ -58,20 +58,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { getVersion } from '@tauri-apps/api/app'
+import { onMounted, ref } from 'vue';
+import { getVersion } from '@tauri-apps/api/app';
 
 // About page component
-const appVersion = ref('0.0.1')
+const appVersion = ref('0.0.1');
 
 onMounted(async () => {
   try {
-    appVersion.value = await getVersion()
+    appVersion.value = await getVersion();
   } catch (error) {
-    console.error('Failed to get app version:', error)
-    appVersion.value = '0.0.1'
+    console.error('Failed to get app version:', error);
+    appVersion.value = '0.0.1';
   }
-})
+});
 </script>
 
 <style scoped>

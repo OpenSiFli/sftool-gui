@@ -38,12 +38,12 @@ export interface EraseRegionCommand {
 }
 
 export interface SftoolParamConfig {
-  chip: "SF32LB52" | "SF32LB55" | "SF32LB56" | "SF32LB58";
-  memory?: "nor" | "nand" | "sd";
+  chip: 'SF32LB52' | 'SF32LB55' | 'SF32LB56' | 'SF32LB58';
+  memory?: 'nor' | 'nand' | 'sd';
   port?: string;
   baud?: number;
-  before?: "no_reset" | "soft_reset" | "default_reset";
-  after?: "no_reset" | "soft_reset" | "default_reset";
+  before?: 'no_reset' | 'soft_reset' | 'default_reset';
+  after?: 'no_reset' | 'soft_reset' | 'default_reset';
   connect_attempts?: number;
   compat?: boolean;
   quiet?: boolean;

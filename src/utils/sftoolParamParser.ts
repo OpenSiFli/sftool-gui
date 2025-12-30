@@ -3,26 +3,25 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
-import type { 
-  SftoolParamConfig, 
-  ConfigValidationResult, 
-  SftoolParamParseResult 
-} from '../types/sftoolParam';
+import type { SftoolParamConfig, ConfigValidationResult, SftoolParamParseResult } from '../types/sftoolParam';
 import type { ChipModel } from '../config/chips';
 
 /**
  * 解析 sftool_param.json 文件（通过Rust后端）
  */
-export async function parseSftoolParamFile(filePath: string, currentChip?: ChipModel | null, currentMemory?: string | null): Promise<SftoolParamParseResult> {
+export async function parseSftoolParamFile(
+  filePath: string,
+  currentChip?: ChipModel | null,
+  currentMemory?: string | null
+): Promise<SftoolParamParseResult> {
   try {
     const result = await invoke<SftoolParamParseResult>('parse_sftool_param_file', {
       configFilePath: filePath,
       currentChip: currentChip?.id || null,
-      currentMemory: currentMemory || null
+      currentMemory: currentMemory || null,
     });
-    
+
     return result;
-    
   } catch (error) {
     throw new Error(`解析配置文件失败: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -43,7 +42,7 @@ export function validateConfigWithDevice(
     currentChip: currentChip?.id || '',
     currentMemory: currentMemory || '',
     configChip: config.chip,
-    configMemory: config.memory || 'nor'
+    configMemory: config.memory || 'nor',
   };
 
   // 检查芯片类型匹配
@@ -56,7 +55,7 @@ export function validateConfigWithDevice(
   // 检查存储类型匹配
   const configMemoryType = (config.memory || 'nor').toLowerCase();
   const currentMemoryType = (currentMemory || '').toLowerCase();
-  
+
   if (currentMemory && currentMemoryType !== configMemoryType) {
     result.memoryMismatch = true;
     result.isValid = false;
@@ -76,8 +75,7 @@ export function validateConfigWithDevice(
  * 检查文件是否是sftool参数配置文件
  */
 export function isSftoolParamFile(fileName: string): boolean {
-  return fileName.toLowerCase().endsWith('sftool_param.json') || 
-         fileName.toLowerCase() === 'sftool_param.json';
+  return fileName.toLowerCase().endsWith('sftool_param.json') || fileName.toLowerCase() === 'sftool_param.json';
 }
 
 /**
@@ -85,19 +83,19 @@ export function isSftoolParamFile(fileName: string): boolean {
  */
 export function formatValidationErrors(validation: ConfigValidationResult): string[] {
   const messages: string[] = [];
-  
+
   if (validation.chipMismatch) {
     messages.push(`芯片类型不匹配：当前 ${validation.currentChip}，配置 ${validation.configChip}`);
   }
-  
+
   if (validation.memoryMismatch) {
     messages.push(`存储器类型不匹配：当前 ${validation.currentMemory}，配置 ${validation.configMemory}`);
   }
-  
+
   validation.errors.forEach(error => {
     messages.push(error);
   });
-  
+
   return messages;
 }
 

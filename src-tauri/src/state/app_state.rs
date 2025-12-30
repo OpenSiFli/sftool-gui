@@ -9,7 +9,7 @@ pub struct AppState {
 
 impl Default for AppState {
     fn default() -> Self {
-        AppState { 
+        AppState {
             device_config: None,
             sftool: None,
         }

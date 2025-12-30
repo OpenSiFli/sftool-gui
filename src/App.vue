@@ -3,7 +3,7 @@
   <div v-if="isLogWindow" class="w-full h-screen overflow-hidden">
     <router-view />
   </div>
-  
+
   <!-- 主窗口布局 -->
   <div v-else class="flex w-full h-screen overflow-hidden">
     <Navbar />
@@ -23,7 +23,7 @@ import { useRoute } from 'vue-router';
 export default {
   components: {
     Navbar,
-    DeviceConnection
+    DeviceConnection,
   },
   setup() {
     const isNavbarCollapsed = ref(false);
@@ -37,7 +37,7 @@ export default {
     // 根据当前路由判断是否显示设备连接面板
     const isDisplatDeviceConnection = computed(() => {
       if (isLogWindow.value) return false;
-      
+
       switch (route.path) {
         case '/setting':
         case '/about':
@@ -73,14 +73,15 @@ export default {
     return {
       isNavbarCollapsed,
       isLogWindow,
-      isDisplatDeviceConnection
+      isDisplatDeviceConnection,
     };
-  }
+  },
 };
 </script>
 
 <style>
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;

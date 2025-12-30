@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { load } from "@tauri-apps/plugin-store";
+import { load } from '@tauri-apps/plugin-store';
 import type { ChipModel } from '../config/chips';
 import { CHIP_MODELS } from '../config/chips';
 
@@ -56,17 +56,19 @@ export const useDeviceStore = defineStore('device', {
 
     // 芯片与存储器映射
     chipMemoryTypes: {
-      'SF32LB52': ['NOR', 'NAND', 'SD'],
-      'SF32LB55': ['NOR', 'SD'],
-      'default': ['NOR']
-    } as Record<string, string[]>
+      SF32LB52: ['NOR', 'NAND', 'SD'],
+      SF32LB55: ['NOR', 'SD'],
+      default: ['NOR'],
+    } as Record<string, string[]>,
   }),
 
   getters: {
     // 获取当前芯片可用的存储器类型
     availableMemoryTypes(): string[] {
       if (!this.selectedChip) return [];
-      return this.chipMemoryTypes[this.selectedChip.id as keyof typeof this.chipMemoryTypes] || this.chipMemoryTypes.default;
+      return (
+        this.chipMemoryTypes[this.selectedChip.id as keyof typeof this.chipMemoryTypes] || this.chipMemoryTypes.default
+      );
     },
 
     // 连接验证
@@ -85,9 +87,7 @@ export const useDeviceStore = defineStore('device', {
       if (!this.chipSearchInput) return CHIP_MODELS;
 
       const search = this.chipSearchInput.toLowerCase();
-      return CHIP_MODELS.filter(chip =>
-        chip.name.toLowerCase().includes(search)
-      );
+      return CHIP_MODELS.filter(chip => chip.name.toLowerCase().includes(search));
     },
 
     // 过滤的串口列表
@@ -95,11 +95,10 @@ export const useDeviceStore = defineStore('device', {
       if (!this.portSearchInput) return this.availablePorts;
 
       const search = this.portSearchInput.toLowerCase();
-      return this.availablePorts.filter(port =>
-        port.name.toLowerCase().includes(search) ||
-        port.port_type.toLowerCase().includes(search)
+      return this.availablePorts.filter(
+        port => port.name.toLowerCase().includes(search) || port.port_type.toLowerCase().includes(search)
       );
-    }
+    },
   },
 
   actions: {
@@ -343,6 +342,6 @@ export const useDeviceStore = defineStore('device', {
       this.isConnecting = false;
 
       await this.saveToStorage();
-    }
-  }
+    },
+  },
 });

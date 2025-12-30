@@ -1,11 +1,6 @@
 import { useLogStore } from '../stores/logStore';
 import { MessageParser } from './messageParser';
-import { 
-  OperationType, 
-  ProgressStatus,
-  type ProgressEvent, 
-  type ProgressItem
-} from '../types/progress';
+import { OperationType, ProgressStatus, type ProgressEvent, type ProgressItem } from '../types/progress';
 
 // 导入 writeFlashStore 类型
 import type { useWriteFlashStore } from '../stores/writeFlashStore';
@@ -17,11 +12,11 @@ import type { useWriteFlashStore } from '../stores/writeFlashStore';
 export class ProgressHandler {
   private logStore = useLogStore();
   private store: ReturnType<typeof useWriteFlashStore>;
-  
+
   constructor(store: ReturnType<typeof useWriteFlashStore>) {
     this.store = store;
   }
-  
+
   /**
    * 处理进度事件
    */
@@ -48,23 +43,23 @@ export class ProgressHandler {
   private handleStartEvent(event: ProgressEvent): void {
     const { id, step, message, current, total } = event;
     const now = Date.now();
-    
+
     const parsed = MessageParser.parseMessage(message, this.store.selectedFiles);
     let fileName = parsed.fileName;
-    
+
     // 如果没有解析出文件名，使用默认逻辑
     if (!fileName && this.store.selectedFiles.length > 0) {
       fileName = this.store.selectedFiles[0].name;
     }
-    
+
     // 更新当前操作状态
     this.updateCurrentOperation(parsed.operationType, fileName || undefined);
-    
+
     // 更新总进度状态（仅对下载操作）
     if (parsed.operationType === OperationType.DOWNLOAD && fileName) {
       this.updateTotalProgress(fileName, total);
     }
-    
+
     // 创建进度项
     this.createProgressItem(id, {
       step,
@@ -74,13 +69,14 @@ export class ProgressHandler {
       startTime: now,
       fileName: fileName || `操作 ${id}`,
       address: parsed.address || 0,
-      operationType: parsed.operationType
+      operationType: parsed.operationType,
     });
-    
+
     // 记录日志
-    const logFileName = parsed.operationType === OperationType.DOWNLOAD 
-      ? (fileName || '文件') 
-      : MessageParser.getOperationName(parsed.operationType);
+    const logFileName =
+      parsed.operationType === OperationType.DOWNLOAD
+        ? fileName || '文件'
+        : MessageParser.getOperationName(parsed.operationType);
     this.logStore.addMessage(`[${logFileName}] ${message}`);
   }
 
@@ -103,27 +99,27 @@ export class ProgressHandler {
     const { id, current } = event;
     const now = Date.now();
     const progressItem = this.store.progressMap.get(id);
-    
+
     if (!progressItem || progressItem.current === undefined) return;
-    
+
     // 更新进度
     progressItem.current += current || 0;
     this.store.updateProgress({ current: progressItem.current });
-    
+
     // 计算百分比
     if (progressItem.total && progressItem.total > 0) {
       progressItem.percentage = Math.round((progressItem.current / progressItem.total) * 100);
       this.store.updateProgress({ percentage: progressItem.percentage });
     }
-    
+
     // 计算速度和ETA
     this.calculateSpeedAndETA(progressItem, now);
-    
+
     // 更新状态
     if (progressItem.percentage >= 100) {
       progressItem.status = ProgressStatus.COMPLETED;
     }
-    
+
     // 记录详细日志
     this.logProgressDetails(progressItem);
   }
@@ -134,12 +130,12 @@ export class ProgressHandler {
   private handleFinishEvent(event: ProgressEvent): void {
     const { id, message } = event;
     const finishedItem = this.store.progressMap.get(id);
-    
+
     if (!finishedItem) return;
-    
+
     finishedItem.status = ProgressStatus.COMPLETED;
     finishedItem.percentage = 100;
-    
+
     if (finishedItem.operationType === OperationType.DOWNLOAD) {
       this.handleDownloadComplete(finishedItem, message);
     } else {
@@ -170,7 +166,7 @@ export class ProgressHandler {
       total: total || 0,
       percentage: 0,
       speed: 0,
-      eta: 0
+      eta: 0,
     });
   }
 
@@ -190,9 +186,9 @@ export class ProgressHandler {
       fileName: data.fileName || '',
       address: data.address || 0,
       status: ProgressStatus.ACTIVE,
-      operationType: data.operationType
+      operationType: data.operationType,
     };
-    
+
     this.store.updateProgressMap(id, item);
   }
 
@@ -204,7 +200,7 @@ export class ProgressHandler {
       const elapsed = (now - progressItem.startTime) / 1000; // 秒
       progressItem.speed = progressItem.current / elapsed; // bytes/s
       this.store.updateProgress({ speed: progressItem.speed });
-      
+
       if (progressItem.total && progressItem.speed > 0) {
         const remaining = progressItem.total - progressItem.current;
         progressItem.eta = remaining / progressItem.speed; // 剩余秒数
@@ -218,11 +214,11 @@ export class ProgressHandler {
    */
   private logProgressDetails(progressItem: ProgressItem): void {
     if (!progressItem.total) return;
-    
+
     const percentage = progressItem.percentage;
     const speedStr = progressItem.speed ? ` @ ${this.formatSpeed(progressItem.speed)}` : '';
     const etaStr = progressItem.eta && progressItem.eta > 0 ? ` (剩余 ${this.formatTime(progressItem.eta)})` : '';
-    
+
     this.logStore.addMessage(
       `[${progressItem.fileName}] 进度: ${percentage}% (${this.formatBytes(progressItem.current)}/${this.formatBytes(progressItem.total)})${speedStr}${etaStr}`
     );
@@ -241,21 +237,21 @@ export class ProgressHandler {
 
     // 只有下载操作完成时才标记文件为完成
     this.store.addCompletedFile(finishedItem.fileName);
-    
+
     // 更新完成计数
     const completedCount = this.store.completedFiles.size;
-    this.store.updateProgress({ 
+    this.store.updateProgress({
       completedCount,
-      percentage: 100 
+      percentage: 100,
     });
-    
+
     // 清除当前烧录文件状态
     if (this.store.currentFlashingFile === finishedItem.fileName) {
       this.store.setCurrentFlashingFile('');
     }
-    
+
     this.logStore.addMessage(`[${finishedItem.fileName}] ${message}`, true);
-    
+
     // 检查是否所有文件都完成了
     const totalCount = this.store.totalProgress.totalCount || this.store.selectedFiles.length;
     if (totalCount > 0 && this.store.completedFiles.size >= totalCount) {
@@ -272,7 +268,7 @@ export class ProgressHandler {
   private handleOtherOperationComplete(finishedItem: ProgressItem, message: string): void {
     const operationName = MessageParser.getOperationName(finishedItem.operationType || OperationType.UNKNOWN);
     this.logStore.addMessage(`[${operationName}] ${message}`, true);
-    
+
     // 清除当前操作状态（对于非下载操作）
     this.store.setCurrentOperation('');
   }

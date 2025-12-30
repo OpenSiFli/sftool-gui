@@ -1,5 +1,5 @@
 use crate::types::TauriProgressEvent;
-use sftool_lib::progress::{ProgressCallback, ProgressInfo, ProgressId};
+use sftool_lib::progress::{ProgressCallback, ProgressId, ProgressInfo};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::{AppHandle, Emitter};
 
@@ -28,7 +28,7 @@ impl ProgressCallback for TauriProgressCallback {
     fn start(&self, info: ProgressInfo) -> ProgressId {
         let id = self.id_counter.fetch_add(1, Ordering::SeqCst);
         let progress_id = ProgressId(id);
-        
+
         let (total, current) = match info.progress_type {
             sftool_lib::progress::ProgressType::Spinner => (None, None),
             sftool_lib::progress::ProgressType::Bar { total } => (Some(total), info.current),

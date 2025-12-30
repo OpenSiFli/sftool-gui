@@ -1,4 +1,4 @@
-use crate::types::{SftoolParamConfig, SftoolParamParseResult, ExtractedFile};
+use crate::types::{ExtractedFile, SftoolParamConfig, SftoolParamParseResult};
 use crate::utils::validate_config_with_device;
 use std::path::Path;
 
@@ -17,7 +17,9 @@ pub async fn parse_sftool_param_file(
         .map_err(|e| format!("解析配置文件 JSON 失败: {}", e))?;
 
     // 验证基本结构
-    let write_flash = config.write_flash.as_ref()
+    let write_flash = config
+        .write_flash
+        .as_ref()
         .ok_or("配置文件缺少 write_flash 字段")?;
 
     if write_flash.files.is_empty() {
@@ -31,7 +33,7 @@ pub async fn parse_sftool_param_file(
 
     // 提取和验证文件
     let mut extracted_files = Vec::new();
-    
+
     for file_config in &write_flash.files {
         // 解析文件路径（可能是相对路径）
         let file_path = if Path::new(&file_config.path).is_absolute() {
@@ -55,7 +57,8 @@ pub async fn parse_sftool_param_file(
             .to_string();
 
         // 处理地址
-        let address = file_config.address
+        let address = file_config
+            .address
             .clone()
             .unwrap_or_else(|| "0x10000000".to_string());
 
@@ -91,7 +94,8 @@ pub async fn validate_firmware_file(file_path: String) -> Result<bool, String> {
             if size == 0 {
                 return Err("文件为空".to_string());
             }
-            if size > 100 * 1024 * 1024 {  // 100MB 限制
+            if size > 100 * 1024 * 1024 {
+                // 100MB 限制
                 return Err("文件过大，可能不是有效的固件文件".to_string());
             }
         }

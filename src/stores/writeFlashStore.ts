@@ -1,11 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { load } from '@tauri-apps/plugin-store';
-import type {
-  FlashFile,
-  ProgressItem,
-  TotalProgress
-} from '../types/progress';
+import type { FlashFile, ProgressItem, TotalProgress } from '../types/progress';
 
 // 存储实例
 let store: any = null;
@@ -38,14 +34,14 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     eta: 0,
     currentFileName: '',
     completedCount: 0,
-    totalCount: 0
+    totalCount: 0,
   });
 
   // 计算属性
   const canStartFlashing = computed(() => {
     if (selectedFiles.value.length === 0) return false;
 
-    return selectedFiles.value.every((file) => {
+    return selectedFiles.value.every(file => {
       if (isAutoAddressFile(file.name)) return true;
       return file.address && !file.addressError;
     });
@@ -150,7 +146,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
       eta: 0,
       currentFileName: '',
       completedCount: 0,
-      totalCount: 0
+      totalCount: 0,
     };
   };
 
@@ -188,7 +184,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
         path: file.path,
         address: file.address,
         addressError: file.addressError,
-        size: file.size
+        size: file.size,
       }));
       await storeInstance.set('selectedFiles', { value: filesToSave });
       await storeInstance.save();
@@ -224,7 +220,7 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
                 address: fileData.address || (isAutoAddressFile(fileData.name) ? '' : '0x10000000'),
                 addressError: fileData.addressError || '',
                 size: fileData.size || 0,
-                collapsed: true // 默认为折叠状态
+                collapsed: true, // 默认为折叠状态
               });
             }
           } catch (error) {
@@ -297,6 +293,6 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
     // 持久化存储
     saveFilesToStorage,
     loadFilesFromStorage,
-    clearStorage
+    clearStorage,
   };
 });

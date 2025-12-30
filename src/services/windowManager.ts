@@ -7,7 +7,7 @@ interface WindowState {
 
 // 全局窗口状态
 export const windowState = reactive<WindowState>({
-  isLogWindowOpen: false
+  isLogWindowOpen: false,
 });
 
 // 窗口管理服务
@@ -15,7 +15,7 @@ export class WindowManager {
   static async openLogWindow() {
     try {
       const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
-      
+
       // 检查窗口是否已经存在
       const existingWindow = await WebviewWindow.getByLabel('log-window');
       if (existingWindow) {
@@ -58,7 +58,7 @@ export class WindowManager {
       });
 
       windowState.isLogWindowOpen = true;
-      
+
       return logWindow;
     } catch (error) {
       console.error(t('errors.openLogWindowFailed') || 'Failed to open log window:', error);

@@ -1,4 +1,4 @@
-use crate::types::{SftoolParamConfig, ConfigValidationResult};
+use crate::types::{ConfigValidationResult, SftoolParamConfig};
 
 /// 验证配置与当前设备设置的兼容性
 pub fn validate_config_with_device(
@@ -24,9 +24,8 @@ pub fn validate_config_with_device(
             result.chip_mismatch = Some(true);
             result.is_valid = false;
             result.errors.push(format!(
-                "芯片类型不匹配: 当前设备 {}，配置文件 {}", 
-                current, 
-                config.chip
+                "芯片类型不匹配: 当前设备 {}，配置文件 {}",
+                current, config.chip
             ));
         }
     }
@@ -38,9 +37,8 @@ pub fn validate_config_with_device(
             result.memory_mismatch = Some(true);
             result.is_valid = false;
             result.errors.push(format!(
-                "存储器类型不匹配: 当前设备 {}，配置文件 {}", 
-                current, 
-                config_memory_type
+                "存储器类型不匹配: 当前设备 {}，配置文件 {}",
+                current, config_memory_type
             ));
         }
     }
@@ -48,11 +46,15 @@ pub fn validate_config_with_device(
     // 检查write_flash命令
     if config.write_flash.is_none() {
         result.is_valid = false;
-        result.errors.push("配置文件中没有找到有效的write_flash命令".to_string());
+        result
+            .errors
+            .push("配置文件中没有找到有效的write_flash命令".to_string());
     } else if let Some(ref write_flash) = config.write_flash {
         if write_flash.files.is_empty() {
             result.is_valid = false;
-            result.errors.push("配置文件中write_flash命令的文件列表为空".to_string());
+            result
+                .errors
+                .push("配置文件中write_flash命令的文件列表为空".to_string());
         }
     }
 

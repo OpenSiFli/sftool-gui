@@ -1,76 +1,82 @@
 <template>
   <div class="fixed z-50 log-floating-container" :class="{ 'has-device-panel': hasDevicePanel }">
     <!-- 优化的日志预览卡片 -->
-    <div 
+    <div
       class="log-card bg-gradient-to-br from-base-100 to-base-200 rounded-2xl shadow-2xl border border-base-300/50 backdrop-blur-sm cursor-pointer hover:shadow-3xl transition-all duration-300 hover:scale-105 group overflow-hidden"
       @click="openLogWindow"
     >
       <!-- 顶部装饰条 -->
-      <div 
-        class="h-1 w-full transition-all duration-300"
-        :class="getTopBarClass()"
-      ></div>
-      
+      <div class="h-1 w-full transition-all duration-300" :class="getTopBarClass()"></div>
+
       <div class="px-4 py-3 lg:px-5 lg:py-4">
         <div class="flex items-center gap-3 lg:gap-4">
           <!-- 优化的状态指示器 -->
           <div class="flex-shrink-0">
-            <div 
+            <div
               class="w-3 h-3 lg:w-4 lg:h-4 rounded-full shadow-lg transition-all duration-300"
               :class="getStatusClass()"
             ></div>
           </div>
-          
+
           <!-- 日志信息区域 -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-              <span class="text-xs lg:text-sm font-semibold text-base-content/90 tracking-wide">
-                系统日志
-              </span>
+              <span class="text-xs lg:text-sm font-semibold text-base-content/90 tracking-wide"> 系统日志 </span>
               <!-- 消息数量徽章 -->
-              <div 
+              <div
                 class="px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full text-xs font-medium transition-all duration-300"
-                :class="logStore.messages.length > 0 
-                  ? 'bg-primary/20 text-primary border border-primary/30' 
-                  : 'bg-base-300/50 text-base-content/60'"
+                :class="
+                  logStore.messages.length > 0
+                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    : 'bg-base-300/50 text-base-content/60'
+                "
               >
                 {{ logStore.messages.length }}
               </div>
             </div>
-            
+
             <!-- 最新消息预览 -->
             <div class="text-xs leading-relaxed" v-if="logStore.latestMessage">
               <div class="text-base-content/70 line-clamp-1 lg:line-clamp-2">
                 {{ formatMessage(logStore.latestMessage) }}
               </div>
             </div>
-            <div class="text-xs text-base-content/50 italic" v-else>
-              等待日志消息...
-            </div>
+            <div class="text-xs text-base-content/50 italic" v-else>等待日志消息...</div>
           </div>
-          
+
           <!-- 打开图标 -->
           <div class="flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
-            <div class="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-300">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 lg:h-4 lg:w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            <div
+              class="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-300"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-3 w-3 lg:h-4 lg:w-4 text-primary"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
               </svg>
             </div>
           </div>
         </div>
-        
+
         <!-- 状态文本 - 在小屏幕上隐藏或简化 -->
         <div class="mt-2 pt-2 lg:mt-3 lg:pt-3 border-t border-base-300/30 hidden lg:block">
           <div class="flex items-center justify-between">
             <span class="text-xs font-medium" :class="getStatusTextClass()">
               {{ getStatusText() }}
             </span>
-            <span class="text-xs text-base-content/40">
-              点击打开窗口
-            </span>
+            <span class="text-xs text-base-content/40"> 点击打开窗口 </span>
           </div>
         </div>
-        
+
         <!-- 小屏幕状态指示 -->
         <div class="mt-2 lg:hidden">
           <div class="flex items-center justify-between">
@@ -219,7 +225,7 @@ const openLogWindow = async () => {
     bottom: 1rem;
     right: 1rem;
   }
-  
+
   .log-floating-container.has-device-panel {
     right: 300px;
   }
@@ -231,13 +237,13 @@ const openLogWindow = async () => {
     bottom: 0.75rem;
     right: 0.75rem;
   }
-  
+
   /* 小屏幕时可能设备面板被隐藏，或者使用抽屉式布局 */
   .log-floating-container.has-device-panel {
     right: 0.75rem; /* 恢复右下角 */
-    bottom: 4rem;   /* 但给底部更多空间 */
+    bottom: 4rem; /* 但给底部更多空间 */
   }
-  
+
   .log-card {
     max-width: 200px;
   }
@@ -249,7 +255,7 @@ const openLogWindow = async () => {
     bottom: 0.5rem;
     right: 0.5rem;
   }
-  
+
   .log-card {
     max-width: 180px;
   }
@@ -261,7 +267,7 @@ const openLogWindow = async () => {
     bottom: 4rem; /* 给底部更多空间 */
     right: 0.5rem;
   }
-  
+
   .log-card {
     max-width: 160px;
   }
@@ -307,7 +313,7 @@ const openLogWindow = async () => {
 
 /* 增强阴影效果 */
 .shadow-3xl {
-  box-shadow: 
+  box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.1);
 }
@@ -328,7 +334,7 @@ const openLogWindow = async () => {
 /* 深色主题优化 */
 @media (prefers-color-scheme: dark) {
   .shadow-3xl {
-    box-shadow: 
+    box-shadow:
       0 25px 50px -12px rgba(0, 0, 0, 0.4),
       0 0 0 1px rgba(255, 255, 255, 0.05);
   }
