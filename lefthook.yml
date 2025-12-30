@@ -1,0 +1,9 @@
+pre-commit:
+  parallel: true
+  commands:
+    frontend-format:
+      run: pnpm exec prettier --write .
+      stage_fixed: true
+    rust-format:
+      run: cargo fmt --manifest-path src-tauri/Cargo.toml
+      stage_fixed: true
