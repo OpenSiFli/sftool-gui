@@ -2,7 +2,7 @@ pre-commit:
   parallel: true
   commands:
     frontend-format:
-      run: pnpm exec prettier --write .
+      run: pnpm exec prettier --write "src/**/*"
       stage_fixed: true
     rust-format:
       run: cargo fmt --manifest-path src-tauri/Cargo.toml
