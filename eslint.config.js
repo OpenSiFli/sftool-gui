@@ -40,6 +40,7 @@ export default [
     },
     rules: {
       'no-unused-vars': 'off',
+      'vue/attributes-order': 'off',
       'vue/multi-word-component-names': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',

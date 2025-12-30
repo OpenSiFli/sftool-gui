@@ -92,7 +92,7 @@ export class WindowManager {
       const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
       const logWindow = await WebviewWindow.getByLabel('log-window');
       return logWindow !== null;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

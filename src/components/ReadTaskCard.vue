@@ -114,8 +114,8 @@
                 >
                 <div class="flex-1">
                   <input
+                    v-model="addressModel"
                     type="text"
-                    v-model="task.address"
                     class="input input-xs w-full text-xs font-mono bg-base-100 border-base-300 focus:border-primary focus:bg-base-100 transition-all duration-200 shadow-sm"
                     :class="{ 'border-error bg-error/5': task.addressError }"
                     :placeholder="$t('readFlash.addressPlaceholder')"
@@ -150,8 +150,8 @@
                 >
                 <div class="flex-1">
                   <input
+                    v-model="sizeModel"
                     type="text"
-                    v-model="task.size"
                     class="input input-xs w-full text-xs font-mono bg-base-100 border-base-300 focus:border-primary focus:bg-base-100 transition-all duration-200 shadow-sm"
                     :class="{ 'border-error bg-error/5': task.sizeError }"
                     :placeholder="$t('readFlash.sizePlaceholder')"
@@ -187,6 +187,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useReadFlashStore, type ReadFlashTask } from '../stores/readFlashStore';
 import { useI18n } from 'vue-i18n';
 import { useLogStore } from '../stores/logStore';
@@ -199,6 +200,20 @@ const props = defineProps<{
 const store = useReadFlashStore();
 const logStore = useLogStore();
 const { t } = useI18n();
+
+const addressModel = computed({
+  get: () => props.task.address,
+  set: (value: string) => {
+    store.updateTaskAddress(props.index, value);
+  },
+});
+
+const sizeModel = computed({
+  get: () => props.task.size,
+  set: (value: string) => {
+    store.updateTaskSize(props.index, value);
+  },
+});
 
 const setCollapsed = (collapsed: boolean) => {
   store.setTaskCollapsed(props.index, collapsed);

@@ -116,8 +116,8 @@
                 >
                 <div class="flex-1">
                   <input
+                    v-model="addressModel"
                     type="text"
-                    v-model="file.address"
                     class="input input-xs w-full text-xs font-mono bg-base-100 border-base-300 focus:border-primary focus:bg-base-100 transition-all duration-200 shadow-sm"
                     :class="{ 'border-error bg-error/5': file.addressError }"
                     :placeholder="$t('writeFlash.addressPlaceholder')"
@@ -170,6 +170,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useWriteFlashStore } from '../stores/writeFlashStore';
 import { useI18n } from 'vue-i18n';
 import type { FlashFile } from '../types/progress';
@@ -181,6 +182,13 @@ const props = defineProps<{
 
 const store = useWriteFlashStore();
 const { t } = useI18n();
+
+const addressModel = computed({
+  get: () => props.file.address,
+  set: (value: string) => {
+    store.updateFileAddress(props.index, value);
+  },
+});
 
 const setCollapsed = (collapsed: boolean) => {
   store.setFileCollapsed(props.index, collapsed);

@@ -4,7 +4,7 @@ import { i18n } from '../i18n';
 export const t = (key: string, params: Record<string, unknown> = {}) => {
   try {
     return i18n.global.t(key, params) as string;
-  } catch (e) {
+  } catch (_error) {
     return key;
   }
 };

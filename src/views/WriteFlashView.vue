@@ -541,7 +541,7 @@ const handleTauriFileDrop = async (payload: any) => {
       continue;
     }
 
-    const fileName = path.split(/[\/\\]/).pop() || path;
+    const fileName = path.split(/[\\/]/).pop() || path;
     logStore.addMessage(t('writeFlash.log.processingFile', { name: fileName, path }));
 
     if (!writeFlashStore.isSupportedFile(fileName)) {
