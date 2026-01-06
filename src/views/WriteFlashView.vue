@@ -552,6 +552,42 @@ const handleTauriFileDrop = async (payload: any) => {
       continue;
     }
 
+    // 如果是归档文件（zip/rar/7z/tar/tar.gz/tar.xz等），调用后端进行解压并处理提取出的文件
+    if (/\.(zip|rar|7z|tar|tar\.gz|tgz|tar\.xz|tar\.bz2|tbz2?|gz|xz|bz2)$/i.test(fileName)) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const extracted: Array<{ path: string; name: string; address: string; size: number }> = await invoke(
+          'extract_archive',
+          { archivePath: path }
+        );
+
+        logStore.addMessage(t('writeFlash.log.extractedArchive', { name: fileName, count: extracted.length }));
+
+        // 首先查找是否包含 sftool_param.json
+        const sftoolEntry = extracted.find(e => isSftoolParamFile(e.name));
+        if (sftoolEntry) {
+          try {
+            const cfgFiles = await handleSftoolConfigFile(sftoolEntry.path);
+            if (cfgFiles.length > 0) {
+              droppedFiles.push(...cfgFiles);
+            } else {
+              logStore.addMessage(t('writeFlash.sftoolConfig.parseFailed'), true);
+            }
+          } catch (error) {
+            logStore.addMessage(`${t('writeFlash.sftoolConfig.parseFailed')}: ${error}`, true);
+          }
+        } else {
+          // 未找到配置文件，提示这不是固件压缩包
+          logStore.addMessage(t('writeFlash.log.notFirmwareArchive', { name: fileName }), true);
+          alert(t('writeFlash.log.notFirmwareArchive', { name: fileName }));
+        }
+      } catch (error) {
+        logStore.addMessage(`${t('writeFlash.status.failed')}: 解压归档失败 - ${fileName}: ${error}`, true);
+      }
+
+      continue;
+    }
+
     // 检查是否是sftool配置文件
     if (isSftoolParamFile(fileName)) {
       try {
@@ -616,7 +652,23 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
       filters: [
         {
           name: 'Firmware Files',
-          extensions: ['bin', 'hex', 'elf', 'axf', 'json'],
+          extensions: [
+            'bin',
+            'hex',
+            'elf',
+            'axf',
+            'json',
+            'zip',
+            'rar',
+            '7z',
+            'tar',
+            'gz',
+            'xz',
+            'bz2',
+            'tgz',
+            'tbz',
+            'tbz2',
+          ],
         },
       ],
     });
@@ -635,6 +687,41 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
         }
 
         const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
+
+        // 如果是归档文件（zip/rar/7z/tar/tar.gz/tar.xz等），调用后端进行解压并处理提取出的文件
+        if (/\.(zip|rar|7z|tar|tar\.gz|tgz|tar\.xz|tar\.bz2|tbz2?|gz|xz|bz2)$/i.test(fileName)) {
+          try {
+            const { invoke } = await import('@tauri-apps/api/core');
+            const extracted: Array<{ path: string; name: string; address: string; size: number }> = await invoke(
+              'extract_archive',
+              { archivePath: filePath }
+            );
+
+            logStore.addMessage(t('writeFlash.log.extractedArchive', { name: fileName, count: extracted.length }));
+
+            // 首先查找是否包含 sftool_param.json
+            const sftoolEntry = extracted.find(e => isSftoolParamFile(e.name));
+            if (sftoolEntry) {
+              try {
+                const cfgFiles = await handleSftoolConfigFile(sftoolEntry.path);
+                if (cfgFiles.length > 0) {
+                  files.push(...cfgFiles);
+                } else {
+                  logStore.addMessage(t('writeFlash.sftoolConfig.parseFailed'), true);
+                }
+              } catch (error) {
+                logStore.addMessage(`${t('writeFlash.sftoolConfig.parseFailed')}: ${error}`, true);
+              }
+            } else {
+              // 未找到配置文件，提示这不是固件压缩包
+              logStore.addMessage(t('writeFlash.log.notFirmwareArchive', { name: fileName }), true);
+              alert(t('writeFlash.log.notFirmwareArchive', { name: fileName }));
+            }
+          } catch (error) {
+            logStore.addMessage(`${t('writeFlash.status.failed')}: 解压归档失败 - ${fileName}: ${error}`, true);
+          }
+          continue;
+        }
 
         // 检查是否是sftool配置文件
         if (isSftoolParamFile(fileName)) {

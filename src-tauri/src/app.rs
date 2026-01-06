@@ -55,6 +55,7 @@ pub fn run() {
             disconnect_device,
             parse_sftool_param_file,
             validate_firmware_file,
+            extract_archive,
             write_flash,
             read_flash,
             erase_flash,

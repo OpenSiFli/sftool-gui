@@ -61,13 +61,15 @@ export const useWriteFlashStore = defineStore('writeFlash', () => {
   const isSupportedFile = (fileName: string): boolean => {
     const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
     const SUPPORTED_EXTENSIONS = ['.bin', '.hex', '.elf', '.axf'];
+    const ARCHIVE_EXTENSIONS = ['.zip', '.rar', '.7z', '.tar', '.gz', '.xz'];
 
     // 检查是否是sftool配置文件
     if (fileName.toLowerCase().includes('sftool_param.json')) {
       return true;
     }
 
-    return SUPPORTED_EXTENSIONS.includes(extension);
+    // 支持固件文件和归档文件以及 sftool 配置文件
+    return SUPPORTED_EXTENSIONS.includes(extension) || ARCHIVE_EXTENSIONS.includes(extension);
   };
 
   // Actions

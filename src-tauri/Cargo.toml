@@ -32,3 +32,5 @@ tauri-plugin-fs = "2"
 tauri-plugin-process = "2"
 reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"] }
 tempfile = "3.17.1"
+unarc-rs = "0.6.0"
+walkdir = "2"

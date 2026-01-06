@@ -115,6 +115,8 @@
       "detectedPaths": "解析结果: 检测到 {count} 个文件路径",
       "skippingInvalidPath": "跳过无效路径: {path}",
       "processingFile": "处理文件: {name} (路径: {path})",
+      "extractedArchive": "从归档 {name} 提取了 {count} 个文件",
+      "notFirmwareArchive": "归档 {name} 中未找到 sftool_param.json，非固件压缩包或不包含配置文件",
       "cannotAddWhileFlashing": "烧录进行中，无法添加文件",
       "cannotParseDrop": "错误: 无法从拖拽事件中解析出文件路径",
       "payloadContent": "实际payload内容: {payload}",
