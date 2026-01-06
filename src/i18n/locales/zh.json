@@ -6,6 +6,7 @@
     "flash": "烧录固件",
     "read_flash": "读取固件",
     "erase_flash": "擦除Flash",
+    "stub_config": "Stub配置",
     "setting": "设置",
     "about": "关于",
     "collapse_menu": "收起菜单",
@@ -214,6 +215,79 @@
     },
     "completedMessage": "Flash擦除成功"
   },
+  "stubConfig": {
+    "title": "Stub 配置",
+    "enable": "启用",
+    "import": "导入",
+    "export": "导出",
+    "reset": "重置",
+    "resetSuccess": "配置已重置",
+    "exportSuccess": "配置已导出",
+    "exportFailed": "配置导出失败",
+    "importSuccess": "配置已导入",
+    "importFailed": "配置导入失败",
+    "tabs": {
+      "storage": "存储配置",
+      "hardware": "硬件配置"
+    },
+    "flash": {
+      "title": "FLASH 设备",
+      "addDevice": "添加设备",
+      "device": "设备",
+      "media": "介质类型",
+      "driverIndex": "驱动索引",
+      "capacity": "容量",
+      "capacityHint": "支持数字、十六进制 (0x...) 或带单位 (16M)",
+      "manufacturerId": "制造商 ID",
+      "deviceType": "设备类型",
+      "densityId": "容量 ID",
+      "flags": "标志",
+      "noDevices": "尚未添加 FLASH 设备",
+      "invalidCapacity": "无效的容量格式",
+      "invalidHexValue": "无效的十六进制值 (0x00-0xFF)",
+      "maxReached": "已达到最大设备数量 (12)"
+    },
+    "sdio": {
+      "title": "SDIO 配置",
+      "baseAddress": "基地址",
+      "baseAddressHint1": "52默认为0x62000000;",
+      "baseAddressHint2": "55默认为0x68000000;",
+      "baseAddressHint3": "56默认为0xA0000000;",
+      "baseAddressHint4": "58默认为0x68000000;",
+      "pinmux": "PIN 复用选项",
+      "pinmuxOption1": "55x SD_CLK用PA34，58x _CLK用PA09",
+      "pinmuxOption2": "55x SD_CLK用PA60，58x _CLK用PA39",
+      "initSequence": "初始化优先级",
+      "emmcThenSd": "先初始化eMMC，再初始化SD卡",
+      "sdThenEmmc": "先初始化SD卡，再初始化eMMC",
+      "conflictDetected": "检测到配置冲突",
+      "disabled": "请启用 SDIO 配置以开始设置",
+      "invalidAddress": "无效的地址格式",
+      "addressTooLarge": "地址值过大"
+    },
+    "pin": {
+      "title": "GPIO 默认状态",
+      "pinNumber": "引脚号",
+      "addPin": "添加 PIN",
+      "disabled": "请启用 GPIO 配置以开始设置",
+      "maxReached": "已达到最大配置数量 (12)"
+    },
+    "pmic": {
+      "title": "电源管理 (PMIC)",
+      "sclPort": "I²C SCL 端口",
+      "sdaPort": "I²C SDA 端口",
+      "channels": "电源通道",
+      "disabled": "请启用 PMIC 配置以开始设置"
+    },
+    "stubInfo": {
+      "title": "Stub 机制说明",
+      "body1": "sftool 在烧录过程中会先将一段 Stub 程序下载至设备 RAM，随后由上位机与该 Stub 进行交互，以完成 Flash 的读取、擦除与写入操作。",
+      "body2": "Stub 中仅内置有限数量的 Flash 驱动。当所使用的 Flash 颗粒未包含在内置驱动库中时，必须手动注入外部 Flash 驱动才能正常工作。",
+      "body3": "建议仅在明确了解 Flash 颗粒型号与参数的情况下修改相关配置。",
+      "body4": "对于首次使用或不确定的场景，推荐优先使用内置 Flash 驱动配置。",
+      "acknowledge": "我知道了"
+    }
+  },
   "logWindow": {
     "autoScroll": "自动滚动",
     "showAll": "显示全部",
@@ -266,7 +340,13 @@
     "moreMessages": "还有 {count} 条消息...",
     "pleaseCompleteConfig": "请完成所有必要的设备配置",
     "connectFailedMessage": "连接设备失败，请检查设备连接后重试",
-    "connectError": "连接设备时出错"
+    "connectError": "连接设备时出错",
+    "stubConfig": {
+      "title": "Stub配置",
+      "apply": "应用自定义配置",
+      "invalidConfig": "配置包含错误，无法启用",
+      "configHasErrors": "配置包含错误，请前往Stub配置页面检查并修正"
+    }
   },
   "errors": {
     "getPortsFailed": "获取串口列表失败:",

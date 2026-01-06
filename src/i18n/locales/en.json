@@ -6,6 +6,7 @@
     "flash": "Flash",
     "read_flash": "Read Firmware",
     "erase_flash": "Erase Flash",
+    "stub_config": "Stub Config",
     "setting": "Settings",
     "about": "About",
     "collapse_menu": "Collapse menu",
@@ -214,6 +215,79 @@
     },
     "completedMessage": "Flash erased successfully"
   },
+  "stubConfig": {
+    "title": "Stub Configuration",
+    "enable": "Enable",
+    "import": "Import",
+    "export": "Export",
+    "reset": "Reset",
+    "resetSuccess": "Configuration reset to default",
+    "exportSuccess": "Configuration exported successfully",
+    "exportFailed": "Configuration export failed",
+    "importSuccess": "Configuration imported successfully",
+    "importFailed": "Configuration import failed",
+    "tabs": {
+      "storage": "Storage Configuration",
+      "hardware": "Hardware Configuration"
+    },
+    "flash": {
+      "title": "FLASH Device",
+      "addDevice": "Add Device",
+      "device": "Device",
+      "media": "Media Type",
+      "driverIndex": "Driver Index",
+      "capacity": "Capacity",
+      "capacityHint": "Supports numbers, hexadecimal (0x...) or with units (16M)",
+      "manufacturerId": "Manufacturer ID",
+      "deviceType": "Device Type",
+      "densityId": "Density ID",
+      "flags": "Flags",
+      "noDevices": "No FLASH devices added",
+      "invalidCapacity": "Invalid capacity format",
+      "invalidHexValue": "Invalid hexadecimal value (0x00-0xFF)",
+      "maxReached": "Maximum number of devices reached (12)"
+    },
+    "sdio": {
+      "title": "SDIO Configuration",
+      "baseAddress": "Base Address",
+      "baseAddressHint1": "52 default is 0x62000000;",
+      "baseAddressHint2": "55 default is 0x68000000;",
+      "baseAddressHint3": "56 default is 0xA0000000;",
+      "baseAddressHint4": "58 default is 0x68000000;",
+      "pinmux": "PIN Multiplexing Options",
+      "pinmuxOption1": "55x SD_CLK uses PA34, 58x _CLK uses PA09",
+      "pinmuxOption2": "55x SD_CLK uses PA60, 58x _CLK uses PA39",
+      "initSequence": "Initialization Priority",
+      "emmcThenSd": "Initialize eMMC first, then SD card",
+      "sdThenEmmc": "Initialize SD card first, then eMMC",
+      "conflictDetected": "Configuration conflict detected",
+      "disabled": "Please enable SDIO configuration to start setting",
+      "invalidAddress": "Invalid address format",
+      "addressTooLarge": "Address value too large"
+    },
+    "pin": {
+      "title": "GPIO Pin Configuration",
+      "pinNumber": "Pin Number",
+      "addPin": "Add Pin",
+      "disabled": "Please enable GPIO configuration to start setting",
+      "maxReached": "Maximum number of configurations reached (12)"
+    },
+    "pmic": {
+      "title": "Power Management (PMIC)",
+      "sclPort": "I²C SCL Port",
+      "sdaPort": "I²C SDA Port",
+      "channels": "Power Channels",
+      "disabled": "Please enable PMIC configuration to start setting"
+    },
+    "stubInfo": {
+      "title": "Stub Information",
+      "body1": "sftool downloads a Stub program to the device RAM during the flashing process, and then the host interacts with this Stub to perform Flash read, erase, and write operations.",
+      "body2": "The Stub only includes a limited number of built-in Flash drivers. When the Flash chip used is not included in the built-in driver library, an external Flash driver must be manually injected to work properly.",
+      "body3": "It is recommended to modify the related configuration only when you clearly understand the Flash chip model and parameters.",
+      "body4": "For first-time use or uncertain scenarios, it is recommended to use the built-in Flash driver configuration first.",
+      "acknowledge": "I understand"
+    }
+  },
   "logWindow": {
     "autoScroll": "Auto Scroll",
     "showAll": "Show All",
@@ -266,7 +340,13 @@
     "moreMessages": "{count} more messages...",
     "pleaseCompleteConfig": "Please complete all necessary device configuration",
     "connectFailedMessage": "Failed to connect device, please check device connection and retry",
-    "connectError": "Error occurred while connecting device"
+    "connectError": "Error occurred while connecting device",
+    "stubConfig": {
+      "title": "",
+      "apply": "Apply Custom Stub Configuration",
+      "invalidConfig": "Configuration contains errors and cannot be enabled",
+      "configHasErrors": "Configuration contains errors, please check and correct on the Stub configuration page"
+    }
   },
   "errors": {
     "getPortsFailed": "Failed to get serial ports:",

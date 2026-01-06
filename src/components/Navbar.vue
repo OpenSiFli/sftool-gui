@@ -52,6 +52,17 @@
           </router-link>
         </li>
         <li>
+          <router-link to="/stubconfig" class="nav-item">
+            <div class="icon-box">
+              <span class="material-icons">build</span>
+              <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.stub_config') }}</div>
+            </div>
+            <span class="label" :class="{ 'hidden-label': isCollapsed }">
+              {{ $t('navbar.stub_config') }}
+            </span>
+          </router-link>
+        </li>
+        <li>
           <router-link to="/setting" class="nav-item">
             <div class="icon-box">
               <span class="material-icons">settings</span>

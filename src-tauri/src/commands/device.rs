@@ -54,12 +54,14 @@ pub async fn connect_device(
     _interface_type: String,
     port: Option<String>,
     baud_rate: Option<u32>,
+    stub_path: String,
 ) -> Result<bool, String> {
     let device_config = DeviceConfig {
         chip_type: chip_model,
         memory_type,
         port_name: port.ok_or("端口名不能为空")?,
         baud_rate: baud_rate.ok_or("波特率不能为空")?,
+        stub_path,
     };
 
     // 创建 Tauri 进度回调

@@ -5,6 +5,7 @@ import ReadFlashView from '../views/ReadFlashView.vue';
 import EraseFlashView from '../views/EraseFlashView.vue';
 import AboutView from '../views/AboutView.vue';
 import LogWindowView from '../views/LogWindowView.vue';
+import StubConfig from '../views/StubConfigView.vue';
 
 const routes = [
   { path: '/', redirect: '/write-flash' },
@@ -14,6 +15,7 @@ const routes = [
   { path: '/erase-flash', name: 'EraseFlash', component: EraseFlashView },
   { path: '/about', name: 'About', component: AboutView },
   { path: '/log-window', name: 'LogWindow', component: LogWindowView },
+  { path: '/stubconfig', name: 'StubConfig', component: StubConfig },
 ];
 
 const router = createRouter({
