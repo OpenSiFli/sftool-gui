@@ -10,3 +10,4 @@ src-tauri
 src-tauri/target
 src-tauri/gen
 sftool-lib
+**/*.svg
