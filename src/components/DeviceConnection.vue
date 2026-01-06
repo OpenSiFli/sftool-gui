@@ -335,9 +335,9 @@
       <div
         v-if="
           !isStubConfigValid &&
-          (stubConfigSummary?.flash > 0 ||
+          ((stubConfigSummary?.flash ?? 0) > 0 ||
             stubConfigSummary?.sdio ||
-            stubConfigSummary?.pins > 0 ||
+            (stubConfigSummary?.pins ?? 0) > 0 ||
             stubConfigSummary?.pmic)
         "
         class="mt-2 pt-2 border-t border-base-300/30"
