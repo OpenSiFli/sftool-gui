@@ -9,12 +9,6 @@ on:
     paths-ignore:
       - 'docs/**'
       - '.github/workflows/deploy-docs.yml'
-  pull_request:
-    branches:
-      - 'master'
-    paths-ignore:
-      - 'docs/**'
-      - '.github/workflows/deploy-docs.yml'
   
   workflow_dispatch:
 
