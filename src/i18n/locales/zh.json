@@ -262,7 +262,7 @@
       "sdThenEmmc": "先初始化SD卡，再初始化eMMC",
       "conflictDetected": "检测到配置冲突",
       "disabled": "请启用 SDIO 配置以开始设置",
-      "invaliAddress": "无效的地址格式",
+      "invalidAddress": "无效的地址格式",
       "addressTooLarge": "地址值过大"
     },
     "pin": {

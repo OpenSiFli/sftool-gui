@@ -262,7 +262,7 @@
       "sdThenEmmc": "Initialize SD card first, then eMMC",
       "conflictDetected": "Configuration conflict detected",
       "disabled": "Please enable SDIO configuration to start setting",
-      "invaliAddress": "Invalid address format",
+      "invalidAddress": "Invalid address format",
       "addressTooLarge": "Address value too large"
     },
     "pin": {

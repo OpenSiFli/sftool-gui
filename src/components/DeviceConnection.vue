@@ -731,8 +731,6 @@ const connectDevice = async () => {
         connectParams.stubPath = '';
       }
 
-      console.log(configPath);
-
       // 增加超时保护，防止调用异常时卡住连接中状态
       const success = await runWithTimeout(invoke<boolean>('connect_device', connectParams));
 

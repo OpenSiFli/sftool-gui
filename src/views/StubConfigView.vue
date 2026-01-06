@@ -672,7 +672,7 @@ const validateCapacity = (device: any) => {
   }
 
   // 检查十六进制
-  const hexPattern = /^^0x[0-9A-Fa-f]{1,8}$/;
+  const hexPattern = /^0x[0-9A-Fa-f]{1,8}$/;
   if (hexPattern.test(valueStr)) {
     const num = parseInt(valueStr, 16);
     if (num > 0 && num <= 0xffffffff) {
