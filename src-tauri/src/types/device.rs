@@ -12,4 +12,5 @@ pub struct DeviceConfig {
     pub memory_type: String,
     pub port_name: String,
     pub baud_rate: u32,
+    pub stub_path: String,
 }

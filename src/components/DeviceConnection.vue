@@ -312,6 +312,43 @@
       {{ isConnected ? t('deviceConnection.disconnectDevice') : t('deviceConnection.connectDevice') }}
     </button>
 
+    <!-- stub应用开关 -->
+    <div class="card bg-base-100 shadow-sm p-3 mt-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-icons text-sm text-primary">settings</span>
+          <span class="font-bold text-sm">{{ t('deviceConnection.stubConfig.title') }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="label-text text-xs">{{ t('deviceConnection.stubConfig.apply') }}</span>
+          <input
+            type="checkbox"
+            v-model="applyStubConfig"
+            class="toggle toggle-sm toggle-primary"
+            :disabled="isConnected || isConnecting || !isStubConfigValid"
+            :title="!isStubConfigValid ? t('deviceConnection.stubConfig.invalidConfig') : ''"
+          />
+        </div>
+      </div>
+
+      <!-- 配置无效警告 -->
+      <div
+        v-if="
+          !isStubConfigValid &&
+          (stubConfigSummary?.flash > 0 ||
+            stubConfigSummary?.sdio ||
+            stubConfigSummary?.pins > 0 ||
+            stubConfigSummary?.pmic)
+        "
+        class="mt-2 pt-2 border-t border-base-300/30"
+      >
+        <div class="alert alert-warning py-2 px-3">
+          <span class="material-icons text-sm">warning</span>
+          <span class="text-xs">{{ t('deviceConnection.stubConfig.configHasErrors') }}</span>
+        </div>
+      </div>
+    </div>
+
     <transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="opacity-0 -translate-y-4"
@@ -415,6 +452,7 @@ import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useLogStore } from '../stores/logStore';
 import { useDeviceStore } from '../stores/deviceStore';
+import { useStubConfigStore } from '../stores/stubConfigStore';
 import { WindowManager } from '../services/windowManager';
 import type { ChipModel } from '../config/chips';
 
@@ -427,8 +465,35 @@ const { t } = useI18n();
 
 const logStore = useLogStore();
 const deviceStore = useDeviceStore();
+const stubConfigStore = useStubConfigStore();
 
 // 从 store 中获取计算属性和状态 - 使用 storeToRefs 保持响应性
+// stub配置相关
+const applyStubConfig = computed({
+  get: () => stubConfigStore.applyStubConfig,
+  set: value => {
+    // 只有在配置有效时才允许设置为 true
+    if (value && !stubConfigStore.isConfigValid) {
+      return;
+    }
+    stubConfigStore.setApplyStubConfig(value);
+  },
+});
+
+const isStubConfigValid = computed(() => stubConfigStore.isConfigValid);
+
+const stubConfigSummary = computed(() => {
+  const config = stubConfigStore.config;
+  if (!config) return null;
+
+  return {
+    flash: config.flashConfig?.devices?.length || 0,
+    sdio: config.sdioConfig?.enabled || false,
+    pins: config.pinConfig?.items?.length || 0,
+    pmic: (config.pmicConfig?.enabled && !config.pmicConfig?.disabled) || false,
+  };
+});
+
 const {
   isConnected,
   isConnecting,
@@ -650,6 +715,23 @@ const connectDevice = async () => {
         connectParams.port = selectedPort.value!.name;
         connectParams.baudRate = parseInt(baudRateInput.value);
       }
+
+      // 使用 Tauri 的路径和文件系统 API
+      const { appDataDir } = await import('@tauri-apps/api/path');
+
+      // 获取应用缓存目录
+      const cacheDir = await appDataDir();
+      const configDir = `${cacheDir}/stub_config`;
+      const configPath = `${configDir}/draft.json`;
+
+      // 如果启用 stub 配置，则传递 stub 路径，否则传空字符串表示不使用 stub
+      if (applyStubConfig.value && isStubConfigValid.value) {
+        connectParams.stubPath = configPath;
+      } else {
+        connectParams.stubPath = '';
+      }
+
+      console.log(configPath);
 
       // 增加超时保护，防止调用异常时卡住连接中状态
       const success = await runWithTimeout(invoke<boolean>('connect_device', connectParams));
