@@ -100,7 +100,8 @@
       "failed": "烧录失败",
       "validating": "正在验证文件...",
       "connecting": "正在连接设备...",
-      "unsupportedFileFormat": "不支持的文件格式"
+      "unsupportedFileFormat": "不支持的文件格式",
+      "unarchiveFailed": "解压归档失败"
     },
     "operationInProgress": "{operation} 中...",
     "preparing": "准备中...",

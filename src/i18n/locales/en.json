@@ -100,7 +100,8 @@
       "failed": "Flash failed",
       "validating": "Validating file...",
       "connecting": "Connecting to device...",
-      "unsupportedFileFormat": "Unsupported file format"
+      "unsupportedFileFormat": "Unsupported file format",
+      "failed": "Archive extraction failed"
     },
     "operationInProgress": "{operation} in progress...",
     "preparing": "Preparing...",

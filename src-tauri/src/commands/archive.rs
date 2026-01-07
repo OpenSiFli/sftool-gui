@@ -27,40 +27,49 @@ pub async fn extract_archive(
         ArchiveFormat::open_path(&archive_path).map_err(|e| format!("打开压缩文件失败: {}", e))?;
 
     // 遍历压缩文件中的所有条目
-    while let Some(entry) = archive
-        .next_entry()
-        .map_err(|e| format!("读取压缩文件条目失败: {}", e))?
-    {
-        let entry_name = entry.name();
-        let outpath = dest_path.join(entry_name);
+    let extract_result = (|| -> Result<(), String> {
+        while let Some(entry) = archive
+            .next_entry()
+            .map_err(|e| format!("读取压缩文件条目失败: {}", e))?
+        {
+            let entry_name = entry.name();
+            let outpath = dest_path.join(entry_name);
 
-        // 判断是否是目录（目录名以 / 结尾）
-        if entry_name.ends_with('/') {
-            // 创建目录
-            fs::create_dir_all(&outpath).map_err(|e| format!("创建目录失败: {}", e))?;
-        } else {
-            // 创建父目录
-            if let Some(parent) = outpath.parent() {
-                if !parent.exists() {
-                    fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {}", e))?;
+            // 判断是否是目录（目录名以 / 结尾）
+            if entry_name.ends_with('/') {
+                // 创建目录
+                fs::create_dir_all(&outpath).map_err(|e| format!("创建目录失败: {}", e))?;
+            } else {
+                // 创建父目录
+                if let Some(parent) = outpath.parent() {
+                    if !parent.exists() {
+                        fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {}", e))?;
+                    }
                 }
-            }
 
-            // 如果输出路径已经存在且是目录，跳过
-            if outpath.exists() && outpath.is_dir() {
-                println!("跳过目录路径: {:?}", outpath);
-                continue;
-            }
+                // 如果输出路径已经存在且是目录，跳过
+                if outpath.exists() && outpath.is_dir() {
+                    println!("跳过目录路径: {:?}", outpath);
+                    continue;
+                }
 
-            // 提取文件
-            println!("Extracting file to: {:?} ... ", outpath);
-            let mut outfile = fs::File::create(&outpath)
-                .map_err(|e| format!("{}: 创建文件失败: {}", entry_name, e))?;
-            archive
-                .read_to(&entry, &mut outfile)
-                .map_err(|e| format!("解压文件失败: {}", e))?;
+                // 提取文件
+                println!("Extracting file to: {:?} ... ", outpath);
+                let mut outfile = fs::File::create(&outpath)
+                    .map_err(|e| format!("{}: 创建文件失败: {}", entry_name, e))?;
+                archive
+                    .read_to(&entry, &mut outfile)
+                    .map_err(|e| format!("解压文件失败: {}", e))?;
+            }
         }
-    }
+        Ok(())
+    })();
+
+    // 确保 archive 在离开作用域时被正确关闭，即使发生错误也会清理
+    drop(archive);
+
+    // 处理提取结果
+    extract_result?;
 
     // 将临时目录注册到 AppState，以便在应用退出时统一清理
     {
@@ -72,21 +81,32 @@ pub async fn extract_archive(
 
     // 遍历临时目录，收集文件信息
     let mut extracted = Vec::new();
-    for entry in WalkDir::new(&dest_path).into_iter().filter_map(|e| e.ok()) {
-        let p = entry.path();
-        if p.is_file() {
-            if let Ok(meta) = fs::metadata(p) {
-                let name = p
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("")
-                    .to_string();
-                extracted.push(ExtractedFile {
-                    path: p.to_string_lossy().to_string(),
-                    address: "".to_string(),
-                    name,
-                    size: meta.len(),
-                });
+    for entry in WalkDir::new(&dest_path).into_iter() {
+        match entry {
+            Ok(entry) => {
+                let p = entry.path();
+                if p.is_file() {
+                    if let Ok(meta) = fs::metadata(p) {
+                        let name = p
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("")
+                            .to_string();
+                        extracted.push(ExtractedFile {
+                            path: p.to_string_lossy().to_string(),
+                            address: "".to_string(),
+                            name,
+                            size: meta.len(),
+                        });
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!(
+                    "遍历临时目录 '{}' 时出错: {}",
+                    dest_path.to_string_lossy(),
+                    err
+                );
             }
         }
     }

@@ -24,13 +24,10 @@ impl AppState {
     pub fn register_temp_dir(&mut self, path: PathBuf) {
         self.retained_temp_dirs.push(path);
     }
-}
 
-impl Drop for AppState {
-    fn drop(&mut self) {
-        // 在应用退出时尝试删除所有注册的临时目录，忽略错误
-        for dir in &self.retained_temp_dirs {
-            let _ = std::fs::remove_dir_all(dir);
+    pub fn cleanup_temp_dirs(&mut self) {
+        for dir in self.retained_temp_dirs.drain(..) {
+            let _ = std::fs::remove_dir_all(&dir);
         }
     }
 }

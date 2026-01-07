@@ -552,8 +552,8 @@ const handleTauriFileDrop = async (payload: any) => {
       continue;
     }
 
-    // 如果是归档文件（zip/rar/7z/tar/tar.gz/tar.xz等），调用后端进行解压并处理提取出的文件
-    if (/\.(zip|rar|7z|tar|tar\.gz|tgz|tar\.xz|tar\.bz2|tbz2?|gz|xz|bz2)$/i.test(fileName)) {
+    // 如果是归档文件（zip/rar/7z/tar/gz/xz/bz2等），调用后端进行解压并处理提取出的文件
+    if (/\.(zip|rar|7z|tar|gz|xz|bz2|tgz|tbz2)$/i.test(fileName)) {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
         const extracted: Array<{ path: string; name: string; address: string; size: number }> = await invoke(
@@ -582,7 +582,10 @@ const handleTauriFileDrop = async (payload: any) => {
           alert(t('writeFlash.log.notFirmwareArchive', { name: fileName }));
         }
       } catch (error) {
-        logStore.addMessage(`${t('writeFlash.status.failed')}: 解压归档失败 - ${fileName}: ${error}`, true);
+        logStore.addMessage(
+          `${t('writeFlash.status.unarchiveFailed')}: ${t('writeFlash.status.archiveExtractFailed', { name: fileName })}: ${error}`,
+          true
+        );
       }
 
       continue;
@@ -688,8 +691,8 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
 
         const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
 
-        // 如果是归档文件（zip/rar/7z/tar/tar.gz/tar.xz等），调用后端进行解压并处理提取出的文件
-        if (/\.(zip|rar|7z|tar|tar\.gz|tgz|tar\.xz|tar\.bz2|tbz2?|gz|xz|bz2)$/i.test(fileName)) {
+        // 如果是归档文件（zip/rar/7z/tar/gz/xz/bz2/tgz/tbz2等），调用后端进行解压并处理提取出的文件
+        if (/\.(zip|rar|7z|tar|gz|xz|bz2|tgz|tbz2)$/i.test(fileName)) {
           try {
             const { invoke } = await import('@tauri-apps/api/core');
             const extracted: Array<{ path: string; name: string; address: string; size: number }> = await invoke(
@@ -718,7 +721,10 @@ const selectFile = async (multiple: boolean = false): Promise<FlashFile[]> => {
               alert(t('writeFlash.log.notFirmwareArchive', { name: fileName }));
             }
           } catch (error) {
-            logStore.addMessage(`${t('writeFlash.status.failed')}: 解压归档失败 - ${fileName}: ${error}`, true);
+            logStore.addMessage(
+              `${t('writeFlash.status.unarchiveFailed')}: ${t('writeFlash.log.extractArchiveFailed', { name: fileName })}: ${error}`,
+              true
+            );
           }
           continue;
         }
