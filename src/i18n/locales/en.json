@@ -82,7 +82,7 @@
     "clearLog": "Clear Log",
     "dragDropSuccess": "Added {count} files via drag and drop",
     "logLabel": "Log Output",
-    "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf, sftool_param.json",
+    "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf, sftool_param.json or common archive formats",
     "validation": {
       "noFiles": "Please select at least one firmware file",
       "addressRequired": "Please enter flash address",

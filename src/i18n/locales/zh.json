@@ -82,7 +82,7 @@
     "clearLog": "清除日志",
     "dragDropSuccess": "拖拽添加了 {count} 个文件",
     "logLabel": "日志输出",
-    "supportedFormats": "支持的文件格式：.bin, .hex, .elf, .axf, sftool_param.json",
+    "supportedFormats": "支持的文件格式：.bin, .hex, .elf, .axf, sftool_param.json或常见压缩包格式",
     "validation": {
       "noFiles": "请选择至少一个固件文件",
       "addressRequired": "请输入烧录地址",
