@@ -65,9 +65,6 @@ pub async fn extract_archive(
         Ok(())
     })();
 
-    // 确保 archive 在离开作用域时被正确关闭，即使发生错误也会清理
-    drop(archive);
-
     // 处理提取结果
     extract_result?;
 
