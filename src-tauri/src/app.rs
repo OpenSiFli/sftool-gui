@@ -38,7 +38,7 @@ pub fn run() {
     let mut context = tauri::generate_context!();
     set_dynamic_updater_endpoint(&mut context);
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -55,6 +55,7 @@ pub fn run() {
             disconnect_device,
             parse_sftool_param_file,
             validate_firmware_file,
+            extract_archive,
             write_flash,
             read_flash,
             erase_flash,
@@ -62,6 +63,15 @@ pub fn run() {
             set_speed,
             soft_reset
         ])
-        .run(context)
-        .expect("error while running tauri application");
+        .build(context)
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        // 在应用即将退出时清理临时目录
+        if let tauri::RunEvent::ExitRequested { .. } = event {
+            if let Ok(mut app_state) = app_handle.state::<Mutex<AppState>>().lock() {
+                app_state.cleanup_temp_dirs();
+            }
+        }
+    });
 }

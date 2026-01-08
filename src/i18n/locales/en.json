@@ -82,7 +82,7 @@
     "clearLog": "Clear Log",
     "dragDropSuccess": "Added {count} files via drag and drop",
     "logLabel": "Log Output",
-    "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf, sftool_param.json",
+    "supportedFormats": "Supported formats: .bin, .hex, .elf, .axf, sftool_param.json or common archive formats",
     "validation": {
       "noFiles": "Please select at least one firmware file",
       "addressRequired": "Please enter flash address",
@@ -100,7 +100,8 @@
       "failed": "Flash failed",
       "validating": "Validating file...",
       "connecting": "Connecting to device...",
-      "unsupportedFileFormat": "Unsupported file format"
+      "unsupportedFileFormat": "Unsupported file format",
+      "failed": "Archive extraction failed"
     },
     "operationInProgress": "{operation} in progress...",
     "preparing": "Preparing...",
@@ -115,6 +116,8 @@
       "detectedPaths": "Parse result: detected {count} file paths",
       "skippingInvalidPath": "Skipping invalid path: {path}",
       "processingFile": "Processing file: {name} (path: {path})",
+      "extractedArchive": "Extracted {count} files from archive {name}",
+      "notFirmwareArchive": "Archive {name} does not contain sftool_param.json — not a firmware package or missing config",
       "cannotAddWhileFlashing": "Cannot add files while flashing",
       "cannotParseDrop": "Error: Cannot parse file paths from drag event",
       "payloadContent": "Actual payload content: {payload}",
