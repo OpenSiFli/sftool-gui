@@ -344,6 +344,20 @@
     "pleaseCompleteConfig": "请完成所有必要的设备配置",
     "connectFailedMessage": "连接设备失败，请检查设备连接后重试",
     "connectError": "连接设备时出错",
+    "downloadBehavior": {
+      "title": "行为设定",
+      "beforeLabel": "连接前行为",
+      "afterLabel": "断开前行为",
+      "before": {
+        "default_reset": "软重启",
+        "no_reset": "不重启",
+        "no_reset_no_sync": "不重启且不下载 Stub"
+      },
+      "after": {
+        "soft_reset": "软重启",
+        "no_reset": "不重启"
+      }
+    },
     "stubConfig": {
       "title": "Stub配置",
       "apply": "应用自定义配置",
