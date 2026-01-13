@@ -8,7 +8,7 @@ icon: upload
 
 ## 准备工作
 
-在执行读取操作前，请确保设备已连接。具体的连接步骤请参考[烧录固件 - 烧录准备](/projects/sftool/get-started/configureproject.html#烧录准备)章节，完成串口和波特率的配置并成功连接设备。
+在执行读取操作前，请确保设备已连接。具体的连接步骤请参考[烧录固件 - 烧录准备](/get-started/configureproject.md#烧录准备)章节，完成串口和波特率的配置并成功连接设备。
 
 ## 配置读取任务
 

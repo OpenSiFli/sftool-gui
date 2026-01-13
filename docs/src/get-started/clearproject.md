@@ -14,7 +14,7 @@ icon: trash-can
 
 在执行读取操作前，请确保您已经完成以下操作：
 
-- **连接配置**：具体的连接步骤请参考[烧录固件 - 烧录准备](/projects/sftool/get-started/configureproject.html#烧录准备)章节，配置正确的串口参数并成功连接设备。
+- **连接配置**：具体的连接步骤请参考[烧录固件 - 烧录准备](/get-started/configureproject.md#烧录准备)章节，配置正确的串口参数并成功连接设备。
 
 - **数据确认**：擦除前请确认 Flash 内**无重要未备份数据**。
 
