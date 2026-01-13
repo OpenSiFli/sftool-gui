@@ -351,7 +351,7 @@
       "before": {
         "default_reset": "Soft Reboot",
         "no_reset": "No Reboot",
-        "no_reset_no_sync": "No Reboot and Do not Download Stub"
+        "no_reset_no_sync": "No Reboot, No Stub Download"
       },
       "after": {
         "soft_reset": "Soft Reboot",

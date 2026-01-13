@@ -65,8 +65,8 @@ pub async fn connect_device(
         baud_rate: baud_rate.ok_or("波特率不能为空")?,
         stub_path,
         // keep before/after as strings for serde transport; parsing happens in tool factory
-        before_operation: before_operation.clone(),
-        after_operation: after_operation.clone(),
+        before_operation,
+        after_operation,
     };
 
     // 创建 Tauri 进度回调

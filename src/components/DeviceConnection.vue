@@ -529,6 +529,7 @@ import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useLogStore } from '../stores/logStore';
 import { useDeviceStore } from '../stores/deviceStore';
+import type { ResetBeforeMode, ResetAfterMode } from '../stores/deviceStore';
 import { useStubConfigStore } from '../stores/stubConfigStore';
 import { WindowManager } from '../services/windowManager';
 import type { ChipModel } from '../config/chips';
@@ -574,14 +575,14 @@ const stubConfigSummary = computed(() => {
 // 下载行为面板
 const downloadPanelCollapsed = ref(true);
 
-const downloadBefore = computed<string>({
-  get: () => deviceStore.downloadBehavior?.before ?? 'no_reset',
-  set: (v: string) => deviceStore.setDownloadBeforeBehavior(v as any),
+const downloadBefore = computed<ResetBeforeMode>({
+  get: () => (deviceStore.downloadBehavior?.before ?? 'no_reset') as ResetBeforeMode,
+  set: (v: ResetBeforeMode) => deviceStore.setDownloadBeforeBehavior(v),
 });
 
-const downloadAfter = computed<string>({
-  get: () => deviceStore.downloadBehavior?.after ?? 'no_reset',
-  set: (v: string) => deviceStore.setDownloadAfterBehavior(v as any),
+const downloadAfter = computed<ResetAfterMode>({
+  get: () => (deviceStore.downloadBehavior?.after ?? 'no_reset') as ResetAfterMode,
+  set: (v: ResetAfterMode) => deviceStore.setDownloadAfterBehavior(v),
 });
 
 const {
@@ -783,6 +784,7 @@ const connectDevice = async () => {
       try {
         await invoke<void>('soft_reset');
       } catch (error) {
+        logStore.addMessage(`${t('errors.softResetFailed')}: ${error}`, true);
         console.log(t('errors.softResetFailed'), error);
       }
     }

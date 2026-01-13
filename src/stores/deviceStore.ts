@@ -2,6 +2,9 @@ import { defineStore } from 'pinia';
 import { load } from '@tauri-apps/plugin-store';
 import type { ChipModel } from '../config/chips';
 import { CHIP_MODELS } from '../config/chips';
+// 下载/重启行为类型
+export type ResetBeforeMode = 'default_reset' | 'no_reset' | 'no_reset_no_sync';
+export type ResetAfterMode = 'soft_reset' | 'no_reset';
 
 interface PortInfo {
   name: string;
@@ -63,8 +66,8 @@ export const useDeviceStore = defineStore('device', {
 
     // 下载行为设置（保存到设备相关设置）
     downloadBehavior: {
-      before: 'no_reset' as 'default_reset' | 'no_reset' | 'no_reset_no_sync',
-      after: 'no_reset' as 'soft_reset' | 'no_reset',
+      before: 'no_reset' as ResetBeforeMode,
+      after: 'no_reset' as ResetAfterMode,
     },
   }),
 
@@ -180,12 +183,12 @@ export const useDeviceStore = defineStore('device', {
     },
 
     // 下载行为设置
-    setDownloadBeforeBehavior(value: 'default_reset' | 'no_reset' | 'no_reset_no_sync') {
+    setDownloadBeforeBehavior(value: ResetBeforeMode) {
       this.downloadBehavior = { ...this.downloadBehavior, before: value };
       this.saveToStorage();
     },
 
-    setDownloadAfterBehavior(value: 'soft_reset' | 'no_reset') {
+    setDownloadAfterBehavior(value: ResetAfterMode) {
       this.downloadBehavior = { ...this.downloadBehavior, after: value };
       this.saveToStorage();
     },

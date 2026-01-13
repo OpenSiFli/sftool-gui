@@ -346,8 +346,8 @@
     "connectError": "连接设备时出错",
     "downloadBehavior": {
       "title": "行为设定",
-      "beforeLabel": "连接前行为",
-      "afterLabel": "断开前行为",
+      "beforeLabel": "连接前操作",
+      "afterLabel": "断开前操作",
       "before": {
         "default_reset": "软重启",
         "no_reset": "不重启",
