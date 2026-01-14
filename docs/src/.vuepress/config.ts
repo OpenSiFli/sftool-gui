@@ -1,6 +1,8 @@
 import { defineUserConfig } from "vuepress";
+import { viteBundler } from "@vuepress/bundler-vite";
 
 import theme from "./theme.js";
+import { VERSION } from "./version.js";
 
 export default defineUserConfig({
   base: "/projects/sftool/",
@@ -19,6 +21,14 @@ export default defineUserConfig({
   },
 
   theme,
+
+  bundler: viteBundler({
+    viteOptions: {
+      define: {
+        __VERSION__: JSON.stringify(VERSION),
+      },
+    },
+  }),
 
   head: [
     [

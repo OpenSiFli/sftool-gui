@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - 'docs/**'
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -39,6 +41,12 @@ jobs:
           cd docs
           corepack enable
           pnpm install --frozen-lockfile
+
+      - name: Get version
+        run: |
+          RAW_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+          VERSION=${RAW_VERSION#v}
+          echo "export const VERSION = '$VERSION'" > docs/src/.vuepress/version.ts
 
       - name: Build documentation
         env:

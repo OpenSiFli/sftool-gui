@@ -1,6 +1,6 @@
 {
   "name": "sftool-gui-docs",
-  "description": "一个界面友好的SIFLI系列芯片图形化烧录工具",
+  "description": "一个界面友好的SiFli系列芯片图形化烧录工具",
   "version": "1.1.3",
   "license": "Apache-2.0",
   "type": "module",
