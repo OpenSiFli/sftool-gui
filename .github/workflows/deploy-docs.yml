@@ -40,6 +40,14 @@ jobs:
           corepack enable
           pnpm install --frozen-lockfile
 
+      - name: Get latest release version
+        run: |
+          RAW_VERSION=$(gh release view --json tagName -q .tagName)
+          VERSION=${RAW_VERSION#v}
+          echo "export const VERSION = '$VERSION'" > docs/src/.vuepress/version.ts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build documentation
         env:
           NODE_OPTIONS: --max_old_space_size=8192

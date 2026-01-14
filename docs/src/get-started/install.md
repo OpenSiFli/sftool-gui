@@ -3,6 +3,11 @@ order: 1
 title: 安装配置
 icon: inbox
 ---
+
+<script setup>
+   const version = __VERSION__
+</script>
+
 > 本综合指南涵盖了作为最终用户安装 sftool-gui 应用程序以及为贡献者设置开发环境的内容。sftool-gui 是一款基于 Tauri、Vue 3 和 TypeScript 构建的跨平台 SiFli 系列芯片烧录工具。
 
 ## 先决条件
@@ -10,7 +15,7 @@ icon: inbox
 在安装 sftool-gui 之前，请确定您的系统满足基本需求：
 
 | 平台    | 最低要求                          | 备注                             |
-| ------- | --------------------------------- | -------------------------------- |
+| ------- | :-------------------------------- | :------------------------------- |
 | Windows | Windows 10 或更高版本             | 支持 NSIS 安装程序和便携版       |
 | macOS   | macOS 10.15 (Catalina) 或更高版本 | 支持 DMG 和 APP 安装包           |
 | Linux   | 任何现代发行版                    | 支持 AppImage、DEB 和 RPM 软件包 |
@@ -23,14 +28,29 @@ icon: inbox
 
 sftool-gui 为多个平台提供了预构建的安装程序。该应用程序内置更新插件支持自动更新。
 
-#### 下载步骤
+#### 国内镜像下载
 
-1. 访问 [sftool-gui- releases页面](https://github.com/OpenSiFli/sftool-gui/releases)
-2. 找到标有 `Latest` 标记的最新版本
-3. 在 Assets 部分，为你的操作系统选择合适的安装包：
-   - **Windows**: `.exe` (NSIS 安装程序) 或 `-portable.zip` (便携版)
-   - **macOS**: `.dmg` (磁盘映像) 或 `.app.tar.gz` (应用程序压缩包)
-   - **Linux**: `.AppImage`, `.deb`, 或 `.rpm`
+当前版本：v{{ version }}
+
+1. Windows
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_windows_x64.exe`">sftool_{{ version }}_windows_x64.exe</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_windows_x64_portable.zip`">sftool_{{ version }}_windows_x64_portable.zip</a>
+2. macOS
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_macos_universal.dmg`">sftool_{{ version }}_macos_universal.dmg</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_macos_universal.app.tar.gz`">sftool_{{ version }}_macos_universal.app.tar.gz</a>
+3. Linux
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_amd64.AppImage`">sftool_{{ version }}_amd64.AppImage</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_linux_amd64.rpm`">sftool_{{ version }}_linux_amd64.rpm</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_linux_amd64.deb`">sftool_{{ version }}_linux_amd64.deb</a>
+
+
+#### GitHub下载
+
+1. 访问 [sftool-gui- releases页面](https://github.com/OpenSiFli/sftool-gui/releases/latest)
+2. 在 Assets 部分，为你的操作系统选择合适的安装包：
+   - Windows: `.exe` (NSIS 安装程序) 或 `-portable.zip` (便携版)
+   - macOS: `.dmg` (磁盘映像) 或 `.app.tar.gz` (应用程序压缩包)
+   - Linux: `.AppImage`, `.deb`, 或 `.rpm`
 
 ### 安装方式
 
@@ -38,12 +58,12 @@ sftool-gui 为多个平台提供了预构建的安装程序。该应用程序内
 
 对于 Windows、macOS 和 Linux，使用标准的安装程序包：
 
-| 平台    | 文件扩展名 | 安装过程                                         |
-| ------- | ---------- | ------------------------------------------------ |
-| Windows | `.exe`     | 运行安装程序并按照向导提示操作                   |
-| macOS   | `.dmg`     | 挂载磁盘映像，将应用程序拖至 Applications 文件夹 |
-| Linux   | `.deb`     | 使用包管理器：`sudo dpkg -i sftool-gui.deb`      |
-| Linux   | `.rpm`     | 使用包管理器：`sudo rpm -i sftool-gui.rpm`       |
+| 平台    | 文件扩展名 | 安装过程                                                     |
+| ------- | ---------- | ------------------------------------------------------------ |
+| Windows | `.exe`     | 运行安装程序并按照向导提示操作                               |
+| macOS   | `.dmg`     | 挂载磁盘映像，将应用程序拖至 Applications 文件夹，使用终端运行 `xattr -cr /Applications/sftool.app` |
+| Linux   | `.deb`     | 使用包管理器：`sudo dpkg -i sftool-gui.deb`                  |
+| Linux   | `.rpm`     | 使用包管理器：`sudo rpm -i sftool-gui.rpm`                   |
 
 安装包配置指定了多种目标格式，以最大限度地兼容不同的 Linux 发行版。
 
