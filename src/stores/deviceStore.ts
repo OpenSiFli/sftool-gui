@@ -66,7 +66,7 @@ export const useDeviceStore = defineStore('device', {
 
     // 下载行为设置（保存到设备相关设置）
     downloadBehavior: {
-      before: 'no_reset' as ResetBeforeMode,
+      before: 'default_reset' as ResetBeforeMode,
       after: 'no_reset' as ResetAfterMode,
     },
   }),
@@ -367,7 +367,7 @@ export const useDeviceStore = defineStore('device', {
 
       this.baudRateInput = '1000000';
 
-      this.downloadBehavior = { before: 'no_reset', after: 'no_reset' };
+      this.downloadBehavior = { before: 'default_reset', after: 'no_reset' };
 
       this.isConnected = false;
       this.isConnecting = false;

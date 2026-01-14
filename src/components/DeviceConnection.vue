@@ -576,7 +576,7 @@ const stubConfigSummary = computed(() => {
 const downloadPanelCollapsed = ref(true);
 
 const downloadBefore = computed<ResetBeforeMode>({
-  get: () => (deviceStore.downloadBehavior?.before ?? 'no_reset') as ResetBeforeMode,
+  get: () => (deviceStore.downloadBehavior?.before ?? 'default_reset') as ResetBeforeMode,
   set: (v: ResetBeforeMode) => deviceStore.setDownloadBeforeBehavior(v),
 });
 

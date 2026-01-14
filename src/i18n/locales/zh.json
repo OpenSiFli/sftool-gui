@@ -349,7 +349,7 @@
       "beforeLabel": "连接前操作",
       "afterLabel": "断开前操作",
       "before": {
-        "default_reset": "软重启",
+        "default_reset": "默认复位行为",
         "no_reset": "不重启",
         "no_reset_no_sync": "不重启且不下载 Stub"
       },

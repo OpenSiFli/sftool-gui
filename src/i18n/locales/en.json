@@ -349,7 +349,7 @@
       "beforeLabel": "Before Connect",
       "afterLabel": "Before Disconnect",
       "before": {
-        "default_reset": "Soft Reboot",
+        "default_reset": "Default Reset Behavior",
         "no_reset": "No Reboot",
         "no_reset_no_sync": "No Reboot, No Stub Download"
       },
