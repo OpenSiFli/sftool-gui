@@ -27,7 +27,7 @@ export default hopeTheme({
       // sidebar
       sidebar: enSidebar,
 
-      footer: "Default footer",
+      footer: "Apache-2.0 license | 2019 - 2026 SiFli Technologies(Nanjing) Co., Ltd",
 
       displayFooter: true,
 

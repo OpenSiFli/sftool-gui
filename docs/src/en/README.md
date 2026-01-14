@@ -1,7 +1,7 @@
 ---
 home: true
 icon: house
-title: 主页
+title: Home
 heroFullScreen: true
 heroFullScreenArrow: false
 
@@ -12,30 +12,30 @@ bgImageStyle:
   background-size: cover
   background-position: center
   background-repeat: no-repeat
-heroText: sftool-gui应用手册
-tagline: 界面友好的SiFli系列芯片图形化烧录工具
+heroText: sftool-gui Application Manual
+tagline: User-friendly GUI flashing tool for the SiFli series chips
 heroImage: /assets/image/logo_sftool.svg
 heroAlt: sftool-gui
 actions:
-  - text: 快速入门
+  - text: Get Started
     icon: lightbulb
     link: ./get-started/
     type: primary
-  - text: 常见问题
+  - text: FAQs
     icon: sitemap
     link: ./FAQs/
     type: default
-  - text: SDK文档
+  - text: SDK Docs
     icon: book
     link: https://docs.sifli.com/projects/sdk/latest/sf32lb52x/index.html
     type: default
-  - text: 社区论坛
+  - text: Community Forum
     icon: comments
     link: https://bbs.sifli.com/
     type: default
 
 
 
-copyright: 2019 - 2026 思澈科技（南京）有限公司
+copyright: 2019 - 2026 SiFli Technologies(Nanjing) Co., Ltd
 footer: Apache-2.0 license 
 ---

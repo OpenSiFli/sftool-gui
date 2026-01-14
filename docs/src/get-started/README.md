@@ -2,7 +2,7 @@
 title: 快速开始
 icon: lightbulb
 ---
- > 一个界面友好的SIFLI系列芯片图形化烧录工具。
+ > 一个界面友好的SiFli系列芯片图形化烧录工具。
 
  ## 什么是 sftool-gui？
 
