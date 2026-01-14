@@ -312,6 +312,83 @@
       {{ isConnected ? t('deviceConnection.disconnectDevice') : t('deviceConnection.connectDevice') }}
     </button>
 
+    <!-- 下载行为配置 -->
+    <div class="card bg-base-100 shadow-sm p-3 mt-3">
+      <div
+        class="flex items-center justify-between cursor-pointer"
+        @click="downloadPanelCollapsed = !downloadPanelCollapsed"
+      >
+        <div class="flex items-center gap-2">
+          <span class="material-icons text-sm text-primary">download</span>
+          <span class="font-bold text-sm">{{ t('deviceConnection.downloadBehavior.title') }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-base-content/70">
+          <span
+            class="material-icons text-sm transition-transform duration-200"
+            :class="{ 'rotate-180': !downloadPanelCollapsed }"
+            >keyboard_arrow_down</span
+          >
+        </div>
+      </div>
+
+      <transition name="fade-collapse">
+        <div v-show="!downloadPanelCollapsed" class="mt-3 pt-2 border-t border-base-300/30 space-y-4">
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-xs font-semibold text-base-content/80">
+              <span class="w-1 h-4 rounded-full bg-primary/60"></span>
+              <span>{{ t('deviceConnection.downloadBehavior.beforeLabel') }}</span>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="option-card" :class="{ 'option-card-active': downloadBefore === 'default_reset' }">
+                <div class="flex items-center gap-2">
+                  <input type="radio" v-model="downloadBefore" value="default_reset" class="radio radio-sm" />
+                  <span class="material-icons text-xs text-primary">sync</span>
+                  <span class="text-xs">{{ t('deviceConnection.downloadBehavior.before.default_reset') }}</span>
+                </div>
+              </label>
+              <label class="option-card" :class="{ 'option-card-active': downloadBefore === 'no_reset' }">
+                <div class="flex items-center gap-2">
+                  <input type="radio" v-model="downloadBefore" value="no_reset" class="radio radio-sm" />
+                  <span class="material-icons text-xs text-primary">sync_disabled</span>
+                  <span class="text-xs">{{ t('deviceConnection.downloadBehavior.before.no_reset') }}</span>
+                </div>
+              </label>
+              <label class="option-card" :class="{ 'option-card-active': downloadBefore === 'no_reset_no_sync' }">
+                <div class="flex items-center gap-2">
+                  <input type="radio" v-model="downloadBefore" value="no_reset_no_sync" class="radio radio-sm" />
+                  <span class="material-icons text-xs text-primary">do_not_disturb</span>
+                  <span class="text-xs">{{ t('deviceConnection.downloadBehavior.before.no_reset_no_sync') }}</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-xs font-semibold text-base-content/80">
+              <span class="w-1 h-4 rounded-full bg-secondary/60"></span>
+              <span>{{ t('deviceConnection.downloadBehavior.afterLabel') }}</span>
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="option-card" :class="{ 'option-card-active': downloadAfter === 'soft_reset' }">
+                <div class="flex items-center gap-2">
+                  <input type="radio" v-model="downloadAfter" value="soft_reset" class="radio radio-sm" />
+                  <span class="material-icons text-xs text-secondary">sync</span>
+                  <span class="text-xs">{{ t('deviceConnection.downloadBehavior.after.soft_reset') }}</span>
+                </div>
+              </label>
+              <label class="option-card" :class="{ 'option-card-active': downloadAfter === 'no_reset' }">
+                <div class="flex items-center gap-2">
+                  <input type="radio" v-model="downloadAfter" value="no_reset" class="radio radio-sm" />
+                  <span class="material-icons text-xs text-secondary">sync_disabled</span>
+                  <span class="text-xs">{{ t('deviceConnection.downloadBehavior.after.no_reset') }}</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </div>
+
     <!-- stub应用开关 -->
     <div class="card bg-base-100 shadow-sm p-3 mt-3">
       <div class="flex items-center justify-between">
@@ -446,12 +523,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useLogStore } from '../stores/logStore';
 import { useDeviceStore } from '../stores/deviceStore';
+import type { ResetBeforeMode, ResetAfterMode } from '../stores/deviceStore';
 import { useStubConfigStore } from '../stores/stubConfigStore';
 import { WindowManager } from '../services/windowManager';
 import type { ChipModel } from '../config/chips';
@@ -492,6 +570,19 @@ const stubConfigSummary = computed(() => {
     pins: config.pinConfig?.items?.length || 0,
     pmic: (config.pmicConfig?.enabled && !config.pmicConfig?.disabled) || false,
   };
+});
+
+// 下载行为面板
+const downloadPanelCollapsed = ref(true);
+
+const downloadBefore = computed<ResetBeforeMode>({
+  get: () => (deviceStore.downloadBehavior?.before ?? 'default_reset') as ResetBeforeMode,
+  set: (v: ResetBeforeMode) => deviceStore.setDownloadBeforeBehavior(v),
+});
+
+const downloadAfter = computed<ResetAfterMode>({
+  get: () => (deviceStore.downloadBehavior?.after ?? 'no_reset') as ResetAfterMode,
+  set: (v: ResetAfterMode) => deviceStore.setDownloadAfterBehavior(v),
 });
 
 const {
@@ -687,6 +778,16 @@ const connectDevice = async () => {
   if (isConnected.value) {
     // 断开连接
     deviceStore.setConnecting(true);
+    if (downloadAfter.value === 'soft_reset') {
+      // 如果选择了下载后软复位，则先发送软复位命令
+      console.log('Sending soft reset command before disconnecting...');
+      try {
+        await invoke<void>('soft_reset');
+      } catch (error) {
+        logStore.addMessage(`${t('errors.softResetFailed')}: ${error}`, true);
+        console.log(t('errors.softResetFailed'), error);
+      }
+    }
     try {
       await invoke<void>('disconnect_device');
       deviceStore.setConnected(false);
@@ -709,6 +810,8 @@ const connectDevice = async () => {
         chipModel: selectedChip.value!.id,
         memoryType: selectedMemoryType.value,
         interfaceType: selectedInterface.value,
+        beforeOperation: downloadBefore.value,
+        afterOperation: downloadAfter.value,
       };
 
       if (selectedInterface.value === 'UART') {
@@ -833,6 +936,47 @@ const openLogWindow = async () => {
 <style scoped>
 .device-connection-panel {
   width: 300px;
+}
+
+.fade-collapse-enter-active,
+.fade-collapse-leave-active {
+  transition:
+    opacity 0.2s ease,
+    max-height 0.2s ease;
+}
+
+.fade-collapse-enter-from,
+.fade-collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.fade-collapse-enter-to,
+.fade-collapse-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+
+.option-card {
+  border: 1px solid hsl(var(--b3));
+  background: linear-gradient(135deg, hsl(var(--b1)) 0%, hsl(var(--b2)) 100%);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.option-card:hover {
+  border-color: hsl(var(--p));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.option-card-active {
+  border-color: hsl(var(--p));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
 @keyframes pulse {

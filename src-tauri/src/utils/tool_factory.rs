@@ -45,6 +45,14 @@ pub fn create_tool_instance_with_progress(
         _ => return Err(format!("不支持的芯片型号: {}", config.chip_type)),
     };
 
+    // parse before/after operation strings into enums
+    let before_enum = match config.before_operation.as_str() {
+        "default_reset" => BeforeOperation::DefaultReset,
+        "no_reset" => BeforeOperation::NoReset,
+        "no_reset_no_sync" => BeforeOperation::NoResetNoSync,
+        _ => BeforeOperation::NoReset,
+    };
+
     let (stub_path, _temp_file) = prepare_stub_path(
         if !config.stub_path.is_empty() {
             Some(config.stub_path.as_str())
@@ -60,7 +68,7 @@ pub fn create_tool_instance_with_progress(
     // 创建 SifliToolBase (带进度回调)
     let base = SifliToolBase::new_with_external_stub(
         config.port_name.clone(),
-        BeforeOperation::NoReset,
+        before_enum,
         config.memory_type.to_lowercase(),
         config.baud_rate,
         1,

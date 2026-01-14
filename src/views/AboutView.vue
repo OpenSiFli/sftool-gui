@@ -51,7 +51,7 @@
     <div class="w-full text-center mt-auto py-4">
       <div class="flex items-center justify-center">
         <span class="material-icons text-xs text-gray-500 mr-1">copyright</span>
-        <span class="text-sm text-gray-500">2025 SiFli Technologies(Nanjing) Co., Ltd</span>
+        <span class="text-sm text-gray-500">2025-2026 SiFli Technologies(Nanjing) Co., Ltd</span>
       </div>
     </div>
   </div>

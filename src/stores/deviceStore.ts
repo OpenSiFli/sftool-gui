@@ -2,6 +2,9 @@ import { defineStore } from 'pinia';
 import { load } from '@tauri-apps/plugin-store';
 import type { ChipModel } from '../config/chips';
 import { CHIP_MODELS } from '../config/chips';
+// 下载/重启行为类型
+export type ResetBeforeMode = 'default_reset' | 'no_reset' | 'no_reset_no_sync';
+export type ResetAfterMode = 'soft_reset' | 'no_reset';
 
 interface PortInfo {
   name: string;
@@ -60,6 +63,12 @@ export const useDeviceStore = defineStore('device', {
       SF32LB55: ['NOR', 'SD'],
       default: ['NOR'],
     } as Record<string, string[]>,
+
+    // 下载行为设置（保存到设备相关设置）
+    downloadBehavior: {
+      before: 'default_reset' as ResetBeforeMode,
+      after: 'no_reset' as ResetAfterMode,
+    },
   }),
 
   getters: {
@@ -173,6 +182,17 @@ export const useDeviceStore = defineStore('device', {
       this.saveToStorage();
     },
 
+    // 下载行为设置
+    setDownloadBeforeBehavior(value: ResetBeforeMode) {
+      this.downloadBehavior = { ...this.downloadBehavior, before: value };
+      this.saveToStorage();
+    },
+
+    setDownloadAfterBehavior(value: ResetAfterMode) {
+      this.downloadBehavior = { ...this.downloadBehavior, after: value };
+      this.saveToStorage();
+    },
+
     // 下拉框状态管理
     setShowChipDropdown(show: boolean) {
       this.showChipDropdown = show;
@@ -275,6 +295,12 @@ export const useDeviceStore = defineStore('device', {
           this.baudRateInput = baudRateData.value;
         }
 
+        // 加载下载行为设置
+        const downloadBehaviorData = await storeInstance.get('downloadBehavior');
+        if (downloadBehaviorData?.value) {
+          this.downloadBehavior = downloadBehaviorData.value;
+        }
+
         console.log('设备设置已从存储加载');
       } catch (error) {
         console.error('加载设备设置失败:', error);
@@ -314,6 +340,9 @@ export const useDeviceStore = defineStore('device', {
         // 保存波特率
         await storeInstance.set('baudRateInput', { value: this.baudRateInput });
 
+        // 保存下载行为设置
+        await storeInstance.set('downloadBehavior', { value: this.downloadBehavior });
+
         await storeInstance.save();
       } catch (error) {
         console.error('保存设备设置失败:', error);
@@ -337,6 +366,8 @@ export const useDeviceStore = defineStore('device', {
       this.tempPortInput = '';
 
       this.baudRateInput = '1000000';
+
+      this.downloadBehavior = { before: 'default_reset', after: 'no_reset' };
 
       this.isConnected = false;
       this.isConnecting = false;

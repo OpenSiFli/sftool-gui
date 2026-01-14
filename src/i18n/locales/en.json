@@ -344,6 +344,20 @@
     "pleaseCompleteConfig": "Please complete all necessary device configuration",
     "connectFailedMessage": "Failed to connect device, please check device connection and retry",
     "connectError": "Error occurred while connecting device",
+    "downloadBehavior": {
+      "title": "Behavior Settings",
+      "beforeLabel": "Before Connect",
+      "afterLabel": "Before Disconnect",
+      "before": {
+        "default_reset": "Default Reset Behavior",
+        "no_reset": "No Reboot",
+        "no_reset_no_sync": "No Reboot, No Stub Download"
+      },
+      "after": {
+        "soft_reset": "Soft Reboot",
+        "no_reset": "No Reboot"
+      }
+    },
     "stubConfig": {
       "title": "",
       "apply": "Apply Custom Stub Configuration",
