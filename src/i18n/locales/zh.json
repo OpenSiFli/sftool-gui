@@ -101,7 +101,8 @@
       "validating": "正在验证文件...",
       "connecting": "正在连接设备...",
       "unsupportedFileFormat": "不支持的文件格式",
-      "unarchiveFailed": "解压归档失败"
+      "unarchiveFailed": "解压归档失败",
+      "archiveExtractFailed": "解压归档 {name} 失败"
     },
     "operationInProgress": "{operation} 中...",
     "preparing": "准备中...",
@@ -117,6 +118,7 @@
       "skippingInvalidPath": "跳过无效路径: {path}",
       "processingFile": "处理文件: {name} (路径: {path})",
       "extractedArchive": "从归档 {name} 提取了 {count} 个文件",
+      "extractArchiveFailed": "解压归档 {name} 失败",
       "notFirmwareArchive": "归档 {name} 中未找到 sftool_param.json，非固件压缩包或不包含配置文件",
       "cannotAddWhileFlashing": "烧录进行中，无法添加文件",
       "cannotParseDrop": "错误: 无法从拖拽事件中解析出文件路径",
@@ -179,7 +181,8 @@
       "taskAdded": "已添加读取任务",
       "taskRemoved": "已移除读取任务",
       "savePathSelected": "已选择保存路径",
-      "startReading": "开始读取固件..."
+      "startReading": "开始读取固件...",
+      "processingFile": "处理文件: {name} (路径: {path})"
     },
     "operationInProgress": "{operation} 中...",
     "preparing": "准备中...",
@@ -369,6 +372,7 @@
     "getPortsFailed": "获取串口列表失败:",
     "disconnectFailed": "断开设备失败:",
     "connectFailed": "连接设备失败:",
-    "openLogWindowFailed": "打开日志窗口失败:"
+    "openLogWindowFailed": "打开日志窗口失败:",
+    "softResetFailed": "软复位失败"
   }
 }

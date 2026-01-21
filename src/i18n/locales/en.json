@@ -101,7 +101,8 @@
       "validating": "Validating file...",
       "connecting": "Connecting to device...",
       "unsupportedFileFormat": "Unsupported file format",
-      "failed": "Archive extraction failed"
+      "unarchiveFailed": "Archive extraction failed",
+      "archiveExtractFailed": "Failed to extract archive {name}"
     },
     "operationInProgress": "{operation} in progress...",
     "preparing": "Preparing...",
@@ -117,6 +118,7 @@
       "skippingInvalidPath": "Skipping invalid path: {path}",
       "processingFile": "Processing file: {name} (path: {path})",
       "extractedArchive": "Extracted {count} files from archive {name}",
+      "extractArchiveFailed": "Failed to extract archive {name}",
       "notFirmwareArchive": "Archive {name} does not contain sftool_param.json — not a firmware package or missing config",
       "cannotAddWhileFlashing": "Cannot add files while flashing",
       "cannotParseDrop": "Error: Cannot parse file paths from drag event",
@@ -179,7 +181,8 @@
       "taskAdded": "Read task added",
       "taskRemoved": "Read task removed",
       "savePathSelected": "Save path selected",
-      "startReading": "Starting firmware read..."
+      "startReading": "Starting firmware read...",
+      "processingFile": "Processing file: {name} (path: {path})"
     },
     "operationInProgress": "{operation} in progress...",
     "preparing": "Preparing...",
@@ -369,6 +372,7 @@
     "getPortsFailed": "Failed to get serial ports:",
     "disconnectFailed": "Failed to disconnect device:",
     "connectFailed": "Failed to connect device:",
-    "openLogWindowFailed": "Failed to open log window:"
+    "openLogWindowFailed": "Failed to open log window:",
+    "softResetFailed": "Soft reset failed"
   }
 }

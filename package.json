@@ -43,6 +43,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "dev": "vite",
     "format": "prettier --write .",
+    "i18n:check": "node scripts/i18n-check.js",
     "lint": "eslint .",
     "prepare": "lefthook install",
     "preview": "vite preview",
