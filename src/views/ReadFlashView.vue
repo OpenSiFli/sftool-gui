@@ -380,12 +380,12 @@ onUnmounted(() => {
 
 // 处理进度事件
 const handleProgressEvent = (event: ProgressEvent) => {
-  // 只在读取进行中时处理进度事件，避免捕获设备连接等其他操作的进度
-  if (!readFlashStore.isReading) {
+  if (event.operation?.kind !== 'read_flash') {
     return;
   }
 
-  if (event.operation?.kind !== 'read_flash') {
+  // 只在读取进行中时处理进度事件，避免捕获其他操作的进度
+  if (!readFlashStore.isReading) {
     return;
   }
 

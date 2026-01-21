@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { setupProgressEventLogger } from '../utils/progressEventLogger';
 
 export interface LogMessage {
   id: string;
@@ -10,6 +11,15 @@ export interface LogMessage {
 }
 
 let eventListenerInitialized = false;
+
+const isLogWindow = async (): Promise<boolean> => {
+  try {
+    const { getCurrentWebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+    return getCurrentWebviewWindow().label === 'log-window';
+  } catch (_error) {
+    return false;
+  }
+};
 
 export const useLogStore = defineStore('log', () => {
   // 状态
@@ -154,6 +164,11 @@ export const useLogStore = defineStore('log', () => {
           messages.value = syncedMessages;
           isFlashing.value = syncedFlashing;
         }
+      });
+
+      await setupProgressEventLogger({
+        addMessage,
+        isEnabled: async () => !(await isLogWindow()),
       });
 
       eventListenerInitialized = true;

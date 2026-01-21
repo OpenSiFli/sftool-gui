@@ -1,14 +1,7 @@
 import { useLogStore } from '../stores/logStore';
 import { MessageParser } from './messageParser';
-import {
-  OperationType,
-  ProgressStatus,
-  type ProgressEvent,
-  type ProgressFinishStatus,
-  type ProgressItem,
-  type ProgressOperation,
-  type StubStage,
-} from '../types/progress';
+import { formatAddress, formatBytes, formatFinishMessage, formatOperationMessage } from './progressEventFormatter';
+import { OperationType, ProgressStatus, type ProgressEvent, type ProgressItem } from '../types/progress';
 
 // 导入 writeFlashStore 类型
 import type { useWriteFlashStore } from '../stores/writeFlashStore';
@@ -69,7 +62,7 @@ export class ProgressHandler {
     }
 
     // 创建进度项
-    const message = this.formatOperationMessage(operation);
+    const message = formatOperationMessage(operation);
     const fallbackFileName = this.formatFallbackFileName(parsed, id);
     this.createProgressItem(id, {
       step: step.toString(),
@@ -87,7 +80,9 @@ export class ProgressHandler {
       parsed.operationType === OperationType.DOWNLOAD
         ? fileName || fallbackFileName
         : MessageParser.getOperationName(parsed.operationType);
-    this.logStore.addMessage(`[${logFileName}] ${message}`);
+    if (this.shouldLogOperation(parsed.operationType)) {
+      this.logStore.addMessage(`[${logFileName}] ${message}`);
+    }
   }
 
   /**
@@ -108,9 +103,11 @@ export class ProgressHandler {
         existing.fileName = parsed.fileName;
       }
 
-      const message = this.formatOperationMessage(operation);
+      const message = formatOperationMessage(operation);
       existing.message = message;
-      this.logStore.addMessage(`[${existing.fileName}] ${message}`);
+      if (this.shouldLogOperation(existing.operationType)) {
+        this.logStore.addMessage(`[${existing.fileName}] ${message}`);
+      }
     }
   }
 
@@ -169,11 +166,11 @@ export class ProgressHandler {
     finishedItem.status = ProgressStatus.COMPLETED;
     finishedItem.percentage = 100;
 
-    const message = this.formatFinishMessage(status);
+    const message = formatFinishMessage(status);
     if (finishedItem.operationType === OperationType.DOWNLOAD) {
       this.handleDownloadComplete(finishedItem, message);
     } else {
-      this.handleOtherOperationComplete(finishedItem, message);
+      this.handleOtherOperationComplete();
     }
   }
 
@@ -247,6 +244,7 @@ export class ProgressHandler {
    * 记录进度详细信息
    */
   private logProgressDetails(progressItem: ProgressItem): void {
+    if (progressItem.operationType !== OperationType.DOWNLOAD) return;
     if (!progressItem.total) return;
 
     const percentage = progressItem.percentage;
@@ -254,7 +252,7 @@ export class ProgressHandler {
     const etaStr = progressItem.eta && progressItem.eta > 0 ? ` (剩余 ${this.formatTime(progressItem.eta)})` : '';
 
     this.logStore.addMessage(
-      `[${progressItem.fileName}] 进度: ${percentage}% (${this.formatBytes(progressItem.current)}/${this.formatBytes(progressItem.total)})${speedStr}${etaStr}`
+      `[${progressItem.fileName}] 进度: ${percentage}% (${formatBytes(progressItem.current)}/${formatBytes(progressItem.total)})${speedStr}${etaStr}`
     );
   }
 
@@ -299,10 +297,7 @@ export class ProgressHandler {
   /**
    * 处理其他操作完成
    */
-  private handleOtherOperationComplete(finishedItem: ProgressItem, message: string): void {
-    const operationName = MessageParser.getOperationName(finishedItem.operationType || OperationType.UNKNOWN);
-    this.logStore.addMessage(`[${operationName}] ${message}`, true);
-
+  private handleOtherOperationComplete(): void {
     // 清除当前操作状态（对于非下载操作）
     this.store.setCurrentOperation('');
   }
@@ -315,94 +310,16 @@ export class ProgressHandler {
   }
 
   // 工具方法
-  private formatOperationMessage(operation: ProgressOperation | undefined): string {
-    if (!operation) return '操作';
-
-    const address = 'address' in operation ? this.formatAddress(operation.address) : '';
-    const size = 'size' in operation ? this.formatBytes(operation.size) : '';
-
-    switch (operation.kind) {
-      case 'connect':
-        return '连接设备';
-      case 'download_stub':
-        return `下载 Stub (${this.formatStubStage(operation.stage)})`;
-      case 'erase_flash':
-        return `擦除 Flash @ ${address}`;
-      case 'erase_region':
-        return `擦除区域 @ ${address} (${this.formatBytes(operation.len)})`;
-      case 'erase_all_regions':
-        return '擦除所有区域';
-      case 'verify':
-        return `验证 @ ${address} (${this.formatBytes(operation.len)})`;
-      case 'check_redownload':
-        return `检查重下载 @ ${address} (${size})`;
-      case 'write_flash':
-        return `写入 @ ${address} (${size})`;
-      case 'read_flash':
-        return `读取 @ ${address} (${size})`;
-      case 'unknown':
-      default:
-        return '操作';
-    }
-  }
-
-  private formatFinishMessage(status?: ProgressFinishStatus): string {
-    if (!status) return '完成';
-    switch (status.kind) {
-      case 'success':
-        return '完成';
-      case 'retry':
-        return '需要重试';
-      case 'skipped':
-        return '已跳过';
-      case 'required':
-        return '需要重写';
-      case 'not_found':
-        return '未找到';
-      case 'failed':
-        return `失败: ${status.message}`;
-      case 'aborted':
-        return '已中止';
-      default:
-        return '完成';
-    }
-  }
-
-  private formatStubStage(stage: StubStage): string {
-    switch (stage) {
-      case 'start':
-        return '开始';
-      case 'signature_key':
-        return '签名';
-      case 'ram_stub':
-        return 'RAM';
-      default:
-        return '阶段';
-    }
-  }
-
-  private formatAddress(address: number): string {
-    return `0x${address.toString(16).toUpperCase().padStart(8, '0')}`;
-  }
-
   private formatFallbackFileName(parsed: { address: number | null }, id: number): string {
     if (parsed.address !== null) {
-      return this.formatAddress(parsed.address);
+      return formatAddress(parsed.address);
     }
     return `操作 ${id}`;
   }
 
-  private formatBytes(bytes: number | undefined): string {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
-
   private formatSpeed(bytesPerSecond: number | undefined): string {
     if (!bytesPerSecond) return '-- KB/s';
-    return this.formatBytes(bytesPerSecond) + '/s';
+    return formatBytes(bytesPerSecond) + '/s';
   }
 
   private formatTime(seconds: number): string {
@@ -417,5 +334,9 @@ export class ProgressHandler {
       const minutes = Math.floor((seconds % 3600) / 60);
       return `${hours}时${minutes}分`;
     }
+  }
+
+  private shouldLogOperation(operationType?: OperationType): boolean {
+    return operationType === OperationType.DOWNLOAD;
   }
 }
