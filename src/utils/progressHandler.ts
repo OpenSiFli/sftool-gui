@@ -45,7 +45,7 @@ export class ProgressHandler {
     const { id, step, current, total, operation } = event;
     const now = Date.now();
 
-    const parsed = MessageParser.parseMessage(undefined, this.store.selectedFiles, operation);
+    const parsed = MessageParser.parseOperation(this.store.selectedFiles, operation);
     let fileName = parsed.fileName;
 
     // 如果无法映射文件名，仅在单文件场景下回退到第一个文件
@@ -92,7 +92,7 @@ export class ProgressHandler {
     const { id, operation } = event;
     const existing = this.store.progressMap.get(id);
     if (existing) {
-      const parsed = MessageParser.parseMessage(undefined, this.store.selectedFiles, operation);
+      const parsed = MessageParser.parseOperation(this.store.selectedFiles, operation);
       if (parsed.operationType) {
         existing.operationType = parsed.operationType;
       }
@@ -153,7 +153,7 @@ export class ProgressHandler {
     if (!finishedItem) return;
 
     if (operation) {
-      const parsed = MessageParser.parseMessage(undefined, this.store.selectedFiles, operation);
+      const parsed = MessageParser.parseOperation(this.store.selectedFiles, operation);
       finishedItem.operationType = parsed.operationType;
       if (parsed.address !== null) {
         finishedItem.address = parsed.address;

@@ -37,8 +37,7 @@ export const setupProgressEventLogger = async (options: ProgressLoggerOptions) =
       const progressEvent = event.payload;
       if (shouldIgnoreEvent(progressEvent, ignoreKinds)) return;
 
-      const parsed = MessageParser.parseMessage(undefined, [], progressEvent.operation);
-      const operationName = MessageParser.getOperationName(parsed.operationType);
+      const operationName = MessageParser.getOperationNameFromOperation(progressEvent.operation);
       const message =
         progressEvent.event_type === 'finish'
           ? formatFinishMessage(progressEvent.status)

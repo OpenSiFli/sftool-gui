@@ -6,68 +6,46 @@ import { OperationType, type MessageParseResult } from '../types/progress';
  */
 export class MessageParser {
   /**
-   * 解析进度消息，提取操作类型、地址和文件名信息
+   * 解析进度元数据，提取操作类型、地址和文件名信息
    */
-  static parseMessage(
-    message: string | undefined,
-    selectedFiles: FlashFile[],
-    operation?: ProgressOperation
-  ): MessageParseResult {
+  static parseOperation(selectedFiles: FlashFile[], operation?: ProgressOperation): MessageParseResult {
     const result: MessageParseResult = {
       operationType: OperationType.UNKNOWN,
       address: null,
       fileName: null,
     };
 
-    if (operation) {
-      const address = this.getOperationAddress(operation);
-      result.operationType = this.getOperationType(operation);
-      result.address = address;
-
-      if (address !== null) {
-        const matchingFile = this.findFileByAddress(selectedFiles, address);
-        if (matchingFile) {
-          result.fileName = matchingFile.name;
-        }
-      }
-
+    if (!operation) {
       return result;
     }
 
-    if (!message) {
-      return result;
-    }
+    const address = this.getOperationAddress(operation);
+    result.operationType = this.getOperationType(operation);
+    result.address = address;
 
-    // 检查是否是擦除操作
-    if (message.includes('Erasing') || message.includes('Erase')) {
-      result.operationType = OperationType.ERASE;
-      return result;
-    }
-
-    // 检查是否是验证操作
-    if (message.includes('Verify')) {
-      result.operationType = OperationType.VERIFY;
-      return result;
-    }
-
-    // 检查是否是下载操作
-    if (message.includes('Download')) {
-      result.operationType = OperationType.DOWNLOAD;
-
-      // 提取地址信息：匹配 "Download at 0xXXXXXXXX" 格式
-      const addressMatch = message.match(/at 0x([0-9a-fA-F]+)/i);
-      if (addressMatch) {
-        result.address = parseInt(addressMatch[1], 16);
-
-        // 根据地址找到对应的文件
-        const matchingFile = this.findFileByAddress(selectedFiles, result.address);
-        if (matchingFile) {
-          result.fileName = matchingFile.name;
-        }
+    if (address !== null) {
+      const matchingFile = this.findFileByAddress(selectedFiles, address);
+      if (matchingFile) {
+        result.fileName = matchingFile.name;
       }
     }
 
     return result;
+  }
+
+  /**
+   * 从进度元数据获取操作类型
+   */
+  static getOperationTypeFromOperation(operation?: ProgressOperation): OperationType {
+    if (!operation) return OperationType.UNKNOWN;
+    return this.getOperationType(operation);
+  }
+
+  /**
+   * 从进度元数据获取操作名称
+   */
+  static getOperationNameFromOperation(operation?: ProgressOperation): string {
+    return this.getOperationName(this.getOperationTypeFromOperation(operation));
   }
 
   private static getOperationType(operation: ProgressOperation): OperationType {
