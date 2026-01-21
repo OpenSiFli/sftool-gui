@@ -1,19 +1,23 @@
-use crate::types::TauriProgressEvent;
-use sftool_lib::progress::{ProgressCallback, ProgressId, ProgressInfo};
-use std::sync::atomic::{AtomicU64, Ordering};
+use crate::types::{
+    TauriProgressContext, TauriProgressEvent, TauriProgressOperation, TauriProgressStatus,
+    TauriProgressType,
+};
+use sftool_lib::progress::{ProgressEvent, ProgressSink};
+use std::collections::HashMap;
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
 
 // Tauri 进度回调实现
 pub struct TauriProgressCallback {
     app_handle: AppHandle,
-    id_counter: AtomicU64,
+    contexts: Mutex<HashMap<u64, TauriProgressContext>>,
 }
 
 impl TauriProgressCallback {
     pub fn new(app_handle: AppHandle) -> Self {
         Self {
             app_handle,
-            id_counter: AtomicU64::new(1),
+            contexts: Mutex::new(HashMap::new()),
         }
     }
 
@@ -24,65 +28,92 @@ impl TauriProgressCallback {
     }
 }
 
-impl ProgressCallback for TauriProgressCallback {
-    fn start(&self, info: ProgressInfo) -> ProgressId {
-        let id = self.id_counter.fetch_add(1, Ordering::SeqCst);
-        let progress_id = ProgressId(id);
+impl ProgressSink for TauriProgressCallback {
+    fn on_event(&self, event: ProgressEvent) {
+        match event {
+            ProgressEvent::Start { id, ctx } => {
+                let current = ctx.current;
+                let context = TauriProgressContext::from(ctx);
+                let total = total_from_progress_type(&context.progress_type);
+                self.contexts.lock().unwrap().insert(id.0, context.clone());
 
-        let (total, current) = match info.progress_type {
-            sftool_lib::progress::ProgressType::Spinner => (None, None),
-            sftool_lib::progress::ProgressType::Bar { total } => (Some(total), info.current),
-        };
+                self.emit_event(TauriProgressEvent {
+                    id: id.0,
+                    event_type: "start".to_string(),
+                    step: context.step,
+                    progress_type: context.progress_type,
+                    operation: context.operation,
+                    current,
+                    total,
+                    status: None,
+                });
+            }
+            ProgressEvent::Update { id, ctx } => {
+                let context = TauriProgressContext::from(ctx);
+                self.contexts.lock().unwrap().insert(id.0, context.clone());
 
-        let event = TauriProgressEvent {
-            id,
-            event_type: "start".to_string(),
-            step: info.prefix,
-            message: info.message,
-            current,
-            total,
-        };
+                self.emit_event(TauriProgressEvent {
+                    id: id.0,
+                    event_type: "update".to_string(),
+                    step: context.step,
+                    progress_type: context.progress_type,
+                    operation: context.operation,
+                    current: None,
+                    total: None,
+                    status: None,
+                });
+            }
+            ProgressEvent::Advance { id, delta } => {
+                let context = self.contexts.lock().unwrap().get(&id.0).cloned();
+                let (step, progress_type, operation) = match context {
+                    Some(ctx) => (ctx.step, ctx.progress_type, ctx.operation),
+                    None => (
+                        0,
+                        TauriProgressType::Spinner,
+                        TauriProgressOperation::Unknown,
+                    ),
+                };
 
-        self.emit_event(event);
-        progress_id
+                self.emit_event(TauriProgressEvent {
+                    id: id.0,
+                    event_type: "increment".to_string(),
+                    step,
+                    progress_type,
+                    operation,
+                    current: Some(delta),
+                    total: None,
+                    status: None,
+                });
+            }
+            ProgressEvent::Finish { id, status } => {
+                let context = self.contexts.lock().unwrap().remove(&id.0);
+                let (step, progress_type, operation) = match context {
+                    Some(ctx) => (ctx.step, ctx.progress_type, ctx.operation),
+                    None => (
+                        0,
+                        TauriProgressType::Spinner,
+                        TauriProgressOperation::Unknown,
+                    ),
+                };
+
+                self.emit_event(TauriProgressEvent {
+                    id: id.0,
+                    event_type: "finish".to_string(),
+                    step,
+                    progress_type,
+                    operation,
+                    current: None,
+                    total: None,
+                    status: Some(TauriProgressStatus::from(status)),
+                });
+            }
+        }
     }
+}
 
-    fn update_message(&self, id: ProgressId, message: String) {
-        let event = TauriProgressEvent {
-            id: id.0,
-            event_type: "update".to_string(),
-            step: "".to_string(),
-            message,
-            current: None,
-            total: None,
-        };
-
-        self.emit_event(event);
-    }
-
-    fn increment(&self, id: ProgressId, delta: u64) {
-        let event = TauriProgressEvent {
-            id: id.0,
-            event_type: "increment".to_string(),
-            step: "".to_string(),
-            message: "".to_string(),
-            current: Some(delta),
-            total: None,
-        };
-
-        self.emit_event(event);
-    }
-
-    fn finish(&self, id: ProgressId, final_message: String) {
-        let event = TauriProgressEvent {
-            id: id.0,
-            event_type: "finish".to_string(),
-            step: "".to_string(),
-            message: final_message,
-            current: None,
-            total: None,
-        };
-
-        self.emit_event(event);
+fn total_from_progress_type(progress_type: &TauriProgressType) -> Option<u64> {
+    match progress_type {
+        TauriProgressType::Spinner => None,
+        TauriProgressType::Bar { total } => Some(*total),
     }
 }
