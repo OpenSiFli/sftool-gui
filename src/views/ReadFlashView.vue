@@ -355,7 +355,7 @@ onMounted(async () => {
 
   try {
     // 监听进度事件
-    const unlistenProgress = await listen('flash-progress', event => {
+    const unlistenProgress = await listen<ProgressEvent>('flash-progress', event => {
       handleProgressEvent(event.payload);
     });
 
