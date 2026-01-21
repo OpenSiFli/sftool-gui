@@ -2,7 +2,7 @@ use crate::progress::TauriProgressCallback;
 use crate::state::AppState;
 use crate::types::{DeviceConfig, PortInfo};
 use crate::utils::create_tool_instance_with_progress;
-use sftool_lib::progress::ProgressCallbackArc;
+use sftool_lib::progress::ProgressSinkArc;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, State};
 
@@ -70,7 +70,7 @@ pub async fn connect_device(
     };
 
     // 创建 Tauri 进度回调
-    let progress_callback: ProgressCallbackArc = Arc::new(TauriProgressCallback::new(app_handle));
+    let progress_callback: ProgressSinkArc = Arc::new(TauriProgressCallback::new(app_handle));
 
     // 创建带进度回调的工具实例
     let tool = create_tool_instance_with_progress(&device_config, progress_callback)?;

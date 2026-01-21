@@ -1,7 +1,7 @@
 use crate::types::DeviceConfig;
 use crate::utils::stub_ops::prepare_stub_path;
 use sftool_lib::{
-    create_sifli_tool, progress::ProgressCallbackArc, BeforeOperation, ChipType, SifliTool,
+    create_sifli_tool, progress::ProgressSinkArc, BeforeOperation, ChipType, SifliTool,
     SifliToolBase,
 };
 
@@ -34,7 +34,7 @@ pub fn create_tool_instance(config: &DeviceConfig) -> Result<Box<dyn SifliTool>,
 /// 创建带进度回调的 SifliTool 实例
 pub fn create_tool_instance_with_progress(
     config: &DeviceConfig,
-    progress_callback: ProgressCallbackArc,
+    progress_callback: ProgressSinkArc,
 ) -> Result<Box<dyn SifliTool>, String> {
     // 解析芯片类型
     let chip_type = match config.chip_type.to_uppercase().as_str() {
