@@ -1,6 +1,14 @@
 import { useLogStore } from '../stores/logStore';
 import { MessageParser } from './messageParser';
-import { OperationType, ProgressStatus, type ProgressEvent, type ProgressItem } from '../types/progress';
+import {
+  OperationType,
+  ProgressStatus,
+  type ProgressEvent,
+  type ProgressFinishStatus,
+  type ProgressItem,
+  type ProgressOperation,
+  type StubStage,
+} from '../types/progress';
 
 // 导入 writeFlashStore 类型
 import type { useWriteFlashStore } from '../stores/writeFlashStore';
@@ -41,14 +49,14 @@ export class ProgressHandler {
    * 处理开始事件
    */
   private handleStartEvent(event: ProgressEvent): void {
-    const { id, step, message, current, total } = event;
+    const { id, step, current, total, operation } = event;
     const now = Date.now();
 
-    const parsed = MessageParser.parseMessage(message, this.store.selectedFiles);
+    const parsed = MessageParser.parseMessage(undefined, this.store.selectedFiles, operation);
     let fileName = parsed.fileName;
 
-    // 如果没有解析出文件名，使用默认逻辑
-    if (!fileName && this.store.selectedFiles.length > 0) {
+    // 如果无法映射文件名，仅在单文件场景下回退到第一个文件
+    if (!fileName && parsed.operationType === OperationType.DOWNLOAD && this.store.selectedFiles.length === 1) {
       fileName = this.store.selectedFiles[0].name;
     }
 
@@ -61,13 +69,15 @@ export class ProgressHandler {
     }
 
     // 创建进度项
+    const message = this.formatOperationMessage(operation);
+    const fallbackFileName = this.formatFallbackFileName(parsed, id);
     this.createProgressItem(id, {
-      step,
+      step: step.toString(),
       message,
       current,
       total,
       startTime: now,
-      fileName: fileName || `操作 ${id}`,
+      fileName: fileName || fallbackFileName,
       address: parsed.address || 0,
       operationType: parsed.operationType,
     });
@@ -75,7 +85,7 @@ export class ProgressHandler {
     // 记录日志
     const logFileName =
       parsed.operationType === OperationType.DOWNLOAD
-        ? fileName || '文件'
+        ? fileName || fallbackFileName
         : MessageParser.getOperationName(parsed.operationType);
     this.logStore.addMessage(`[${logFileName}] ${message}`);
   }
@@ -84,9 +94,21 @@ export class ProgressHandler {
    * 处理更新事件
    */
   private handleUpdateEvent(event: ProgressEvent): void {
-    const { id, message } = event;
+    const { id, operation } = event;
     const existing = this.store.progressMap.get(id);
     if (existing) {
+      const parsed = MessageParser.parseMessage(undefined, this.store.selectedFiles, operation);
+      if (parsed.operationType) {
+        existing.operationType = parsed.operationType;
+      }
+      if (parsed.address !== null) {
+        existing.address = parsed.address;
+      }
+      if (parsed.fileName) {
+        existing.fileName = parsed.fileName;
+      }
+
+      const message = this.formatOperationMessage(operation);
       existing.message = message;
       this.logStore.addMessage(`[${existing.fileName}] ${message}`);
     }
@@ -128,14 +150,26 @@ export class ProgressHandler {
    * 处理完成事件
    */
   private handleFinishEvent(event: ProgressEvent): void {
-    const { id, message } = event;
+    const { id, status, operation } = event;
     const finishedItem = this.store.progressMap.get(id);
 
     if (!finishedItem) return;
 
+    if (operation) {
+      const parsed = MessageParser.parseMessage(undefined, this.store.selectedFiles, operation);
+      finishedItem.operationType = parsed.operationType;
+      if (parsed.address !== null) {
+        finishedItem.address = parsed.address;
+      }
+      if (parsed.fileName) {
+        finishedItem.fileName = parsed.fileName;
+      }
+    }
+
     finishedItem.status = ProgressStatus.COMPLETED;
     finishedItem.percentage = 100;
 
+    const message = this.formatFinishMessage(status);
     if (finishedItem.operationType === OperationType.DOWNLOAD) {
       this.handleDownloadComplete(finishedItem, message);
     } else {
@@ -281,6 +315,83 @@ export class ProgressHandler {
   }
 
   // 工具方法
+  private formatOperationMessage(operation: ProgressOperation | undefined): string {
+    if (!operation) return '操作';
+
+    const address = 'address' in operation ? this.formatAddress(operation.address) : '';
+    const size = 'size' in operation ? this.formatBytes(operation.size) : '';
+
+    switch (operation.kind) {
+      case 'connect':
+        return '连接设备';
+      case 'download_stub':
+        return `下载 Stub (${this.formatStubStage(operation.stage)})`;
+      case 'erase_flash':
+        return `擦除 Flash @ ${address}`;
+      case 'erase_region':
+        return `擦除区域 @ ${address} (${this.formatBytes(operation.len)})`;
+      case 'erase_all_regions':
+        return '擦除所有区域';
+      case 'verify':
+        return `验证 @ ${address} (${this.formatBytes(operation.len)})`;
+      case 'check_redownload':
+        return `检查重下载 @ ${address} (${size})`;
+      case 'write_flash':
+        return `写入 @ ${address} (${size})`;
+      case 'read_flash':
+        return `读取 @ ${address} (${size})`;
+      case 'unknown':
+      default:
+        return '操作';
+    }
+  }
+
+  private formatFinishMessage(status?: ProgressFinishStatus): string {
+    if (!status) return '完成';
+    switch (status.kind) {
+      case 'success':
+        return '完成';
+      case 'retry':
+        return '需要重试';
+      case 'skipped':
+        return '已跳过';
+      case 'required':
+        return '需要重写';
+      case 'not_found':
+        return '未找到';
+      case 'failed':
+        return `失败: ${status.message}`;
+      case 'aborted':
+        return '已中止';
+      default:
+        return '完成';
+    }
+  }
+
+  private formatStubStage(stage: StubStage): string {
+    switch (stage) {
+      case 'start':
+        return '开始';
+      case 'signature_key':
+        return '签名';
+      case 'ram_stub':
+        return 'RAM';
+      default:
+        return '阶段';
+    }
+  }
+
+  private formatAddress(address: number): string {
+    return `0x${address.toString(16).toUpperCase().padStart(8, '0')}`;
+  }
+
+  private formatFallbackFileName(parsed: { address: number | null }, id: number): string {
+    if (parsed.address !== null) {
+      return this.formatAddress(parsed.address);
+    }
+    return `操作 ${id}`;
+  }
+
   private formatBytes(bytes: number | undefined): string {
     if (!bytes || bytes === 0) return '0 B';
     const k = 1024;

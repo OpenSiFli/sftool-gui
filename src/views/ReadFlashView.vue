@@ -238,6 +238,8 @@ import { useI18n } from 'vue-i18n';
 import { listen } from '@tauri-apps/api/event';
 import { useLogStore } from '../stores/logStore';
 import { useReadFlashStore } from '../stores/readFlashStore';
+import { MessageParser } from '../utils/messageParser';
+import { OperationType, type ProgressEvent } from '../types/progress';
 import ReadTaskCard from '../components/ReadTaskCard.vue';
 
 const { t } = useI18n();
@@ -328,6 +330,10 @@ let lastProgressBytes = 0;
 let currentProgressBytes = 0; // 累计的进度字节数
 let totalProgressBytes = 0; // 总字节数
 
+const formatAddress = (address: number): string => {
+  return `0x${address.toString(16).toUpperCase().padStart(8, '0')}`;
+};
+
 // 初始化日志
 const initializeLog = () => {
   logStore.initializeLog();
@@ -373,47 +379,41 @@ onUnmounted(() => {
 });
 
 // 处理进度事件
-const handleProgressEvent = (event: any) => {
+const handleProgressEvent = (event: ProgressEvent) => {
   // 只在读取进行中时处理进度事件，避免捕获设备连接等其他操作的进度
   if (!readFlashStore.isReading) {
     return;
   }
 
+  if (event.operation?.kind !== 'read_flash') {
+    return;
+  }
+
   const now = Date.now();
+  const { address, size } = event.operation;
 
   if (event.event_type === 'start') {
-    readFlashStore.setCurrentOperation(event.step);
+    readFlashStore.setCurrentOperation(MessageParser.getOperationName(OperationType.READ));
     lastProgressUpdate = now;
     lastProgressBytes = 0;
     currentProgressBytes = event.current || 0;
-    totalProgressBytes = event.total || 0;
+    totalProgressBytes = event.total || size || 0;
 
-    // 尝试从消息中解析地址以匹配任务
-    // 消息格式通常为 "Reading from 0x12000000..."
-    if (event.message) {
-      const addressMatch = event.message.match(/0x[0-9a-fA-F]+/);
-      let fileName = event.message.split('/').pop() || event.message;
+    const task = readFlashStore.tasks.find(t => parseInt(t.address, 16) === address);
+    const fileName = task ? task.filePath.split(/[/\\]/).pop() || task.filePath : formatAddress(address);
 
-      if (addressMatch) {
-        const addressHex = addressMatch[0];
-        const addressVal = parseInt(addressHex, 16);
-        const task = readFlashStore.tasks.find(t => parseInt(t.address, 16) === addressVal);
-
-        if (task) {
-          readFlashStore.setCurrentReadingTaskId(task.id);
-          readFlashStore.setCurrentReadingFile(task.filePath);
-          fileName = task.filePath.split(/[/\\]/).pop() || task.filePath;
-        }
-      }
-
-      readFlashStore.updateProgress({
-        currentFileName: fileName,
-        totalCount: readFlashStore.tasks.length,
-        current: currentProgressBytes,
-        total: totalProgressBytes,
-        percentage: 0,
-      });
+    if (task) {
+      readFlashStore.setCurrentReadingTaskId(task.id);
+      readFlashStore.setCurrentReadingFile(task.filePath);
     }
+
+    readFlashStore.updateProgress({
+      currentFileName: fileName,
+      totalCount: readFlashStore.tasks.length,
+      current: currentProgressBytes,
+      total: totalProgressBytes,
+      percentage: 0,
+    });
   } else if (event.event_type === 'increment') {
     // increment 事件的 current 是增量 (delta)，不是绝对值
     const delta = event.current || 0;

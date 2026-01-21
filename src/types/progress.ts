@@ -18,8 +18,41 @@ export enum OperationType {
   ERASE = 'erase',
   DOWNLOAD = 'download',
   VERIFY = 'verify',
+  READ = 'read',
+  CONNECT = 'connect',
+  DOWNLOAD_STUB = 'download_stub',
+  CHECK = 'check',
   UNKNOWN = 'unknown',
 }
+
+export type ProgressType = { kind: 'spinner' } | { kind: 'bar'; total: number };
+
+export type StubStage = 'start' | 'signature_key' | 'ram_stub';
+
+export type EraseFlashStyle = 'complete' | 'addressed';
+
+export type EraseRegionStyle = 'legacy_flash_start_decimal_length' | 'hex_length' | 'range';
+
+export type ProgressOperation =
+  | { kind: 'connect' }
+  | { kind: 'download_stub'; stage: StubStage }
+  | { kind: 'erase_flash'; address: number; style: EraseFlashStyle }
+  | { kind: 'erase_region'; address: number; len: number; style: EraseRegionStyle }
+  | { kind: 'erase_all_regions' }
+  | { kind: 'verify'; address: number; len: number }
+  | { kind: 'check_redownload'; address: number; size: number }
+  | { kind: 'write_flash'; address: number; size: number }
+  | { kind: 'read_flash'; address: number; size: number }
+  | { kind: 'unknown' };
+
+export type ProgressFinishStatus =
+  | { kind: 'success' }
+  | { kind: 'retry' }
+  | { kind: 'skipped' }
+  | { kind: 'required' }
+  | { kind: 'not_found' }
+  | { kind: 'failed'; message: string }
+  | { kind: 'aborted' };
 
 // 进度项状态枚举
 export enum ProgressStatus {
@@ -63,10 +96,12 @@ export interface TotalProgress {
 export interface ProgressEvent {
   id: number;
   event_type: 'start' | 'update' | 'increment' | 'finish';
-  step: string;
-  message: string;
+  step: number;
+  progress_type: ProgressType;
+  operation: ProgressOperation;
   current?: number;
   total?: number;
+  status?: ProgressFinishStatus;
 }
 
 // 消息解析结果接口
