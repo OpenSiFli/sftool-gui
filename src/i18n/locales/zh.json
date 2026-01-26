@@ -241,13 +241,15 @@
       "addDevice": "添加设备",
       "device": "设备",
       "media": "介质类型",
-      "driverIndex": "驱动索引",
+      "driverIndex": "Type",
       "capacity": "容量",
       "capacityHint": "支持数字、十六进制 (0x...) 或带单位 (16M)",
       "manufacturerId": "制造商 ID",
       "deviceType": "设备类型",
-      "densityId": "容量 ID",
+      "densityId": "颗粒 ID",
       "flags": "标志",
+      "deviceInvalid": "配置有误",
+      "sectionInvalid": "配置有误",
       "noDevices": "尚未添加 FLASH 设备",
       "invalidCapacity": "无效的容量格式",
       "invalidHexValue": "无效的十六进制值 (0x00-0xFF)",
@@ -269,7 +271,9 @@
       "conflictDetected": "检测到配置冲突",
       "disabled": "请启用 SDIO 配置以开始设置",
       "invalidAddress": "无效的地址格式",
-      "addressTooLarge": "地址值过大"
+      "addressTooLarge": "地址值过大",
+      "addressRequired": "请输入基地址",
+      "sectionInvalid": "配置有误"
     },
     "pin": {
       "title": "GPIO 默认状态",

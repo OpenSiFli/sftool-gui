@@ -30,6 +30,9 @@
                   <span class="material-icons text-primary text-2xl">memory</span>
                   <h2 class="text-xl font-bold">{{ $t('stubConfig.flash.title') }}</h2>
                   <span class="badge badge-primary">{{ flashConfig.devices.length }}</span>
+                  <span v-if="hasFlashConfigError" class="badge badge-error badge-sm">
+                    {{ $t('stubConfig.flash.sectionInvalid') }}
+                  </span>
                 </div>
                 <button class="btn btn-primary btn-sm mr-4" @click.stop="addFlashDevice">
                   <span class="material-icons mr-1">add</span>
@@ -38,137 +41,144 @@
               </div>
             </div>
             <div class="collapse-content">
-              <div v-if="flashConfig.devices.length > 0" class="space-y-3 mt-2">
-                <div
-                  v-for="(device, index) in flashConfig.devices"
-                  :key="index"
-                  class="collapse collapse-arrow bg-base-200"
-                  :class="{ 'collapse-open': device.expanded }"
-                >
-                  <div class="collapse-title cursor-pointer" @click="device.expanded = !device.expanded">
-                    <div class="flex items-center justify-between w-full">
-                      <span class="font-medium">{{ $t('stubConfig.flash.device') }} {{ index + 1 }}</span>
-                      <button class="btn btn-ghost btn-sm btn-circle" @click.stop="removeFlashDevice(index)">
-                        <span class="material-icons text-error">delete</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="collapse-content">
-                    <div class="grid grid-cols-2 gap-3 pt-4">
-                      <div class="form-control">
-                        <label class="label py-1">
-                          <span class="label-text text-sm">{{ $t('stubConfig.flash.media') }}</span>
-                        </label>
-                        <select v-model="device.media" class="select select-bordered select-sm">
-                          <option value="nor">NOR Flash</option>
-                          <option value="nand">NAND Flash</option>
-                        </select>
-                      </div>
-
-                      <div class="form-control">
-                        <label class="label py-1">
-                          <span class="label-text text-sm">{{ $t('stubConfig.flash.driverIndex') }}</span>
-                        </label>
-                        <select v-model.number="device.driver_index" class="select select-bordered select-sm">
-                          <option :value="0">0</option>
-                          <option :value="1">1</option>
-                          <option :value="2">2</option>
-                          <option :value="3">3</option>
-                          <option :value="4">4</option>
-                          <option :value="5">5</option>
-                        </select>
-                      </div>
-
-                      <div class="form-control col-span-2">
-                        <label class="label py-1">
-                          <span class="label-text text-sm">{{ $t('stubConfig.flash.capacity') }}</span>
-                        </label>
-                        <input
-                          v-model="device.capacity_bytes"
-                          type="text"
-                          placeholder="16777216 / 0x1000000 / 16M"
-                          class="input input-bordered input-sm font-mono"
-                          :class="{ 'input-error': device.capacityError }"
-                          @input="validateCapacity(device)"
-                        />
-                        <label class="label">
-                          <span v-if="device.capacityError" class="label-text-alt text-error">
-                            {{ device.capacityError }}
+              <div class="mt-2">
+                <TransitionGroup name="flash-slide" tag="div" class="space-y-3">
+                  <div
+                    v-for="(device, index) in flashConfig.devices"
+                    :key="device.id"
+                    class="collapse collapse-arrow bg-base-200"
+                    :class="{ 'collapse-open': device.expanded }"
+                  >
+                    <div class="collapse-title cursor-pointer" @click="device.expanded = !device.expanded">
+                      <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium">{{ $t('stubConfig.flash.device') }} {{ index + 1 }}</span>
+                          <span v-if="getFlashDeviceError(device)" class="badge badge-error badge-sm">
+                            {{ $t('stubConfig.flash.deviceInvalid') }}
                           </span>
-                          <span v-else class="label-text-alt">{{ $t('stubConfig.flash.capacityHint') }}</span>
-                        </label>
+                        </div>
+                        <button class="btn btn-ghost btn-sm btn-circle" @click.stop="removeFlashDevice(index)">
+                          <span class="material-icons text-error">delete</span>
+                        </button>
                       </div>
+                    </div>
+                    <div class="collapse-content">
+                      <div class="grid grid-cols-2 gap-3 pt-4">
+                        <div class="form-control">
+                          <label class="label py-1">
+                            <span class="label-text text-sm">{{ $t('stubConfig.flash.media') }}</span>
+                          </label>
+                          <select v-model="device.media" class="select select-bordered select-sm">
+                            <option value="nor">NOR Flash</option>
+                            <option value="nand">NAND Flash</option>
+                          </select>
+                        </div>
 
-                      <div class="form-control">
-                        <label class="label py-1">
-                          <span class="label-text text-sm">{{ $t('stubConfig.flash.manufacturerId') }}</span>
-                        </label>
-                        <input
-                          v-model="device.manufacturer_id"
-                          type="text"
-                          placeholder="0x00"
-                          class="input input-bordered input-sm font-mono"
-                          :class="{ 'input-error': device.manufacturerIdError }"
-                          @input="validateHexField(device, 'manufacturer_id')"
-                        />
-                        <label v-if="device.manufacturerIdError" class="label">
-                          <span class="label-text-alt text-error">{{ device.manufacturerIdError }}</span>
-                        </label>
-                      </div>
-                      <div class="form-control">
-                        <label class="label py-1">
-                          <span class="label-text text-sm">{{ $t('stubConfig.flash.deviceType') }}</span>
-                        </label>
-                        <input
-                          v-model="device.device_type"
-                          type="text"
-                          placeholder="0x00"
-                          class="input input-bordered input-sm font-mono"
-                          :class="{ 'input-error': device.deviceTypeError }"
-                          @input="validateHexField(device, 'device_type')"
-                        />
-                        <label v-if="device.deviceTypeError" class="label">
-                          <span class="label-text-alt text-error">{{ device.deviceTypeError }}</span>
-                        </label>
-                      </div>
-                      <div class="form-control">
-                        <label class="label py-1">
-                          <span class="label-text text-sm">{{ $t('stubConfig.flash.densityId') }}</span>
-                        </label>
-                        <input
-                          v-model="device.density_id"
-                          type="text"
-                          placeholder="0x00"
-                          class="input input-bordered input-sm font-mono"
-                          :class="{ 'input-error': device.densityIdError }"
-                          @input="validateHexField(device, 'density_id')"
-                        />
-                        <label v-if="device.densityIdError" class="label">
-                          <span class="label-text-alt text-error">{{ device.densityIdError }}</span>
-                        </label>
-                      </div>
-                      <div class="form-control">
-                        <label class="label py-1">
-                          <span class="label-text text-sm">{{ $t('stubConfig.flash.flags') }}</span>
-                        </label>
-                        <input
-                          v-model="device.flags"
-                          type="text"
-                          placeholder="0x00"
-                          class="input input-bordered input-sm font-mono"
-                          :class="{ 'input-error': device.flagsError }"
-                          @input="validateHexField(device, 'flags')"
-                        />
-                        <label v-if="device.flagsError" class="label">
-                          <span class="label-text-alt text-error">{{ device.flagsError }}</span>
-                        </label>
+                        <div class="form-control">
+                          <label class="label py-1">
+                            <span class="label-text text-sm">{{ $t('stubConfig.flash.driverIndex') }}</span>
+                          </label>
+                          <select v-model.number="device.driver_index" class="select select-bordered select-sm">
+                            <option :value="0">0</option>
+                            <option :value="1">1</option>
+                            <option :value="2">2</option>
+                            <option :value="3">3</option>
+                            <option :value="4">4</option>
+                            <option :value="5">5</option>
+                          </select>
+                        </div>
+
+                        <div class="form-control col-span-2">
+                          <label class="label py-1">
+                            <span class="label-text text-sm">{{ $t('stubConfig.flash.capacity') }}</span>
+                          </label>
+                          <input
+                            v-model="device.capacity_bytes"
+                            type="text"
+                            placeholder="16777216 / 0x1000000 / 16M"
+                            class="input input-bordered input-sm font-mono"
+                            :class="{ 'input-error': device.capacityError }"
+                            @input="validateCapacity(device)"
+                          />
+                          <label class="label">
+                            <span v-if="device.capacityError" class="label-text-alt text-error">
+                              {{ device.capacityError }}
+                            </span>
+                            <span v-else class="label-text-alt">{{ $t('stubConfig.flash.capacityHint') }}</span>
+                          </label>
+                        </div>
+
+                        <div class="form-control">
+                          <label class="label py-1">
+                            <span class="label-text text-sm">{{ $t('stubConfig.flash.manufacturerId') }}</span>
+                          </label>
+                          <input
+                            v-model="device.manufacturer_id"
+                            type="text"
+                            placeholder="0x00"
+                            class="input input-bordered input-sm font-mono"
+                            :class="{ 'input-error': device.manufacturerIdError }"
+                            @input="validateHexField(device, 'manufacturer_id')"
+                          />
+                          <label v-if="device.manufacturerIdError" class="label">
+                            <span class="label-text-alt text-error">{{ device.manufacturerIdError }}</span>
+                          </label>
+                        </div>
+                        <div class="form-control">
+                          <label class="label py-1">
+                            <span class="label-text text-sm">{{ $t('stubConfig.flash.deviceType') }}</span>
+                          </label>
+                          <input
+                            v-model="device.device_type"
+                            type="text"
+                            placeholder="0x00"
+                            class="input input-bordered input-sm font-mono"
+                            :class="{ 'input-error': device.deviceTypeError }"
+                            @input="validateHexField(device, 'device_type')"
+                          />
+                          <label v-if="device.deviceTypeError" class="label">
+                            <span class="label-text-alt text-error">{{ device.deviceTypeError }}</span>
+                          </label>
+                        </div>
+                        <div class="form-control">
+                          <label class="label py-1">
+                            <span class="label-text text-sm">{{ $t('stubConfig.flash.densityId') }}</span>
+                          </label>
+                          <input
+                            v-model="device.density_id"
+                            type="text"
+                            placeholder="0x00"
+                            class="input input-bordered input-sm font-mono"
+                            :class="{ 'input-error': device.densityIdError }"
+                            @input="validateHexField(device, 'density_id')"
+                          />
+                          <label v-if="device.densityIdError" class="label">
+                            <span class="label-text-alt text-error">{{ device.densityIdError }}</span>
+                          </label>
+                        </div>
+                        <div class="form-control">
+                          <label class="label py-1">
+                            <span class="label-text text-sm">{{ $t('stubConfig.flash.flags') }}</span>
+                          </label>
+                          <input
+                            v-model="device.flags"
+                            type="text"
+                            placeholder="0x00"
+                            class="input input-bordered input-sm font-mono"
+                            :class="{ 'input-error': device.flagsError }"
+                            @input="validateHexField(device, 'flags')"
+                          />
+                          <label v-if="device.flagsError" class="label">
+                            <span class="label-text-alt text-error">{{ device.flagsError }}</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </TransitionGroup>
               </div>
 
-              <div v-else class="text-center py-8 text-base-content/60">
+              <div v-if="flashConfig.devices.length === 0" class="text-center py-8 text-base-content/60">
                 <span class="material-icons text-5xl mb-2">storage</span>
                 <p>{{ $t('stubConfig.flash.noDevices') }}</p>
               </div>
@@ -182,6 +192,9 @@
                 <div class="flex items-center gap-3">
                   <span class="material-icons text-primary text-2xl">sd_card</span>
                   <h2 class="text-xl font-bold">{{ $t('stubConfig.sdio.title') }}</h2>
+                  <span v-if="hasSdioConfigError" class="badge badge-error badge-sm">
+                    {{ $t('stubConfig.sdio.sectionInvalid') }}
+                  </span>
                 </div>
                 <div class="flex items-center gap-2 mr-4" @click.stop>
                   <span class="label-text">{{ $t('stubConfig.enable') }}</span>
@@ -317,54 +330,56 @@
               </div>
             </div>
             <div class="collapse-content">
-              <div v-if="pinConfig.enabled" class="space-y-3 mt-2">
-                <div
-                  v-for="(item, index) in pinConfig.items"
-                  :key="index"
-                  class="flex items-center gap-4 p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"
-                >
-                  <div class="flex items-center gap-2 flex-1">
-                    <select v-model="item.port" class="select select-bordered select-sm w-24">
-                      <option value="PA">PA</option>
-                      <option value="PB">PB</option>
-                      <option value="PBR">PBR</option>
-                    </select>
-                    <input
-                      v-model.number="item.number"
-                      type="number"
-                      min="0"
-                      max="63"
-                      :placeholder="$t('stubConfig.pin.pinNumber')"
-                      class="input input-bordered input-sm w-20"
-                    />
+              <div v-if="pinConfig.enabled" class="mt-2">
+                <TransitionGroup name="gpio-slide" tag="div" class="space-y-3">
+                  <div
+                    v-for="(item, index) in pinConfig.items"
+                    :key="item.id"
+                    class="flex items-center gap-4 p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"
+                  >
+                    <div class="flex items-center gap-2 flex-1">
+                      <select v-model="item.port" class="select select-bordered select-sm w-24">
+                        <option value="PA">PA</option>
+                        <option value="PB">PB</option>
+                        <option value="PBR">PBR</option>
+                      </select>
+                      <input
+                        v-model.number="item.number"
+                        type="number"
+                        min="0"
+                        max="63"
+                        :placeholder="$t('stubConfig.pin.pinNumber')"
+                        class="input input-bordered input-sm w-20"
+                      />
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        :name="`pin-${index}`"
+                        value="low"
+                        v-model="item.level"
+                        class="radio radio-sm radio-primary"
+                      />
+                      <span class="text-sm">Low</span>
+
+                      <input
+                        type="radio"
+                        :name="`pin-${index}`"
+                        value="high"
+                        v-model="item.level"
+                        class="radio radio-sm radio-primary ml-2"
+                      />
+                      <span class="text-sm">High</span>
+                    </div>
+
+                    <button class="btn btn-ghost btn-sm btn-circle" @click="removePinConfig(index)">
+                      <span class="material-icons text-error">close</span>
+                    </button>
                   </div>
+                </TransitionGroup>
 
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      :name="`pin-${index}`"
-                      value="low"
-                      v-model="item.level"
-                      class="radio radio-sm radio-primary"
-                    />
-                    <span class="text-sm">Low</span>
-
-                    <input
-                      type="radio"
-                      :name="`pin-${index}`"
-                      value="high"
-                      v-model="item.level"
-                      class="radio radio-sm radio-primary ml-2"
-                    />
-                    <span class="text-sm">High</span>
-                  </div>
-
-                  <button class="btn btn-ghost btn-sm btn-circle" @click="removePinConfig(index)">
-                    <span class="material-icons text-error">close</span>
-                  </button>
-                </div>
-
-                <button class="btn btn-outline btn-sm" @click="addPinConfig">
+                <button class="btn btn-outline btn-sm mt-3" @click="addPinConfig">
                   <span class="material-icons mr-1">add</span>
                   {{ $t('stubConfig.pin.addPin') }}
                 </button>
@@ -518,6 +533,41 @@ const { t } = useI18n();
 const logStore = useLogStore();
 const stubConfigStore = useStubConfigStore();
 
+type PinPort = 'PA' | 'PB' | 'PBR';
+type PinLevel = 'low' | 'high';
+type PinItem = {
+  id: string;
+  port: PinPort;
+  number: number;
+  level: PinLevel;
+};
+
+type FlashMedia = 'nor' | 'nand';
+type FlashDevice = {
+  id: string;
+  media: FlashMedia;
+  driver_index: number;
+  manufacturer_id: string;
+  device_type: string;
+  density_id: string;
+  flags: string;
+  capacity_bytes: string | number;
+  expanded: boolean;
+  capacityError?: string;
+  manufacturerIdError?: string;
+  deviceTypeError?: string;
+  densityIdError?: string;
+  flagsError?: string;
+};
+
+const normalizePinPort = (port?: string): PinPort => {
+  return port === 'PB' || port === 'PBR' ? port : 'PA';
+};
+
+const normalizePinLevel = (level?: string): PinLevel => {
+  return level === 'high' ? 'high' : 'low';
+};
+
 // Stub 机制弹窗控制
 const showStubModal = ref(false);
 
@@ -585,6 +635,14 @@ const hasConflict = computed(() => {
   return false;
 });
 
+const hasFlashConfigError = computed(() => {
+  return flashConfig.value.devices.some(device => getFlashDeviceError(device));
+});
+
+const hasSdioConfigError = computed(() => {
+  return sdioConfig.value.enabled && !!sdioConfig.value.addressError;
+});
+
 // 展开/折叠控制
 const toggleSection = (section: 'pin' | 'pmic' | 'sdio' | 'flash') => {
   switch (section) {
@@ -604,16 +662,26 @@ const toggleSection = (section: 'pin' | 'pmic' | 'sdio' | 'flash') => {
 };
 
 // 添加 PIN 配置
+const createPinItem = (overrides: Partial<PinItem> = {}): PinItem => {
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    port: normalizePinPort(overrides.port),
+    number: overrides.number ?? 0,
+    level: normalizePinLevel(overrides.level),
+    ...overrides,
+  };
+};
+
+const ensurePinIds = () => {
+  pinConfig.value.items = pinConfig.value.items.map(item => (item.id ? item : createPinItem(item)));
+};
+
 const addPinConfig = () => {
   if (pinConfig.value.items.length >= 12) {
     logStore.addMessage(t('stubConfig.pin.maxReached'), true);
     return;
   }
-  pinConfig.value.items.push({
-    port: 'PA',
-    number: 0,
-    level: 'low',
-  });
+  pinConfig.value.items.push(createPinItem());
 };
 
 // 移除 PIN 配置
@@ -626,7 +694,7 @@ const validateBaseAddress = () => {
   const address = sdioConfig.value.base_address;
 
   if (!address) {
-    sdioConfig.value.addressError = '';
+    sdioConfig.value.addressError = t('stubConfig.sdio.addressRequired');
     return;
   }
 
@@ -738,13 +806,9 @@ const validateHexField = (device: any, fieldName: string) => {
   device[errorFieldName] = t('stubConfig.flash.invalidHexValue');
 };
 
-// 添加 FLASH 设备
-const addFlashDevice = () => {
-  if (flashConfig.value.devices.length >= 12) {
-    logStore.addMessage(t('stubConfig.flash.maxReached'), true);
-    return;
-  }
-  flashConfig.value.devices.push({
+const createFlashDevice = (overrides: Partial<FlashDevice> = {}): FlashDevice => {
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     media: 'nor',
     driver_index: 0,
     manufacturer_id: '',
@@ -752,18 +816,53 @@ const addFlashDevice = () => {
     density_id: '',
     flags: '',
     capacity_bytes: '', // 16MB
-    expanded: true,
+    expanded: false,
     capacityError: '',
     manufacturerIdError: '',
     deviceTypeError: '',
     densityIdError: '',
     flagsError: '',
-  });
+    ...overrides,
+  };
+};
+
+// 检查单个 Flash 设备是否配置有误
+const getFlashDeviceError = (device: any) => {
+  if (
+    device.capacityError ||
+    device.manufacturerIdError ||
+    device.deviceTypeError ||
+    device.densityIdError ||
+    device.flagsError
+  ) {
+    return true;
+  }
+
+  if (!device.capacity_bytes || !device.manufacturer_id || !device.device_type || !device.density_id || !device.flags) {
+    return true;
+  }
+
+  return false;
+};
+
+// 添加 FLASH 设备
+const addFlashDevice = () => {
+  if (flashConfig.value.devices.length >= 12) {
+    logStore.addMessage(t('stubConfig.flash.maxReached'), true);
+    return;
+  }
+  flashConfig.value.devices.push(createFlashDevice());
 };
 
 // 移除 FLASH 设备
 const removeFlashDevice = (index: number) => {
   flashConfig.value.devices.splice(index, 1);
+};
+
+const collapseAllFlashDevices = () => {
+  flashConfig.value.devices.forEach(device => {
+    device.expanded = false;
+  });
 };
 
 // 保存配置草稿到 Pinia store
@@ -886,11 +985,13 @@ const applyImportedConfig = (config: any) => {
   if (Array.isArray(config.pins)) {
     pinConfig.value.enabled = config.pins.length > 0;
     pinConfig.value.items = config.pins
-      .map((p: any) => ({
-        port: p.port ?? 'PA',
-        number: Number(p.number) || 0,
-        level: p.level === 'high' ? 'high' : 'low',
-      }))
+      .map((p: any) =>
+        createPinItem({
+          port: normalizePinPort(p.port),
+          number: Number(p.number) || 0,
+          level: normalizePinLevel(p.level),
+        })
+      )
       .slice(0, 12);
   }
 
@@ -917,15 +1018,17 @@ const applyImportedConfig = (config: any) => {
 
   // flash
   if (Array.isArray(config.flash)) {
-    flashConfig.value.devices = config.flash.slice(0, 12).map((f: any) => ({
-      media: f.media === 'nand' ? 'nand' : 'nor',
-      driver_index: Number(f.driver_index) || 0,
-      manufacturer_id: f.manufacturer_id ?? '0x00',
-      device_type: f.device_type ?? '0x00',
-      density_id: f.density_id ?? '0x00',
-      flags: f.flags ?? '0x00',
-      capacity_bytes: f.capacity_bytes ?? '0x1000000',
-    }));
+    flashConfig.value.devices = config.flash.slice(0, 12).map((f: any) =>
+      createFlashDevice({
+        media: f.media === 'nand' ? 'nand' : 'nor',
+        driver_index: Number(f.driver_index) || 0,
+        manufacturer_id: f.manufacturer_id ?? '0x00',
+        device_type: f.device_type ?? '0x00',
+        density_id: f.density_id ?? '0x00',
+        flags: f.flags ?? '0x00',
+        capacity_bytes: f.capacity_bytes ?? '0x1000000',
+      })
+    );
   }
 };
 
@@ -985,6 +1088,8 @@ onMounted(async () => {
 
   // 尝试加载本地草稿
   await loadConfigFromLocal();
+  collapseAllFlashDevices();
+  ensurePinIds();
 });
 
 // 监听配置变化，自动保存到Pinia store和本地
@@ -995,6 +1100,17 @@ watch(
     saveConfigToLocal();
   },
   { deep: true }
+);
+
+watch(
+  () => sdioConfig.value.enabled,
+  enabled => {
+    if (!enabled) {
+      sdioConfig.value.addressError = '';
+    } else {
+      validateBaseAddress();
+    }
+  }
 );
 </script>
 
@@ -1019,5 +1135,65 @@ watch(
 .slide-leave-from {
   opacity: 1;
   transform: translateX(0);
+}
+
+/* Flash 设备卡片滑入滑出动画 */
+.flash-slide-enter-active,
+.flash-slide-leave-active {
+  transition:
+    max-height 0.25s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  overflow: hidden;
+}
+
+.flash-slide-enter-from,
+.flash-slide-leave-to {
+  opacity: 0;
+  transform: translateX(24px);
+  max-height: 0;
+}
+
+.flash-slide-enter-to,
+.flash-slide-leave-from {
+  max-height: 1000px;
+}
+
+.flash-slide-leave-active {
+  position: relative;
+}
+
+.flash-slide-move {
+  transition: transform 0.25s ease;
+}
+
+/* GPIO 配置滑入滑出动画 */
+.gpio-slide-enter-active,
+.gpio-slide-leave-active {
+  transition:
+    max-height 0.25s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  overflow: hidden;
+}
+
+.gpio-slide-enter-from,
+.gpio-slide-leave-to {
+  opacity: 0;
+  transform: translateX(24px);
+  max-height: 0;
+}
+
+.gpio-slide-enter-to,
+.gpio-slide-leave-from {
+  max-height: 200px;
+}
+
+.gpio-slide-leave-active {
+  position: relative;
+}
+
+.gpio-slide-move {
+  transition: transform 0.25s ease;
 }
 </style>

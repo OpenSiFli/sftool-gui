@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export interface FlashDevice {
+  id: string;
   media: 'nor' | 'nand';
   driver_index: number;
   manufacturer_id: string;
@@ -18,6 +19,7 @@ export interface FlashDevice {
 }
 
 export interface PinItem {
+  id: string;
   port: 'PA' | 'PB' | 'PBR';
   number: number;
   level: 'low' | 'high';
