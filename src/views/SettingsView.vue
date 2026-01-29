@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, markRaw } from 'vue';
 import { useUserStore, ThemeType } from '../stores/userStore';
 import { useI18n } from 'vue-i18n';
 import { availableLanguages, Language, getLanguageByCode } from '../i18n';
@@ -115,6 +115,38 @@ const downloadedBytes = ref(0);
 const totalBytes = ref(0);
 const downloadStatus = ref<'idle' | 'downloading' | 'installing' | 'completed' | 'error'>('idle');
 const updateInstance = ref<Update | null>(null);
+const UPDATE_STATE_KEY = 'sftool.updateState';
+
+const hydrateUpdateState = () => {
+  try {
+    const raw = sessionStorage.getItem(UPDATE_STATE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw) as { status?: string; version?: string; releaseNotes?: string };
+    if (data?.status === 'completed') {
+      downloadStatus.value = 'completed';
+      if (data.version) availableVersion.value = data.version;
+      if (data.releaseNotes) releaseNotes.value = data.releaseNotes;
+      updateAvailable.value = true;
+    }
+  } catch {
+    sessionStorage.removeItem(UPDATE_STATE_KEY);
+  }
+};
+
+const persistUpdateState = () => {
+  if (downloadStatus.value === 'completed') {
+    sessionStorage.setItem(
+      UPDATE_STATE_KEY,
+      JSON.stringify({
+        status: 'completed',
+        version: availableVersion.value,
+        releaseNotes: releaseNotes.value,
+      })
+    );
+  } else {
+    sessionStorage.removeItem(UPDATE_STATE_KEY);
+  }
+};
 
 // 格式化文件大小
 const formatBytes = (bytes: number): string => {
@@ -139,7 +171,7 @@ const checkForUpdates = async () => {
       updateAvailable.value = true;
       availableVersion.value = update.version || '';
       releaseNotes.value = update.body || '';
-      updateInstance.value = update;
+      updateInstance.value = markRaw(update);
     } else {
       updateAvailable.value = false;
       availableVersion.value = '';
@@ -157,7 +189,6 @@ const checkForUpdates = async () => {
 // 下载并安装更新
 const downloadAndInstallUpdate = async () => {
   if (!updateInstance.value || isDownloading.value) return;
-
   isDownloading.value = true;
   downloadStatus.value = 'downloading';
   downloadProgress.value = 0;
@@ -166,6 +197,7 @@ const downloadAndInstallUpdate = async () => {
 
   try {
     await updateInstance.value.downloadAndInstall(event => {
+      console.log('Update event:', event);
       switch (event.event) {
         case 'Started':
           totalBytes.value = event.data.contentLength || 0;
@@ -187,6 +219,7 @@ const downloadAndInstallUpdate = async () => {
 
     // 下载安装完成
     downloadStatus.value = 'completed';
+    persistUpdateState();
   } catch (error: any) {
     downloadStatus.value = 'error';
     updateError.value = error?.message || String(error);
@@ -199,6 +232,7 @@ const downloadAndInstallUpdate = async () => {
 // 重启应用
 const restartApp = async () => {
   try {
+    sessionStorage.removeItem(UPDATE_STATE_KEY);
     await relaunch();
   } catch (error) {
     console.error('Failed to relaunch:', error);
@@ -207,16 +241,18 @@ const restartApp = async () => {
 
 // 重置更新状态
 const resetUpdateState = () => {
-  downloadStatus.value = 'idle';
+  downloadStatus.value = 'completed';
   downloadProgress.value = 0;
   downloadedBytes.value = 0;
   totalBytes.value = 0;
   updateError.value = '';
+  sessionStorage.removeItem(UPDATE_STATE_KEY);
 };
 
 // 监听点击事件，用于关闭下拉菜单 + 启动时检查更新
 onMounted(() => {
   document.addEventListener('click', closeLanguageDropdown);
+  hydrateUpdateState();
   checkForUpdates();
 });
 </script>
@@ -325,9 +361,6 @@ onMounted(() => {
                   <button class="btn btn-success gap-2" @click="restartApp">
                     <span class="material-icons">restart_alt</span>
                     {{ $t('setting.restart_now') }}
-                  </button>
-                  <button class="btn btn-ghost btn-sm" @click="resetUpdateState">
-                    {{ $t('setting.restart_later') }}
                   </button>
                 </div>
               </div>
