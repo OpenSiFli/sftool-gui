@@ -15,8 +15,13 @@ sftool 在烧录过程中会先将一段 stub 程序下载至设备 RAM，随后
 
 stub 内置了主流 Flash 驱动。若您的硬件使用了非标准或较新的 Flash 颗粒，需通过此功能手动注入外部驱动：
 
-- Flash 设备：支持额外添加最多 12 组自定义 Flash 驱动，参数配置[参考链接](https://wiki.sifli.com/tools/flash/Flash%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97.html
-)。
+- Flash 设备：支持额外添加最多 12 组自定义 Flash 驱动。
+
+    1. Type的配置，请参考[Flash Type选择](https://wiki.sifli.com/tools/flash/Flash%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97.html#flash-type)
+
+    2. ChipID的配置，请参考[查找ChipID方法](https://wiki.sifli.com/tools/flash/Flash配置指南.html#chipid)
+
+    3. 标志的配置，请参考[配置ext_flags方法](https://wiki.sifli.com/tools/flash/Flash配置指南.html#ext-flags)
 
 - SDIO 配置：支持 SDIO 接口配置，适用于 EMMC 或 TF 卡存储介质。
 
@@ -32,13 +37,13 @@ stub 内置了主流 Flash 驱动。若您的硬件使用了非标准或较新�
 
 校验机制：若填写的参数存在逻辑错误（如格式非法），`应用自定义设置` 开关将无法开启。
 
-![](image-1.png)
+![](images/image-1.png)
 
 ## 行为设定
 
 您可以根据硬件的实时状态，自定义工具在连接与断开时的特定动作。
 
-![](image-2.png)
+![](images/image-2.png)
 
 ### 连接前行为
 
