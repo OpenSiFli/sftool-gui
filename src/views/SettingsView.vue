@@ -241,7 +241,7 @@ const restartApp = async () => {
 
 // 重置更新状态
 const resetUpdateState = () => {
-  downloadStatus.value = 'completed';
+  downloadStatus.value = 'idle';
   downloadProgress.value = 0;
   downloadedBytes.value = 0;
   totalBytes.value = 0;
