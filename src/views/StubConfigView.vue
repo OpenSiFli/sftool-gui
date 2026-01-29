@@ -44,7 +44,7 @@
               <div class="mt-2">
                 <TransitionGroup name="flash-slide" tag="div" class="space-y-3">
                   <div
-                    v-for="(device, index) in flashConfig.devices"
+                    v-for="(device, index) in flashDevices"
                     :key="device.id"
                     class="collapse collapse-arrow bg-base-200"
                     :class="{ 'collapse-open': device.expanded }"
@@ -68,7 +68,11 @@
                           <label class="label py-1">
                             <span class="label-text text-sm">{{ $t('stubConfig.flash.media') }}</span>
                           </label>
-                          <select v-model="device.media" class="select select-bordered select-sm">
+                          <select
+                            v-model="device.media"
+                            class="select select-bordered select-sm"
+                            @change="onFlashMediaChange(device)"
+                          >
                             <option value="nor">NOR Flash</option>
                             <option value="nand">NAND Flash</option>
                           </select>
@@ -108,69 +112,155 @@
                           </label>
                         </div>
 
-                        <div class="form-control">
-                          <label class="label py-1">
-                            <span class="label-text text-sm">{{ $t('stubConfig.flash.manufacturerId') }}</span>
+                        <div class="form-control col-span-2">
+                          <label class="label py-1 flex items-center gap-2 justify-start">
+                            <span class="label-text text-sm font-medium">ChipID</span>
+                            <div class="tooltip tooltip-right" :data-tip="$t('stubConfig.flash.chipIdTooltip')">
+                              <span class="material-icons text-sm text-primary">info</span>
+                            </div>
                           </label>
-                          <input
-                            v-model="device.manufacturer_id"
-                            type="text"
-                            placeholder="0x00"
-                            class="input input-bordered input-sm font-mono"
-                            :class="{ 'input-error': device.manufacturerIdError }"
-                            @input="validateHexField(device, 'manufacturer_id')"
-                          />
-                          <label v-if="device.manufacturerIdError" class="label">
-                            <span class="label-text-alt text-error">{{ device.manufacturerIdError }}</span>
-                          </label>
+                          <div class="grid grid-cols-3 gap-3 p-3 bg-base-200 border border-base-300 rounded-lg">
+                            <div class="form-control">
+                              <label class="label py-1">
+                                <span class="label-text text-sm">{{ $t('stubConfig.flash.manufacturerId') }}</span>
+                              </label>
+                              <input
+                                v-model="device.manufacturer_id"
+                                type="text"
+                                placeholder="0x00"
+                                class="input input-bordered input-sm font-mono"
+                                :class="{ 'input-error': device.manufacturerIdError }"
+                                @input="validateHexField(device, 'manufacturer_id')"
+                              />
+                              <label v-if="device.manufacturerIdError" class="label">
+                                <span class="label-text-alt text-error">{{ device.manufacturerIdError }}</span>
+                              </label>
+                            </div>
+
+                            <div class="form-control">
+                              <label class="label py-1">
+                                <span class="label-text text-sm">{{ $t('stubConfig.flash.deviceType') }}</span>
+                              </label>
+                              <input
+                                v-model="device.device_type"
+                                type="text"
+                                placeholder="0x00"
+                                class="input input-bordered input-sm font-mono"
+                                :class="{ 'input-error': device.deviceTypeError }"
+                                @input="validateHexField(device, 'device_type')"
+                              />
+                              <label v-if="device.deviceTypeError" class="label">
+                                <span class="label-text-alt text-error">{{ device.deviceTypeError }}</span>
+                              </label>
+                            </div>
+
+                            <div class="form-control">
+                              <label class="label py-1">
+                                <span class="label-text text-sm">{{ $t('stubConfig.flash.densityId') }}</span>
+                              </label>
+                              <input
+                                v-model="device.density_id"
+                                type="text"
+                                placeholder="0x00"
+                                class="input input-bordered input-sm font-mono"
+                                :class="{ 'input-error': device.densityIdError }"
+                                @input="validateHexField(device, 'density_id')"
+                              />
+                              <label v-if="device.densityIdError" class="label">
+                                <span class="label-text-alt text-error">{{ device.densityIdError }}</span>
+                              </label>
+                            </div>
+                          </div>
                         </div>
-                        <div class="form-control">
-                          <label class="label py-1">
-                            <span class="label-text text-sm">{{ $t('stubConfig.flash.deviceType') }}</span>
+
+                        <div class="form-control col-span-2">
+                          <label class="label py-1 justify-start">
+                            <span class="label-text text-sm font-medium">{{ $t('stubConfig.flash.flags') }}</span>
+                            <span class="badge badge-info badge-sm font-mono ml-2">{{ device.flags || '0x00' }}</span>
                           </label>
-                          <input
-                            v-model="device.device_type"
-                            type="text"
-                            placeholder="0x00"
-                            class="input input-bordered input-sm font-mono"
-                            :class="{ 'input-error': device.deviceTypeError }"
-                            @input="validateHexField(device, 'device_type')"
-                          />
-                          <label v-if="device.deviceTypeError" class="label">
-                            <span class="label-text-alt text-error">{{ device.deviceTypeError }}</span>
-                          </label>
-                        </div>
-                        <div class="form-control">
-                          <label class="label py-1">
-                            <span class="label-text text-sm">{{ $t('stubConfig.flash.densityId') }}</span>
-                          </label>
-                          <input
-                            v-model="device.density_id"
-                            type="text"
-                            placeholder="0x00"
-                            class="input input-bordered input-sm font-mono"
-                            :class="{ 'input-error': device.densityIdError }"
-                            @input="validateHexField(device, 'density_id')"
-                          />
-                          <label v-if="device.densityIdError" class="label">
-                            <span class="label-text-alt text-error">{{ device.densityIdError }}</span>
-                          </label>
-                        </div>
-                        <div class="form-control">
-                          <label class="label py-1">
-                            <span class="label-text text-sm">{{ $t('stubConfig.flash.flags') }}</span>
-                          </label>
-                          <input
-                            v-model="device.flags"
-                            type="text"
-                            placeholder="0x00"
-                            class="input input-bordered input-sm font-mono"
-                            :class="{ 'input-error': device.flagsError }"
-                            @input="validateHexField(device, 'flags')"
-                          />
-                          <label v-if="device.flagsError" class="label">
-                            <span class="label-text-alt text-error">{{ device.flagsError }}</span>
-                          </label>
+
+                          <div class="p-3 bg-base-200 border border-base-300 rounded-lg">
+                            <div v-if="device.media === 'nor'" class="grid grid-cols-4 gap-3">
+                              <div class="form-control">
+                                <label class="label py-1">
+                                  <span class="label-text text-sm">{{ $t('stubConfig.flash.flagsNorDtr') }}</span>
+                                </label>
+                                <select
+                                  v-model="device.nor_dtr"
+                                  class="select select-bordered select-sm"
+                                  @change="updateFlagsFromUi(device)"
+                                >
+                                  <option :value="false">{{ $t('stubConfig.flash.flagsOptionDisabled') }}</option>
+                                  <option :value="true">{{ $t('stubConfig.flash.flagsOptionEnabled') }}</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div v-else class="grid grid-cols-4 gap-3">
+                              <div class="form-control">
+                                <label class="label py-1">
+                                  <span class="label-text text-sm">{{
+                                    $t('stubConfig.flash.flagsNandDualPlane')
+                                  }}</span>
+                                </label>
+                                <select
+                                  v-model="device.nand_dual_plane"
+                                  class="select select-bordered select-sm"
+                                  @change="updateFlagsFromUi(device)"
+                                >
+                                  <option :value="false">{{ $t('stubConfig.flash.flagsOptionDisabled') }}</option>
+                                  <option :value="true">{{ $t('stubConfig.flash.flagsOptionEnabled') }}</option>
+                                </select>
+                              </div>
+
+                              <div class="form-control">
+                                <label class="label py-1">
+                                  <span class="label-text text-sm">{{ $t('stubConfig.flash.flagsNandPageSize') }}</span>
+                                </label>
+                                <select
+                                  v-model.number="device.nand_page_size"
+                                  class="select select-bordered select-sm"
+                                  @change="updateFlagsFromUi(device)"
+                                >
+                                  <option :value="2048">2048</option>
+                                  <option :value="4096">4096</option>
+                                </select>
+                              </div>
+
+                              <div class="form-control">
+                                <label class="label py-1">
+                                  <span class="label-text text-sm">{{
+                                    $t('stubConfig.flash.flagsNandBlockSize')
+                                  }}</span>
+                                </label>
+                                <select
+                                  v-model.number="device.nand_block_size"
+                                  class="select select-bordered select-sm"
+                                  @change="updateFlagsFromUi(device)"
+                                >
+                                  <option :value="64">64</option>
+                                  <option :value="128">128</option>
+                                </select>
+                              </div>
+
+                              <div class="form-control">
+                                <label class="label py-1">
+                                  <span class="label-text text-sm">{{ $t('stubConfig.flash.flagsNandEccMode') }}</span>
+                                </label>
+                                <select
+                                  v-model.number="device.nand_ecc_mode"
+                                  class="select select-bordered select-sm"
+                                  @change="updateFlagsFromUi(device)"
+                                >
+                                  <option v-for="mode in 7" :key="mode - 1" :value="mode - 1">{{ mode - 1 }}</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <label v-if="device.flagsError" class="label">
+                              <span class="label-text-alt text-error">{{ device.flagsError }}</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -551,6 +641,11 @@ type FlashDevice = {
   device_type: string;
   density_id: string;
   flags: string;
+  nor_dtr?: boolean;
+  nand_dual_plane?: boolean;
+  nand_page_size?: number;
+  nand_block_size?: number;
+  nand_ecc_mode?: number;
   capacity_bytes: string | number;
   expanded: boolean;
   capacityError?: string;
@@ -614,6 +709,8 @@ const flashConfig = computed({
     stubConfigStore.config.flashConfig = value;
   },
 });
+
+const flashDevices = computed<FlashDevice[]>(() => flashConfig.value.devices as FlashDevice[]);
 
 // PMIC 可用通道
 const availablePmicChannels = [
@@ -718,7 +815,7 @@ const validateCapacity = (device: any) => {
   const value = device.capacity_bytes;
 
   if (!value) {
-    device.capacityError = '';
+    device.capacityError = t('stubConfig.flash.capacityRequired');
     return;
   }
 
@@ -787,7 +884,7 @@ const validateHexField = (device: any, fieldName: string) => {
           : 'flagsError';
 
   if (!value) {
-    device[errorFieldName] = '';
+    device[errorFieldName] = t('stubConfig.flash.requiredField');
     return;
   }
 
@@ -806,6 +903,67 @@ const validateHexField = (device: any, fieldName: string) => {
   device[errorFieldName] = t('stubConfig.flash.invalidHexValue');
 };
 
+const parseFlagsByte = (flags: string) => {
+  const valueStr = String(flags || '').trim();
+  const hexPattern = /^0x[0-9a-fA-F]{1,2}$/;
+  if (!hexPattern.test(valueStr)) {
+    return null;
+  }
+  return parseInt(valueStr, 16);
+};
+
+const parseFlagsToUi = (device: FlashDevice) => {
+  const parsed = parseFlagsByte(device.flags);
+  const byte = parsed === null ? 0 : parsed;
+  device.flagsError = parsed === null ? t('stubConfig.flash.invalidHexValue') : '';
+
+  if (device.media === 'nor') {
+    device.nor_dtr = (byte & 0x01) !== 0;
+    device.nand_dual_plane = false;
+    device.nand_page_size = 2048;
+    device.nand_block_size = 64;
+    device.nand_ecc_mode = 0;
+    return;
+  }
+
+  device.nor_dtr = false;
+  device.nand_dual_plane = (byte & 0x02) !== 0;
+  device.nand_page_size = (byte & 0x04) !== 0 ? 4096 : 2048;
+  device.nand_block_size = (byte & 0x08) !== 0 ? 128 : 64;
+  const ecc = (byte >> 4) & 0x0f;
+  device.nand_ecc_mode = ecc <= 6 ? ecc : 0;
+};
+
+const updateFlagsFromUi = (device: FlashDevice) => {
+  let byte = 0;
+  const norDtr = device.nor_dtr ?? false;
+  const nandDualPlane = device.nand_dual_plane ?? false;
+  const nandPageSize = device.nand_page_size ?? 2048;
+  const nandBlockSize = device.nand_block_size ?? 64;
+  const nandEccMode = device.nand_ecc_mode ?? 0;
+
+  if (device.media === 'nor') {
+    byte |= norDtr ? 0x01 : 0x00;
+  } else {
+    byte |= nandDualPlane ? 0x02 : 0x00;
+    byte |= nandPageSize === 4096 ? 0x04 : 0x00;
+    byte |= nandBlockSize === 128 ? 0x08 : 0x00;
+    const ecc = Math.min(6, Math.max(0, Number(nandEccMode) || 0));
+    byte |= ecc << 4;
+  }
+
+  device.flags = `0x${byte.toString(16).padStart(2, '0')}`;
+  device.flagsError = '';
+};
+
+const validateFlashDeviceRequired = (device: FlashDevice) => {
+  validateCapacity(device);
+  validateHexField(device, 'manufacturer_id');
+  validateHexField(device, 'device_type');
+  validateHexField(device, 'density_id');
+  validateHexField(device, 'flags');
+};
+
 const createFlashDevice = (overrides: Partial<FlashDevice> = {}): FlashDevice => {
   return {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -814,7 +972,12 @@ const createFlashDevice = (overrides: Partial<FlashDevice> = {}): FlashDevice =>
     manufacturer_id: '',
     device_type: '',
     density_id: '',
-    flags: '',
+    flags: '0x00',
+    nor_dtr: false,
+    nand_dual_plane: false,
+    nand_page_size: 2048,
+    nand_block_size: 64,
+    nand_ecc_mode: 0,
     capacity_bytes: '', // 16MB
     expanded: false,
     capacityError: '',
@@ -851,12 +1014,27 @@ const addFlashDevice = () => {
     logStore.addMessage(t('stubConfig.flash.maxReached'), true);
     return;
   }
-  flashConfig.value.devices.push(createFlashDevice());
+  const device = createFlashDevice();
+  updateFlagsFromUi(device);
+  validateFlashDeviceRequired(device);
+  flashConfig.value.devices.push(device);
 };
 
 // 移除 FLASH 设备
 const removeFlashDevice = (index: number) => {
   flashConfig.value.devices.splice(index, 1);
+};
+
+const onFlashMediaChange = (device: FlashDevice) => {
+  if (device.media === 'nor') {
+    device.nor_dtr = device.nor_dtr ?? false;
+  } else {
+    device.nand_dual_plane = device.nand_dual_plane ?? false;
+    device.nand_page_size = device.nand_page_size ?? 2048;
+    device.nand_block_size = device.nand_block_size ?? 64;
+    device.nand_ecc_mode = device.nand_ecc_mode ?? 0;
+  }
+  updateFlagsFromUi(device);
 };
 
 const collapseAllFlashDevices = () => {
@@ -1018,8 +1196,8 @@ const applyImportedConfig = (config: any) => {
 
   // flash
   if (Array.isArray(config.flash)) {
-    flashConfig.value.devices = config.flash.slice(0, 12).map((f: any) =>
-      createFlashDevice({
+    flashConfig.value.devices = config.flash.slice(0, 12).map((f: any) => {
+      const device = createFlashDevice({
         media: f.media === 'nand' ? 'nand' : 'nor',
         driver_index: Number(f.driver_index) || 0,
         manufacturer_id: f.manufacturer_id ?? '0x00',
@@ -1027,8 +1205,11 @@ const applyImportedConfig = (config: any) => {
         density_id: f.density_id ?? '0x00',
         flags: f.flags ?? '0x00',
         capacity_bytes: f.capacity_bytes ?? '0x1000000',
-      })
-    );
+      });
+      parseFlagsToUi(device);
+      validateFlashDeviceRequired(device);
+      return device;
+    });
   }
 };
 
@@ -1090,6 +1271,7 @@ onMounted(async () => {
   await loadConfigFromLocal();
   collapseAllFlashDevices();
   ensurePinIds();
+  flashConfig.value.devices.forEach(device => parseFlagsToUi(device));
 });
 
 // 监听配置变化，自动保存到Pinia store和本地
