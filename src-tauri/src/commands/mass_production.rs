@@ -6,6 +6,7 @@ use crate::types::{
     TauriProgressType,
 };
 use crate::utils::create_tool_instance_with_progress;
+use chrono::{Local, TimeZone};
 use sftool_lib::progress::{ProgressEvent, ProgressSink, ProgressSinkArc};
 use sftool_lib::{utils::Utils, WriteFlashParams};
 use std::any::Any;
@@ -311,6 +312,14 @@ fn ensure_port_runtime_log_path(
     Ok(runtime_log_dir.join(file_name))
 }
 
+fn format_log_timestamp(timestamp_millis: u64) -> String {
+    let timestamp = i64::try_from(timestamp_millis).unwrap_or(i64::MAX);
+    match Local.timestamp_millis_opt(timestamp).single() {
+        Some(datetime) => datetime.format("%Y-%m-%d %H:%M:%S%.3f %:z").to_string(),
+        None => timestamp_millis.to_string(),
+    }
+}
+
 fn append_log_line(log_path: &PathBuf, level: &str, message: &str) -> Result<(), String> {
     let mut file = OpenOptions::new()
         .create(true)
@@ -319,7 +328,13 @@ fn append_log_line(log_path: &PathBuf, level: &str, message: &str) -> Result<(),
         .map_err(|e| format!("打开日志文件失败: {e}; path={}", log_path.display()))?;
 
     let formatted_message = message.replace('\r', "");
-    let log_line = format!("[{}][{}] {}\n", now_millis(), level, formatted_message);
+    let timestamp_millis = now_millis();
+    let log_line = format!(
+        "[{}][{}] {}\n",
+        format_log_timestamp(timestamp_millis),
+        level,
+        formatted_message
+    );
     file.write_all(log_line.as_bytes())
         .map_err(|e| format!("写入日志失败: {e}; path={}", log_path.display()))
 }
