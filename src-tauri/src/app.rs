@@ -65,7 +65,9 @@ pub fn run() {
             mass_production_start,
             mass_production_stop,
             mass_production_refresh,
-            mass_production_get_snapshot
+            mass_production_get_snapshot,
+            mass_production_get_log_paths,
+            mass_production_open_log_directory
         ])
         .build(context)
         .expect("error while building tauri application");

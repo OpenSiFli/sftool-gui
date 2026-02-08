@@ -1,17 +1,24 @@
 use crate::state::{AppState, MassProductionState};
 use crate::types::{
-    DeviceConfig, MassProductionPortInfo, MassProductionPortStatus, MassProductionProgressEvent,
-    MassProductionSnapshot, MassProductionStartRequest, TauriProgressContext, TauriProgressEvent,
-    TauriProgressOperation, TauriProgressStatus, TauriProgressType,
+    DeviceConfig, MassProductionLogPaths, MassProductionPortInfo, MassProductionPortStatus,
+    MassProductionProgressEvent, MassProductionSnapshot, MassProductionStartRequest,
+    TauriProgressContext, TauriProgressEvent, TauriProgressOperation, TauriProgressStatus,
+    TauriProgressType,
 };
 use crate::utils::create_tool_instance_with_progress;
 use sftool_lib::progress::{ProgressEvent, ProgressSink, ProgressSinkArc};
 use sftool_lib::{utils::Utils, WriteFlashParams};
+use std::any::Any;
+use std::backtrace::Backtrace;
 use std::collections::{HashMap, HashSet};
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 
 const SCAN_INTERVAL_MS: u64 = 800;
 
@@ -225,6 +232,105 @@ fn now_millis() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64
+}
+
+const SETTINGS_STORE_FILENAME: &str = "massProduction.json";
+const SESSION_LOG_STORE_FILENAME: &str = "massProduction-log.json";
+const MASS_PRODUCTION_RUNTIME_LOG_DIRNAME: &str = "logs";
+const MASS_PRODUCTION_RUNTIME_LOG_FILENAME: &str = "mass-production-runtime.log";
+
+fn resolve_mass_production_log_paths(
+    app_handle: &AppHandle,
+) -> Result<MassProductionLogPaths, String> {
+    let config_dir = app_handle
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("获取配置目录失败: {e}"))?;
+
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取数据目录失败: {e}"))?;
+
+    let runtime_log_dir = data_dir.join(MASS_PRODUCTION_RUNTIME_LOG_DIRNAME);
+    let runtime_log_path = runtime_log_dir.join(MASS_PRODUCTION_RUNTIME_LOG_FILENAME);
+
+    Ok(MassProductionLogPaths {
+        settings_path: config_dir
+            .join(SETTINGS_STORE_FILENAME)
+            .to_string_lossy()
+            .to_string(),
+        session_log_path: config_dir
+            .join(SESSION_LOG_STORE_FILENAME)
+            .to_string_lossy()
+            .to_string(),
+        runtime_log_dir: runtime_log_dir.to_string_lossy().to_string(),
+        runtime_log_path: runtime_log_path.to_string_lossy().to_string(),
+    })
+}
+
+fn ensure_runtime_log_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
+    let paths = resolve_mass_production_log_paths(app_handle)?;
+    let runtime_log_dir = PathBuf::from(paths.runtime_log_dir);
+    fs::create_dir_all(&runtime_log_dir).map_err(|e| format!("创建量产日志目录失败: {e}"))?;
+    Ok(PathBuf::from(paths.runtime_log_path))
+}
+
+fn append_mass_runtime_log(app_handle: &AppHandle, level: &str, message: &str) {
+    let runtime_log_path = match ensure_runtime_log_path(app_handle) {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("[mass-production][log][{level}] {message}");
+            eprintln!("[mass-production][log] {error}");
+            return;
+        }
+    };
+
+    let mut file = match OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&runtime_log_path)
+    {
+        Ok(file) => file,
+        Err(error) => {
+            eprintln!("[mass-production][log][{level}] {message}");
+            eprintln!(
+                "[mass-production][log] 打开日志文件失败: {error}; path={}",
+                runtime_log_path.display()
+            );
+            return;
+        }
+    };
+
+    let formatted_message = message.replace('\r', "");
+    let log_line = format!("[{}][{}] {}\n", now_millis(), level, formatted_message);
+    if let Err(error) = file.write_all(log_line.as_bytes()) {
+        eprintln!(
+            "[mass-production][log] 写入日志失败: {error}; path={}",
+            runtime_log_path.display()
+        );
+    }
+}
+fn panic_payload_summary(payload: &(dyn Any + Send)) -> String {
+    if let Some(message) = payload.downcast_ref::<String>() {
+        return message.clone();
+    }
+
+    if let Some(message) = payload.downcast_ref::<&str>() {
+        return (*message).to_string();
+    }
+
+    if payload.is::<()>() {
+        return "panic payload is unit type ()".to_string();
+    }
+
+    "panic payload is non-string type".to_string()
+}
+
+fn panic_payload_details(payload: &(dyn Any + Send)) -> String {
+    let summary = panic_payload_summary(payload);
+    let backtrace = Backtrace::force_capture();
+    format!("panic_summary={summary}; backtrace={backtrace}")
 }
 
 fn sanitize_request(
@@ -537,6 +643,13 @@ fn run_worker(
         state.clone(),
     ));
 
+    append_mass_runtime_log(
+        &app_handle,
+        "INFO",
+        &format!("session_id={session_id} port={port_name} worker started"),
+    );
+
+    let port_name_for_panic = port_name.clone();
     let result: Result<(), String> = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let device_config = DeviceConfig {
             chip_type: request.chip_model.clone(),
@@ -555,8 +668,32 @@ fn run_worker(
 
         Ok(())
     }))
-    .map_err(|_| "量产任务发生未捕获异常".to_string())
+    .map_err(|panic_payload| {
+        let summary = panic_payload_summary(panic_payload.as_ref());
+        let details = panic_payload_details(panic_payload.as_ref());
+        append_mass_runtime_log(
+            &app_handle,
+            "ERROR",
+            &format!(
+                "session_id={session_id} port={port_name_for_panic} uncaught panic: {details}"
+            ),
+        );
+        format!("量产任务发生未捕获异常: {summary}")
+    })
     .and_then(|result| result);
+
+    match &result {
+        Ok(()) => append_mass_runtime_log(
+            &app_handle,
+            "INFO",
+            &format!("session_id={session_id} port={port_name} worker finished successfully"),
+        ),
+        Err(error) => append_mass_runtime_log(
+            &app_handle,
+            "ERROR",
+            &format!("session_id={session_id} port={port_name} worker failed: {error}"),
+        ),
+    }
 
     {
         let mut locked = state.lock().unwrap();
@@ -660,6 +797,11 @@ fn supervisor_loop(app_handle: AppHandle, state: Arc<Mutex<MassProductionState>>
             let mut locked = state.lock().unwrap();
             scan_ports(&mut locked, false)
         } {
+            append_mass_runtime_log(
+                &app_handle,
+                "ERROR",
+                &format!("supervisor scan failed: {e}"),
+            );
             eprintln!("Mass production scan failed: {e}");
         }
 
@@ -696,6 +838,19 @@ pub async fn mass_production_start(
     request: MassProductionStartRequest,
 ) -> Result<MassProductionSnapshot, String> {
     let request = sanitize_request(request)?;
+    append_mass_runtime_log(
+        &app_handle,
+        "INFO",
+        &format!(
+            "start requested: chip_model={} memory_type={} files={} auto_download={} max_concurrency={}",
+            request.chip_model,
+            request.memory_type,
+            request.files.len(),
+            request.auto_download,
+            request.max_concurrency
+        ),
+    );
+
     let mass_state = with_mass_state(&state)?;
 
     {
@@ -739,6 +894,7 @@ pub async fn mass_production_stop(
     app_handle: AppHandle,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<MassProductionSnapshot, String> {
+    append_mass_runtime_log(&app_handle, "INFO", "stop requested");
     let mass_state = with_mass_state(&state)?;
 
     let handle = {
@@ -768,6 +924,12 @@ pub async fn mass_production_refresh(
     state: State<'_, Mutex<AppState>>,
     trigger_flash: bool,
 ) -> Result<MassProductionSnapshot, String> {
+    append_mass_runtime_log(
+        &app_handle,
+        "INFO",
+        &format!("refresh requested: trigger_flash={trigger_flash}"),
+    );
+
     let mass_state = with_mass_state(&state)?;
 
     {
@@ -792,4 +954,37 @@ pub async fn mass_production_get_snapshot(
     let mass_state = with_mass_state(&state)?;
     let snapshot = { mass_state.lock().unwrap().to_snapshot() };
     Ok(snapshot)
+}
+
+#[tauri::command]
+pub async fn mass_production_get_log_paths(
+    app_handle: AppHandle,
+) -> Result<MassProductionLogPaths, String> {
+    let log_paths = resolve_mass_production_log_paths(&app_handle)?;
+
+    let runtime_log_dir = PathBuf::from(&log_paths.runtime_log_dir);
+    fs::create_dir_all(&runtime_log_dir).map_err(|e| format!("创建量产日志目录失败: {e}"))?;
+
+    let runtime_log_path = PathBuf::from(&log_paths.runtime_log_path);
+    if !runtime_log_path.exists() {
+        OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&runtime_log_path)
+            .map_err(|e| format!("初始化量产日志文件失败: {e}"))?;
+    }
+
+    Ok(log_paths)
+}
+
+#[tauri::command]
+pub async fn mass_production_open_log_directory(app_handle: AppHandle) -> Result<(), String> {
+    let log_paths = mass_production_get_log_paths(app_handle.clone()).await?;
+
+    app_handle
+        .opener()
+        .open_path(log_paths.runtime_log_dir, None::<&str>)
+        .map_err(|e| format!("打开量产日志目录失败: {e}"))?;
+
+    Ok(())
 }
