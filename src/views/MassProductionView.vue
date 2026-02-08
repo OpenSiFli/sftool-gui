@@ -275,7 +275,13 @@
             <div
               v-for="session in recentSessionLogs"
               :key="session.sessionId"
-              class="bg-base-100 rounded p-2 text-xs border border-base-300/60"
+              class="rounded p-2 text-xs border cursor-pointer transition-colors"
+              :class="
+                isSelectedSession(session.sessionId)
+                  ? 'bg-primary/5 border-primary/50'
+                  : 'bg-base-100 border-base-300/60 hover:border-primary/30'
+              "
+              @click="selectSession(session.sessionId)"
             >
               <div class="flex justify-between font-semibold">
                 <span>#{{ session.sessionId }}</span>
@@ -283,7 +289,40 @@
               </div>
               <div class="mt-1 flex justify-between text-base-content/70">
                 <span>{{ session.success }}/{{ session.total }}</span>
-                <span class="text-error" v-if="session.failed > 0">{{ session.failed }} fail</span>
+                <span class="text-error" v-if="session.failed > 0">
+                  {{ t('massProduction.failedCount', { count: session.failed }) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">{{ t('massProduction.failedPortDetails') }}</span>
+          </label>
+          <div class="bg-base-200/70 rounded-lg p-2 max-h-52 overflow-y-auto custom-scrollbar space-y-2">
+            <div v-if="!selectedSessionForDetail" class="text-xs text-base-content/60 p-2">
+              {{ t('massProduction.noSessionData') }}
+            </div>
+            <div v-else-if="failedPortEvents.length === 0" class="text-xs text-base-content/60 p-2">
+              {{ t('massProduction.noFailedPortDetails') }}
+            </div>
+            <div
+              v-for="event in failedPortEvents"
+              :key="event.id"
+              class="bg-base-100 rounded p-2 text-xs border border-base-300/60"
+            >
+              <div class="flex justify-between items-center">
+                <span class="font-semibold text-error">{{ event.portName }}</span>
+                <span class="text-[10px] text-base-content/60">{{ formatTime(event.timestamp) }}</span>
+              </div>
+              <div class="mt-1 text-[11px] text-base-content/80 break-all">
+                {{ event.message || t('massProduction.noErrorMessage') }}
+              </div>
+              <div class="mt-1 text-[10px] text-base-content/60 flex justify-between">
+                <span>{{ t(`massProduction.portEventType.${event.type}`) }}</span>
+                <span>{{ formatDuration(event.durationMs) }}</span>
               </div>
             </div>
           </div>
@@ -510,7 +549,7 @@
 <script setup lang="ts">
 import { listen } from '@tauri-apps/api/event';
 import { appDataDir } from '@tauri-apps/api/path';
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useMassProductionStore, type FilterType } from '../stores/massProductionStore';
@@ -530,12 +569,39 @@ const stubConfigStore = useStubConfigStore();
 
 const { selectedChip, chipSearchInput, filteredChips, showChipDropdown, selectedMemoryType, availableMemoryTypes } =
   storeToRefs(deviceStore);
-const { ports, isEnabled, isRunning, currentSession, recentSessionLogs } = storeToRefs(massProductionStore);
+const { ports, isEnabled, isRunning, currentSession, recentSessionLogs, sessionLogs } =
+  storeToRefs(massProductionStore);
 
 const isRefreshing = ref(false);
 const isToggling = ref(false);
 const showFilterModal = ref(false);
+const selectedSessionId = ref<number | null>(null);
 const unlistenFns: Array<() => void> = [];
+
+const selectedSessionForDetail = computed(() => {
+  if (selectedSessionId.value !== null) {
+    if (currentSession.value?.sessionId === selectedSessionId.value) {
+      return currentSession.value;
+    }
+
+    const matchedSession = sessionLogs.value.find(session => session.sessionId === selectedSessionId.value);
+    if (matchedSession) {
+      return matchedSession;
+    }
+  }
+
+  return currentSession.value || recentSessionLogs.value[0] || null;
+});
+
+const failedPortEvents = computed(() => {
+  if (!selectedSessionForDetail.value) {
+    return [];
+  }
+
+  return selectedSessionForDetail.value.portEvents.filter(
+    event => event.type === 'error' || event.type === 'disconnected'
+  );
+});
 
 const autoDownloadModel = computed({
   get: () => massProductionStore.autoDownload,
@@ -737,6 +803,44 @@ const getStatusProgressClass = (status: MassProductionPortStatus) => {
 const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleString();
 };
+
+const formatDuration = (durationMs?: number) => {
+  if (durationMs == null) {
+    return '-';
+  }
+
+  if (durationMs < 1000) {
+    return `${durationMs} ms`;
+  }
+
+  return `${(durationMs / 1000).toFixed(2)} s`;
+};
+
+const selectSession = (sessionId: number) => {
+  selectedSessionId.value = sessionId;
+};
+
+const isSelectedSession = (sessionId: number) => {
+  return selectedSessionForDetail.value?.sessionId === sessionId;
+};
+
+watch(
+  [currentSession, recentSessionLogs],
+  () => {
+    if (selectedSessionId.value === null) {
+      selectedSessionId.value = currentSession.value?.sessionId ?? recentSessionLogs.value[0]?.sessionId ?? null;
+      return;
+    }
+
+    const existsInCurrent = currentSession.value?.sessionId === selectedSessionId.value;
+    const existsInHistory = sessionLogs.value.some(session => session.sessionId === selectedSessionId.value);
+
+    if (!existsInCurrent && !existsInHistory) {
+      selectedSessionId.value = currentSession.value?.sessionId ?? recentSessionLogs.value[0]?.sessionId ?? null;
+    }
+  },
+  { immediate: true }
+);
 
 onMounted(async () => {
   await Promise.all([
