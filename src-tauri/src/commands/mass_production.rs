@@ -73,6 +73,13 @@ impl PortProgressCallback {
         }
     }
 
+    fn update_port_message(&self, message: String) {
+        let mut state = self.state.lock().unwrap();
+        if let Some(port) = state.ports.get_mut(&self.port_name) {
+            port.message = Some(message);
+        }
+    }
+
     fn operation_label(operation: &TauriProgressOperation) -> &'static str {
         match operation {
             TauriProgressOperation::Connect => "Connecting",
@@ -138,10 +145,7 @@ impl ProgressSink for PortProgressCallback {
                 let context = TauriProgressContext::from(ctx);
                 self.contexts.lock().unwrap().insert(id.0, context.clone());
 
-                self.update_port_progress(
-                    0,
-                    Some(Self::operation_label(&context.operation).to_string()),
-                );
+                self.update_port_message(Self::operation_label(&context.operation).to_string());
 
                 self.emit_event(TauriProgressEvent {
                     id: id.0,
@@ -950,7 +954,7 @@ pub async fn mass_production_start(
 
     let mass_state = with_mass_state(&state)?;
 
-    {
+    let stale_supervisor_handle = {
         let mut locked = mass_state.lock().unwrap();
         if locked.running {
             return Err("量产任务正在运行，请先停止当前任务".to_string());
@@ -960,8 +964,21 @@ pub async fn mass_production_start(
             return Err("仍有端口任务在执行，请稍后再启动新的量产会话".to_string());
         }
 
-        if let Some(handle) = locked.supervisor_thread.take() {
-            let _ = handle.join();
+        locked.supervisor_thread.take()
+    };
+
+    if let Some(handle) = stale_supervisor_handle {
+        let _ = handle.join();
+    }
+
+    {
+        let mut locked = mass_state.lock().unwrap();
+        if locked.running {
+            return Err("量产任务正在运行，请先停止当前任务".to_string());
+        }
+
+        if !locked.active_ports.is_empty() {
+            return Err("仍有端口任务在执行，请稍后再启动新的量产会话".to_string());
         }
 
         let session_id = locked.session_id.saturating_add(1);
