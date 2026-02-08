@@ -276,7 +276,7 @@
               </div>
               <div class="flex justify-between">
                 <span>{{ t('massProduction.manualStopped') }}</span
-                ><span>{{ currentSession.manualStopped ? 'Yes' : 'No' }}</span>
+                ><span>{{ currentSession.manualStopped ? t('massProduction.yes') : t('massProduction.no') }}</span>
               </div>
             </template>
             <div v-else class="text-base-content/60">{{ t('massProduction.noSessionData') }}</div>
@@ -460,7 +460,7 @@
                   class="absolute inset-0 flex flex-col items-center justify-center text-base-content/30 pointer-events-none"
                 >
                   <span class="material-icons text-3xl mb-1">rule</span>
-                  <span class="text-[10px]">No whitelist rules</span>
+                  <span class="text-[10px]">{{ t('massProduction.noWhitelistRules') }}</span>
                 </div>
               </div>
             </div>
@@ -519,7 +519,7 @@
                   class="absolute inset-0 flex flex-col items-center justify-center text-base-content/30 pointer-events-none"
                 >
                   <span class="material-icons text-3xl mb-1">block</span>
-                  <span class="text-[10px]">No blacklist rules</span>
+                  <span class="text-[10px]">{{ t('massProduction.noBlacklistRules') }}</span>
                 </div>
               </div>
             </div>
@@ -730,6 +730,29 @@ const addFile = async () => {
   }
 };
 
+const parseFlashAddressForMassProduction = (file: { name: string; address?: string }) => {
+  if (writeFlashStore.isAutoAddressFile(file.name)) {
+    return 0;
+  }
+
+  const rawAddress = (file.address || '').trim();
+  if (!rawAddress) {
+    throw new Error(`${file.name}: ${t('writeFlash.validation.addressRequired')}`);
+  }
+
+  const hexPattern = /^0x[0-9a-fA-F]+$/;
+  if (!hexPattern.test(rawAddress)) {
+    throw new Error(`${file.name}: ${t('writeFlash.validation.invalidAddress')}`);
+  }
+
+  const parsedAddress = Number.parseInt(rawAddress, 16);
+  if (!Number.isInteger(parsedAddress) || parsedAddress < 0 || parsedAddress > 0xffffffff) {
+    throw new Error(`${file.name}: ${t('writeFlash.validation.addressTooLarge')}`);
+  }
+
+  return parsedAddress;
+};
+
 const createStartRequest = async (): Promise<MassProductionStartRequest> => {
   const stubPath =
     stubConfigStore.applyStubConfig && stubConfigStore.isConfigValid
@@ -747,7 +770,7 @@ const createStartRequest = async (): Promise<MassProductionStartRequest> => {
     after_operation: deviceStore.downloadBehavior.after,
     files: writeFlashStore.selectedFiles.map(file => ({
       file_path: file.path,
-      address: writeFlashStore.isAutoAddressFile(file.name) ? 0 : parseInt(file.address || '0x10000000', 16),
+      address: parseFlashAddressForMassProduction(file),
     })),
     verify: true,
     no_compress: false,

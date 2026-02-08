@@ -88,7 +88,11 @@
       "disconnected": "Disconnected",
       "filtered": "Filtered"
     },
-    "autoDownloadToggleFailed": "Failed to update auto-download setting"
+    "autoDownloadToggleFailed": "Failed to update auto-download setting",
+    "yes": "Yes",
+    "no": "No",
+    "noWhitelistRules": "No whitelist rules",
+    "noBlacklistRules": "No blacklist rules"
   },
   "about": {
     "version": "Version",
