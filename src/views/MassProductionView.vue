@@ -28,7 +28,7 @@
               type="checkbox"
               class="toggle toggle-primary toggle-sm"
               v-model="autoDownloadModel"
-              :disabled="!isEnabled"
+              :disabled="isEnabled"
             />
           </label>
 
