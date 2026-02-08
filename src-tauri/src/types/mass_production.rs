@@ -122,3 +122,11 @@ pub struct MassProductionProgressEvent {
     pub port_name: String,
     pub event: TauriProgressEvent,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MassProductionLogPaths {
+    pub settings_path: String,
+    pub session_log_path: String,
+    pub runtime_log_dir: String,
+    pub runtime_log_path: String,
+}
