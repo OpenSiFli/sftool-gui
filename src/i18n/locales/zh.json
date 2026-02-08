@@ -88,7 +88,11 @@
       "disconnected": "已断开",
       "filtered": "已过滤"
     },
-    "autoDownloadToggleFailed": "更新插入自动下载设置失败"
+    "autoDownloadToggleFailed": "更新插入自动下载设置失败",
+    "yes": "是",
+    "no": "否",
+    "noWhitelistRules": "暂无白名单规则",
+    "noBlacklistRules": "暂无黑名单规则"
   },
   "about": {
     "version": "版本",
