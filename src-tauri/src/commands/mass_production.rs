@@ -238,6 +238,7 @@ const SETTINGS_STORE_FILENAME: &str = "massProduction.json";
 const SESSION_LOG_STORE_FILENAME: &str = "massProduction-log.json";
 const MASS_PRODUCTION_RUNTIME_LOG_DIRNAME: &str = "logs";
 const MASS_PRODUCTION_RUNTIME_LOG_FILENAME: &str = "mass-production-runtime.log";
+const MASS_PRODUCTION_PORT_LOG_PREFIX: &str = "mass-production-port";
 
 fn resolve_mass_production_log_paths(
     app_handle: &AppHandle,
@@ -276,6 +277,52 @@ fn ensure_runtime_log_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
     Ok(PathBuf::from(paths.runtime_log_path))
 }
 
+fn sanitize_log_filename_fragment(input: &str) -> String {
+    let mut sanitized = String::with_capacity(input.len());
+    for ch in input.chars() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
+            sanitized.push(ch);
+        } else {
+            sanitized.push('_');
+        }
+    }
+
+    let trimmed = sanitized.trim_matches('_');
+    if trimmed.is_empty() {
+        return "unknown-port".to_string();
+    }
+
+    trimmed.chars().take(80).collect()
+}
+
+fn ensure_port_runtime_log_path(
+    app_handle: &AppHandle,
+    session_id: u64,
+    port_name: &str,
+) -> Result<PathBuf, String> {
+    let paths = resolve_mass_production_log_paths(app_handle)?;
+    let runtime_log_dir = PathBuf::from(paths.runtime_log_dir);
+    fs::create_dir_all(&runtime_log_dir).map_err(|e| format!("创建量产日志目录失败: {e}"))?;
+
+    let sanitized_port_name = sanitize_log_filename_fragment(port_name);
+    let file_name =
+        format!("{MASS_PRODUCTION_PORT_LOG_PREFIX}-session-{session_id}-{sanitized_port_name}.log");
+
+    Ok(runtime_log_dir.join(file_name))
+}
+
+fn append_log_line(log_path: &PathBuf, level: &str, message: &str) -> Result<(), String> {
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+        .map_err(|e| format!("打开日志文件失败: {e}; path={}", log_path.display()))?;
+
+    let formatted_message = message.replace('\r', "");
+    let log_line = format!("[{}][{}] {}\n", now_millis(), level, formatted_message);
+    file.write_all(log_line.as_bytes())
+        .map_err(|e| format!("写入日志失败: {e}; path={}", log_path.display()))
+}
 fn append_mass_runtime_log(app_handle: &AppHandle, level: &str, message: &str) {
     let runtime_log_path = match ensure_runtime_log_path(app_handle) {
         Ok(path) => path,
@@ -286,30 +333,45 @@ fn append_mass_runtime_log(app_handle: &AppHandle, level: &str, message: &str) {
         }
     };
 
-    let mut file = match OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&runtime_log_path)
-    {
-        Ok(file) => file,
+    if let Err(error) = append_log_line(&runtime_log_path, level, message) {
+        eprintln!("[mass-production][log] {error}");
+    }
+}
+
+fn append_mass_port_runtime_log(
+    app_handle: &AppHandle,
+    session_id: u64,
+    port_name: &str,
+    level: &str,
+    message: &str,
+) {
+    let port_log_path = match ensure_port_runtime_log_path(app_handle, session_id, port_name) {
+        Ok(path) => path,
         Err(error) => {
-            eprintln!("[mass-production][log][{level}] {message}");
-            eprintln!(
-                "[mass-production][log] 打开日志文件失败: {error}; path={}",
-                runtime_log_path.display()
-            );
+            eprintln!("[mass-production][{port_name}][{level}] {message}");
+            eprintln!("[mass-production][{port_name}] {error}");
             return;
         }
     };
 
-    let formatted_message = message.replace('\r', "");
-    let log_line = format!("[{}][{}] {}\n", now_millis(), level, formatted_message);
-    if let Err(error) = file.write_all(log_line.as_bytes()) {
-        eprintln!(
-            "[mass-production][log] 写入日志失败: {error}; path={}",
-            runtime_log_path.display()
-        );
+    if let Err(error) = append_log_line(&port_log_path, level, message) {
+        eprintln!("[mass-production][{port_name}] {error}");
     }
+}
+
+fn append_mass_worker_runtime_log(
+    app_handle: &AppHandle,
+    session_id: u64,
+    port_name: &str,
+    level: &str,
+    message: &str,
+) {
+    append_mass_runtime_log(
+        app_handle,
+        level,
+        &format!("session_id={session_id} port={port_name} {message}"),
+    );
+    append_mass_port_runtime_log(app_handle, session_id, port_name, level, message);
 }
 fn panic_payload_summary(payload: &(dyn Any + Send)) -> String {
     if let Some(message) = payload.downcast_ref::<String>() {
@@ -643,10 +705,12 @@ fn run_worker(
         state.clone(),
     ));
 
-    append_mass_runtime_log(
+    append_mass_worker_runtime_log(
         &app_handle,
+        session_id,
+        &port_name,
         "INFO",
-        &format!("session_id={session_id} port={port_name} worker started"),
+        "worker started",
     );
 
     let port_name_for_panic = port_name.clone();
@@ -671,27 +735,31 @@ fn run_worker(
     .map_err(|panic_payload| {
         let summary = panic_payload_summary(panic_payload.as_ref());
         let details = panic_payload_details(panic_payload.as_ref());
-        append_mass_runtime_log(
+        append_mass_worker_runtime_log(
             &app_handle,
+            session_id,
+            &port_name_for_panic,
             "ERROR",
-            &format!(
-                "session_id={session_id} port={port_name_for_panic} uncaught panic: {details}"
-            ),
+            &format!("uncaught panic: {details}"),
         );
         format!("量产任务发生未捕获异常: {summary}")
     })
     .and_then(|result| result);
 
     match &result {
-        Ok(()) => append_mass_runtime_log(
+        Ok(()) => append_mass_worker_runtime_log(
             &app_handle,
+            session_id,
+            &port_name,
             "INFO",
-            &format!("session_id={session_id} port={port_name} worker finished successfully"),
+            "worker finished successfully",
         ),
-        Err(error) => append_mass_runtime_log(
+        Err(error) => append_mass_worker_runtime_log(
             &app_handle,
+            session_id,
+            &port_name,
             "ERROR",
-            &format!("session_id={session_id} port={port_name} worker failed: {error}"),
+            &format!("worker failed: {error}"),
         ),
     }
 
