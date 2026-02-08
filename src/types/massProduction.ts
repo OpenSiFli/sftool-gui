@@ -82,3 +82,10 @@ export interface MassProductionProgressEvent {
   port_name: string;
   event: ProgressEvent;
 }
+
+export interface MassProductionLogPaths {
+  settings_path: string;
+  session_log_path: string;
+  runtime_log_dir: string;
+  runtime_log_path: string;
+}
