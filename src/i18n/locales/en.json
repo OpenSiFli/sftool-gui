@@ -87,7 +87,8 @@
       "error": "Error",
       "disconnected": "Disconnected",
       "filtered": "Filtered"
-    }
+    },
+    "autoDownloadToggleFailed": "Failed to update auto-download setting"
   },
   "about": {
     "version": "Version",

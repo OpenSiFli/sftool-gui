@@ -136,6 +136,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
 
   const autoDownload = ref(false);
   const maxConcurrency = ref(DEFAULT_CONCURRENCY);
+  const isAutoDownloadSyncing = ref(false);
 
   const whitelist = ref<MassProductionFilterRule[]>([]);
   const blacklist = ref<MassProductionFilterRule[]>([]);
@@ -502,8 +503,29 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     isEnabled.value = value;
   };
 
-  const setAutoDownload = (value: boolean) => {
-    autoDownload.value = value;
+  const setAutoDownload = async (value: boolean) => {
+    const nextValue = Boolean(value);
+    const previousValue = autoDownload.value;
+
+    autoDownload.value = nextValue;
+
+    if (!isEnabled.value) {
+      return;
+    }
+
+    isAutoDownloadSyncing.value = true;
+
+    try {
+      const snapshot = await invoke<MassProductionSnapshot>('mass_production_set_auto_download', {
+        autoDownload: nextValue,
+      });
+      applySnapshot(snapshot);
+    } catch (error) {
+      autoDownload.value = previousValue;
+      throw error;
+    } finally {
+      isAutoDownloadSyncing.value = false;
+    }
   };
 
   const setMaxConcurrency = (value: number) => {
@@ -573,6 +595,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     memoryType,
     autoDownload,
     maxConcurrency,
+    isAutoDownloadSyncing,
     whitelist,
     blacklist,
     isFilterEnabled,

@@ -28,7 +28,7 @@
               type="checkbox"
               class="toggle toggle-primary toggle-sm"
               v-model="autoDownloadModel"
-              :disabled="isEnabled"
+              :disabled="isAutoDownloadSyncing"
             />
           </label>
 
@@ -595,8 +595,16 @@ const stubConfigStore = useStubConfigStore();
 
 const { selectedChip, chipSearchInput, filteredChips, showChipDropdown, selectedMemoryType, availableMemoryTypes } =
   storeToRefs(deviceStore);
-const { ports, isEnabled, isRunning, sessionId, currentSession, recentSessionLogs, sessionLogs } =
-  storeToRefs(massProductionStore);
+const {
+  ports,
+  isEnabled,
+  isRunning,
+  sessionId,
+  currentSession,
+  recentSessionLogs,
+  sessionLogs,
+  isAutoDownloadSyncing,
+} = storeToRefs(massProductionStore);
 
 const isRefreshing = ref(false);
 const isToggling = ref(false);
@@ -631,7 +639,11 @@ const failedPortEvents = computed(() => {
 
 const autoDownloadModel = computed({
   get: () => massProductionStore.autoDownload,
-  set: value => massProductionStore.setAutoDownload(value),
+  set: value => {
+    void massProductionStore.setAutoDownload(value).catch(error => {
+      alert(`${t('massProduction.autoDownloadToggleFailed')}: ${error}`);
+    });
+  },
 });
 
 const maxConcurrencyModel = computed({

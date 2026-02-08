@@ -87,7 +87,8 @@
       "error": "失败",
       "disconnected": "已断开",
       "filtered": "已过滤"
-    }
+    },
+    "autoDownloadToggleFailed": "更新插入自动下载设置失败"
   },
   "about": {
     "version": "版本",
