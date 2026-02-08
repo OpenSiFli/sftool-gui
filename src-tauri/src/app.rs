@@ -61,7 +61,11 @@ pub fn run() {
             erase_flash,
             erase_region,
             set_speed,
-            soft_reset
+            soft_reset,
+            mass_production_start,
+            mass_production_stop,
+            mass_production_refresh,
+            mass_production_get_snapshot
         ])
         .build(context)
         .expect("error while building tauri application");

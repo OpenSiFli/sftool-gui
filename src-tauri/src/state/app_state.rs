@@ -1,3 +1,4 @@
+use crate::state::MassProductionState;
 use crate::types::DeviceConfig;
 use sftool_lib::SifliTool;
 use std::path::PathBuf;
@@ -6,6 +7,7 @@ use std::sync::{Arc, Mutex};
 pub struct AppState {
     pub device_config: Option<DeviceConfig>,
     pub sftool: Option<Arc<Mutex<Box<dyn SifliTool>>>>,
+    pub mass_production: Arc<Mutex<MassProductionState>>,
     /// 临时目录列表，这些目录由后端创建并在应用退出时清理
     pub retained_temp_dirs: Vec<PathBuf>,
 }
@@ -15,6 +17,7 @@ impl Default for AppState {
         AppState {
             device_config: None,
             sftool: None,
+            mass_production: Arc::new(Mutex::new(MassProductionState::default())),
             retained_temp_dirs: Vec::new(),
         }
     }
