@@ -9,9 +9,9 @@
     <div class="card-body py-1 px-2">
       <div class="flex flex-col gap-1">
         <!-- Header: Filename and actions -->
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex-1 min-w-0 flex items-center gap-2 select-none">
-            <div class="font-medium text-sm truncate flex items-center gap-2">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex-1 min-w-0 select-none">
+            <div class="flex items-center gap-1">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 class="h-4 w-4 text-primary flex-shrink-0 transition-transform duration-300"
@@ -22,45 +22,39 @@
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
-              <span class="truncate">{{ file.name }}</span>
-
-              <!-- Collapsed info: Address -->
-              <transition
-                enter-active-class="transition duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-x-2"
-                enter-to-class="opacity-100 translate-x-0"
-                leave-active-class="transition duration-150 ease-in"
-                leave-from-class="opacity-100 translate-x-0"
-                leave-to-class="opacity-0 -translate-x-2"
-              >
-                <span v-if="file.collapsed" class="flex items-center gap-2 flex-shrink-0">
-                  <span
-                    v-if="!store.isAutoAddressFile(file.name) && file.address"
-                    class="text-xs text-base-content/60 font-mono"
-                  >
-                    @ {{ file.address }}
-                  </span>
-                  <span v-if="store.isAutoAddressFile(file.name)" class="badge badge-success badge-xs gap-0.5">
-                    <span class="text-[10px]">{{ $t('writeFlash.autoAddress') }}</span>
-                  </span>
-                </span>
-              </transition>
+              <span class="font-medium text-sm truncate" :title="file.name">{{ file.name }}</span>
             </div>
 
-            <!-- Collapsed info: Size -->
+            <!-- Collapsed info: Address & Size (Second Line) -->
             <transition
               enter-active-class="transition duration-200 ease-out"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
+              enter-from-class="opacity-0 -translate-y-1"
+              enter-to-class="opacity-100 translate-y-0"
               leave-active-class="transition duration-150 ease-in"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-1"
             >
-              <div
-                class="text-xs text-base-content/60 flex-shrink-0"
-                v-if="file.collapsed && file.size && file.size > 0"
-              >
-                {{ formatFileSize(file.size) }}
+              <div v-if="file.collapsed" class="flex items-center gap-2 pl-5 text-xs text-base-content/60">
+                <!-- Address -->
+                <span v-if="!store.isAutoAddressFile(file.name) && file.address" class="font-mono truncate">
+                  @ {{ file.address }}
+                </span>
+                <span
+                  v-if="store.isAutoAddressFile(file.name)"
+                  class="badge badge-success badge-xs gap-0.5 scale-90 origin-left"
+                >
+                  <span class="text-[10px]">{{ $t('writeFlash.autoAddress') }}</span>
+                </span>
+
+                <!-- Separator if both exist -->
+                <span v-if="(file.address || store.isAutoAddressFile(file.name)) && file.size" class="opacity-50"
+                  >|</span
+                >
+
+                <!-- Size -->
+                <span v-if="file.size && file.size > 0" class="whitespace-nowrap">
+                  {{ formatFileSize(file.size) }}
+                </span>
               </div>
             </transition>
           </div>
@@ -68,7 +62,7 @@
           <button
             class="btn btn-xs btn-error btn-ghost hover:bg-error/10 flex-shrink-0"
             @click.stop="removeFile"
-            :disabled="store.isFlashing"
+            :disabled="store.isFlashing || props.disabled"
             :title="$t('writeFlash.removeFile')"
           >
             <svg
@@ -122,6 +116,7 @@
                     :class="{ 'border-error bg-error/5': file.addressError }"
                     :placeholder="$t('writeFlash.addressPlaceholder')"
                     @input="validateAddress"
+                    :disabled="props.disabled || store.isFlashing"
                   />
                 </div>
               </div>
@@ -178,6 +173,7 @@ import type { FlashFile } from '../types/progress';
 const props = defineProps<{
   file: FlashFile;
   index: number;
+  disabled?: boolean;
 }>();
 
 const store = useWriteFlashStore();
