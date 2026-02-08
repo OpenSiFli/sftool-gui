@@ -62,6 +62,17 @@
     "failed": "失败",
     "manualStopped": "手动停止",
     "noSessionData": "暂无会话数据",
+    "failedCount": "{count} 失败",
+    "failedPortDetails": "失败端口明细",
+    "noFailedPortDetails": "当前会话无失败端口明细",
+    "noErrorMessage": "无错误详情",
+    "portEventType": {
+      "queued": "排队",
+      "start": "开始",
+      "success": "成功",
+      "error": "失败",
+      "disconnected": "断开"
+    },
     "navigationLocked": "量产任务运行中，请先停止后再离开页面。",
     "status": {
       "idle": "空闲",

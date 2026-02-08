@@ -62,6 +62,17 @@
     "failed": "Failed",
     "manualStopped": "Manual Stop",
     "noSessionData": "No session data yet",
+    "failedCount": "{count} fail",
+    "failedPortDetails": "Failed Port Details",
+    "noFailedPortDetails": "No failed port details for this session",
+    "noErrorMessage": "No error message",
+    "portEventType": {
+      "queued": "Queued",
+      "start": "Started",
+      "success": "Success",
+      "error": "Error",
+      "disconnected": "Disconnected"
+    },
     "navigationLocked": "Mass production is running. Please stop it before leaving this page.",
     "status": {
       "idle": "Idle",

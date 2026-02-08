@@ -337,8 +337,16 @@ export const useMassProductionStore = defineStore('massProduction', () => {
       currentSession.value.manualStopped = snapshot.manual_stopped;
 
       for (const port of ports.value) {
-        const previousStatus = previousPorts.get(port.name)?.status;
-        if (previousStatus === port.status) continue;
+        const previousPort = previousPorts.get(port.name);
+        const previousStatus = previousPort?.status;
+        const previousMessage = previousPort?.message;
+
+        if (previousStatus === port.status) {
+          if (port.status === 'error' && previousMessage !== port.message) {
+            appendPortEvent(port, 'error');
+          }
+          continue;
+        }
 
         const eventType = mapPortStatusToEvent(port.status);
         if (eventType) {
@@ -359,8 +367,10 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     const progressEvent = payload.event;
 
     if (progressEvent.event_type === 'start') {
+      let statusChangedToFlashing = false;
       if (port.status === 'queued' || port.status === 'idle') {
         port.status = 'flashing';
+        statusChangedToFlashing = true;
       }
       port.message = formatOperationLabel(progressEvent.operation);
 
@@ -376,6 +386,10 @@ export const useMassProductionStore = defineStore('massProduction', () => {
         if (total > 0) {
           port.progress = Math.min(100, Math.round((current * 100) / total));
         }
+      }
+
+      if (statusChangedToFlashing) {
+        appendPortEvent(port, 'start');
       }
       return;
     }
@@ -400,7 +414,6 @@ export const useMassProductionStore = defineStore('massProduction', () => {
       progressCounters.delete(progressEvent.id);
 
       if (progressEvent.status?.kind === 'failed') {
-        port.status = 'error';
         port.message = progressEvent.status.message;
       } else if (port.status === 'flashing') {
         port.progress = 100;
