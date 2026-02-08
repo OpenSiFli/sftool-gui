@@ -43,10 +43,14 @@ async function initApp() {
   const userStore = useUserStore();
   await userStore.loadAll();
 
-  // 2. 设置语言
+  // 2. 预加载量产配置与日志（含过期清理）
+  const massProductionStore = useMassProductionStore();
+  await massProductionStore.loadFromStorage();
+
+  // 3. 设置语言
   await setupI18n();
 
-  // 3. 挂载应用
+  // 4. 挂载应用
   app.mount('#app');
 }
 
