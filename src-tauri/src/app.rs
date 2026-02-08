@@ -67,6 +67,7 @@ pub fn run() {
             mass_production_refresh,
             mass_production_get_snapshot,
             mass_production_get_log_paths,
+            mass_production_open_port_log,
             mass_production_open_log_directory
         ])
         .build(context)
