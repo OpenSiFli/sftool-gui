@@ -71,17 +71,22 @@
           >
             <div class="card-body p-4">
               <div class="flex justify-between items-start mb-2">
-                <div>
-                  <div class="font-bold text-lg flex items-center gap-2">
-                    {{ port.name }}
-                    <span v-if="!massProductionStore.isPortAllowed(port)" class="badge badge-xs badge-ghost">
+                <div class="min-w-0 flex-1 pr-2">
+                  <div class="font-bold flex items-center gap-2 flex-wrap">
+                    <span class="leading-tight break-all" :class="getPortNameClass(port.name)" :title="port.name">
+                      {{ port.name }}
+                    </span>
+                    <span
+                      v-if="!massProductionStore.isPortAllowed(port)"
+                      class="badge badge-xs badge-ghost text-[10px]"
+                    >
                       {{ t('massProduction.filtered') }}
                     </span>
                   </div>
                   <div class="text-xs text-base-content/60">{{ port.chip || t('massProduction.unknownChip') }}</div>
                 </div>
                 <div
-                  class="badge"
+                  class="badge badge-sm text-[10px] leading-tight"
                   :class="getStatusBadgeClass(port.status)"
                   v-if="massProductionStore.isPortAllowed(port)"
                 >
@@ -766,6 +771,24 @@ const addRule = (type: FilterType) => {
     value: '',
     enabled: true,
   });
+};
+
+const getPortNameClass = (portName: string) => {
+  const nameLength = portName.length;
+
+  if (nameLength >= 30) {
+    return 'text-xs';
+  }
+
+  if (nameLength >= 20) {
+    return 'text-sm';
+  }
+
+  if (nameLength >= 14) {
+    return 'text-base';
+  }
+
+  return 'text-lg';
 };
 
 const getStatusBadgeClass = (status: MassProductionPortStatus) => {
