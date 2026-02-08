@@ -108,6 +108,20 @@
               <div class="text-xs truncate text-base-content/70" :title="port.message || undefined">
                 {{ port.message || '-' }}
               </div>
+
+              <div class="mt-2 flex items-center justify-between gap-2">
+                <span class="text-[10px] text-base-content/60 truncate" :title="getPortLogLabel(port.name)">
+                  {{ getPortLogLabel(port.name) }}
+                </span>
+                <button
+                  class="btn btn-ghost btn-xs min-h-0 h-6 px-2"
+                  :disabled="!sessionId"
+                  @click="openPortLog(port.name)"
+                >
+                  <span class="material-icons text-xs">description</span>
+                  {{ t('massProduction.openPortLog') }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -581,7 +595,7 @@ const stubConfigStore = useStubConfigStore();
 
 const { selectedChip, chipSearchInput, filteredChips, showChipDropdown, selectedMemoryType, availableMemoryTypes } =
   storeToRefs(deviceStore);
-const { ports, isEnabled, isRunning, currentSession, recentSessionLogs, sessionLogs } =
+const { ports, isEnabled, isRunning, sessionId, currentSession, recentSessionLogs, sessionLogs } =
   storeToRefs(massProductionStore);
 
 const isRefreshing = ref(false);
@@ -785,6 +799,52 @@ const openMassProductionLogDirectory = async () => {
     await massProductionStore.openMassProductionLogDirectory();
   } catch (error) {
     alert(`${t('massProduction.openLogDirectoryFailed')}: ${error}`);
+  }
+};
+
+const PORT_RUNTIME_LOG_PREFIX = 'mass-production-port';
+
+const sanitizePortLogFilenameFragment = (portName: string) => {
+  const normalized = portName
+    .split('')
+    .map(ch => (/^[a-zA-Z0-9_.-]$/.test(ch) ? ch : '_'))
+    .join('')
+    .replace(/^_+|_+$/g, '');
+
+  const safeName = normalized || 'unknown-port';
+  return safeName.slice(0, 80);
+};
+
+const getPortLogFileName = (portName: string) => {
+  const currentSessionId = sessionId.value;
+  if (!currentSessionId || currentSessionId <= 0) {
+    return null;
+  }
+
+  const sanitizedPortName = sanitizePortLogFilenameFragment(portName);
+  return `${PORT_RUNTIME_LOG_PREFIX}-session-${currentSessionId}-${sanitizedPortName}.log`;
+};
+
+const getPortLogLabel = (portName: string) => {
+  const fileName = getPortLogFileName(portName);
+  if (!fileName) {
+    return '-';
+  }
+
+  return t('massProduction.portLogFile', { file: fileName }) as string;
+};
+
+const openPortLog = async (portName: string) => {
+  const currentSessionId = sessionId.value;
+  if (!currentSessionId || currentSessionId <= 0) {
+    alert(t('massProduction.noSessionData'));
+    return;
+  }
+
+  try {
+    await massProductionStore.openMassProductionPortLog(portName, currentSessionId);
+  } catch (error) {
+    alert(`${t('massProduction.openPortLogFailed')}: ${error}`);
   }
 };
 

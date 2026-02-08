@@ -68,6 +68,9 @@
     "noErrorMessage": "No error message",
     "openLogDirectory": "Open Log Directory",
     "openLogDirectoryFailed": "Failed to open log directory",
+    "openPortLog": "Open Port Log",
+    "openPortLogFailed": "Failed to open port log",
+    "portLogFile": "Log: {file}",
     "portEventType": {
       "queued": "Queued",
       "start": "Started",

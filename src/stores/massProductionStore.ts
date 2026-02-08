@@ -545,6 +545,18 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     await invoke<void>('mass_production_open_log_directory');
   };
 
+  const openMassProductionPortLog = async (portName: string, targetSessionId?: number) => {
+    const effectiveSessionId = targetSessionId ?? sessionId.value;
+    if (!effectiveSessionId || effectiveSessionId <= 0) {
+      throw new Error('No active mass production session');
+    }
+
+    return await invoke<string>('mass_production_open_port_log', {
+      sessionId: effectiveSessionId,
+      portName,
+    });
+  };
+
   const clearSessionLogs = async () => {
     sessionLogs.value = [];
     await saveSessionLogsToStorage();
@@ -594,5 +606,6 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     fetchSnapshot,
     fetchMassProductionLogPaths,
     openMassProductionLogDirectory,
+    openMassProductionPortLog,
   };
 });

@@ -68,6 +68,9 @@
     "noErrorMessage": "无错误详情",
     "openLogDirectory": "打开日志目录",
     "openLogDirectoryFailed": "打开日志目录失败",
+    "openPortLog": "打开端口日志",
+    "openPortLogFailed": "打开端口日志失败",
+    "portLogFile": "日志: {file}",
     "portEventType": {
       "queued": "排队",
       "start": "开始",
