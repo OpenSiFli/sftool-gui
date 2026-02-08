@@ -323,6 +323,20 @@ fn append_log_line(log_path: &PathBuf, level: &str, message: &str) -> Result<(),
     file.write_all(log_line.as_bytes())
         .map_err(|e| format!("写入日志失败: {e}; path={}", log_path.display()))
 }
+
+fn ensure_log_file_exists(log_path: &PathBuf) -> Result<(), String> {
+    if log_path.exists() {
+        return Ok(());
+    }
+
+    OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+        .map_err(|e| format!("初始化日志文件失败: {e}; path={}", log_path.display()))?;
+
+    Ok(())
+}
 fn append_mass_runtime_log(app_handle: &AppHandle, level: &str, message: &str) {
     let runtime_log_path = match ensure_runtime_log_path(app_handle) {
         Ok(path) => path,
@@ -1034,15 +1048,25 @@ pub async fn mass_production_get_log_paths(
     fs::create_dir_all(&runtime_log_dir).map_err(|e| format!("创建量产日志目录失败: {e}"))?;
 
     let runtime_log_path = PathBuf::from(&log_paths.runtime_log_path);
-    if !runtime_log_path.exists() {
-        OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&runtime_log_path)
-            .map_err(|e| format!("初始化量产日志文件失败: {e}"))?;
-    }
+    ensure_log_file_exists(&runtime_log_path)?;
 
     Ok(log_paths)
+}
+#[tauri::command]
+pub async fn mass_production_open_port_log(
+    app_handle: AppHandle,
+    session_id: u64,
+    port_name: String,
+) -> Result<String, String> {
+    let port_log_path = ensure_port_runtime_log_path(&app_handle, session_id, &port_name)?;
+    ensure_log_file_exists(&port_log_path)?;
+
+    app_handle
+        .opener()
+        .open_path(port_log_path.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| format!("打开端口日志文件失败: {e}"))?;
+
+    Ok(port_log_path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
