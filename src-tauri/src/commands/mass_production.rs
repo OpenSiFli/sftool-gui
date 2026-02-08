@@ -1030,6 +1030,53 @@ pub async fn mass_production_refresh(
 }
 
 #[tauri::command]
+pub async fn mass_production_set_auto_download(
+    app_handle: AppHandle,
+    state: State<'_, Mutex<AppState>>,
+    auto_download: bool,
+) -> Result<MassProductionSnapshot, String> {
+    append_mass_runtime_log(
+        &app_handle,
+        "INFO",
+        &format!("set auto_download requested: auto_download={auto_download}"),
+    );
+
+    let mass_state = with_mass_state(&state)?;
+
+    {
+        let mut locked = mass_state.lock().unwrap();
+        let Some(request) = locked.request.as_mut() else {
+            return Err("量产任务未初始化，无法更新插入自动下载配置".to_string());
+        };
+
+        request.auto_download = auto_download;
+
+        if locked.running && !auto_download {
+            let queued_ports: Vec<String> = locked.queue.drain(..).collect();
+            for port_name in queued_ports {
+                if let Some(port) = locked.ports.get_mut(&port_name) {
+                    if port.status == MassProductionPortStatus::Queued {
+                        port.status = MassProductionPortStatus::Idle;
+                        port.progress = 0;
+                        port.message = Some("Ready".to_string());
+                        port.task_started_at = None;
+                        port.task_finished_at = None;
+                    }
+                }
+            }
+        }
+
+        scan_ports(&mut locked, false)?;
+    }
+
+    dispatch_workers(&app_handle, &mass_state);
+
+    let snapshot = { mass_state.lock().unwrap().to_snapshot() };
+    emit_snapshot(&app_handle, &snapshot);
+    Ok(snapshot)
+}
+
+#[tauri::command]
 pub async fn mass_production_get_snapshot(
     state: State<'_, Mutex<AppState>>,
 ) -> Result<MassProductionSnapshot, String> {
