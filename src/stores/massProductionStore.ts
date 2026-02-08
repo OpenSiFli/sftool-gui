@@ -10,6 +10,7 @@ import type {
   MassProductionProgressEvent,
   MassProductionSnapshot,
   MassProductionStartRequest,
+  MassProductionLogPaths,
 } from '../types/massProduction';
 import type { MassProductionPortEventType, MassProductionSessionLog } from '../types/massProductionLog';
 import type { ProgressOperation } from '../types/progress';
@@ -149,6 +150,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
 
   const currentSession = ref<MassProductionSessionLog | null>(null);
   const sessionLogs = ref<MassProductionSessionLog[]>([]);
+  const logPaths = ref<MassProductionLogPaths | null>(null);
 
   const settingsReady = ref(false);
   const pendingFileSummary = ref<string[]>([]);
@@ -533,6 +535,16 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     return snapshot;
   };
 
+  const fetchMassProductionLogPaths = async () => {
+    const paths = await invoke<MassProductionLogPaths>('mass_production_get_log_paths');
+    logPaths.value = paths;
+    return paths;
+  };
+
+  const openMassProductionLogDirectory = async () => {
+    await invoke<void>('mass_production_open_log_directory');
+  };
+
   const clearSessionLogs = async () => {
     sessionLogs.value = [];
     await saveSessionLogsToStorage();
@@ -561,6 +573,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     currentSession,
     sessionLogs,
     recentSessionLogs,
+    logPaths,
     setEnabled,
     setAutoDownload,
     setMaxConcurrency,
@@ -579,5 +592,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     stopMassProduction,
     refreshMassProduction,
     fetchSnapshot,
+    fetchMassProductionLogPaths,
+    openMassProductionLogDirectory,
   };
 });

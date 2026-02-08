@@ -270,8 +270,12 @@
         </div>
 
         <div class="form-control">
-          <label class="label">
+          <label class="label justify-between gap-2">
             <span class="label-text font-semibold">{{ t('massProduction.sessionHistory') }}</span>
+            <button class="btn btn-xs btn-ghost gap-1" @click="openMassProductionLogDirectory">
+              <span class="material-icons text-sm">folder_open</span>
+              {{ t('massProduction.openLogDirectory') }}
+            </button>
           </label>
           <div class="bg-base-200/70 rounded-lg p-2 max-h-40 overflow-y-auto custom-scrollbar space-y-2">
             <div v-if="recentSessionLogs.length === 0" class="text-xs text-base-content/60 p-2">
@@ -299,6 +303,9 @@
                 </span>
               </div>
             </div>
+          </div>
+          <div v-if="massProductionStore.logPaths" class="text-[10px] text-base-content/60 mt-1 break-all px-1">
+            {{ massProductionStore.logPaths.runtime_log_path }}
           </div>
         </div>
 
@@ -773,6 +780,14 @@ const addRule = (type: FilterType) => {
   });
 };
 
+const openMassProductionLogDirectory = async () => {
+  try {
+    await massProductionStore.openMassProductionLogDirectory();
+  } catch (error) {
+    alert(`${t('massProduction.openLogDirectoryFailed')}: ${error}`);
+  }
+};
+
 const getPortNameClass = (portName: string) => {
   const nameLength = portName.length;
 
@@ -868,6 +883,7 @@ watch(
 onMounted(async () => {
   await Promise.all([
     massProductionStore.loadFromStorage(),
+    massProductionStore.fetchMassProductionLogPaths(),
     deviceStore.loadFromStorage(),
     writeFlashStore.loadFilesFromStorage(),
   ]);

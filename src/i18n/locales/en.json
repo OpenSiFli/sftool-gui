@@ -66,6 +66,8 @@
     "failedPortDetails": "Failed Port Details",
     "noFailedPortDetails": "No failed port details for this session",
     "noErrorMessage": "No error message",
+    "openLogDirectory": "Open Log Directory",
+    "openLogDirectoryFailed": "Failed to open log directory",
     "portEventType": {
       "queued": "Queued",
       "start": "Started",

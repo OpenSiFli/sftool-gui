@@ -66,6 +66,8 @@
     "failedPortDetails": "失败端口明细",
     "noFailedPortDetails": "当前会话无失败端口明细",
     "noErrorMessage": "无错误详情",
+    "openLogDirectory": "打开日志目录",
+    "openLogDirectoryFailed": "打开日志目录失败",
     "portEventType": {
       "queued": "排队",
       "start": "开始",
