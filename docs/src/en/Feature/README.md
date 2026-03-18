@@ -31,13 +31,13 @@ Import/export: supports JSON format configuration files for easy parameter migra
 
 Validation: if entered parameters contain logical errors (e.g., invalid formats), the `Apply custom settings` switch cannot be enabled.
 
-![](image-1.png)
+![](images/image-1.png)
 
 ## Behavior Settings
 
 You can customize specific actions the tool performs when connecting or disconnecting based on the hardware's real-time state.
 
-![](image-2.png)
+![](images/image-2.png)
 
 ### Before Connect
 

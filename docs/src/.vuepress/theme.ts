@@ -20,6 +20,20 @@ export default hopeTheme({
   docsDir: "src",
 
   locales: {
+    "/zh_CN/": {
+      navbar: zhNavbar,
+
+      sidebar: zhSidebar,
+
+      footer: "Apache-2.0 license | 2019 - 2026 思澈科技（南京）有限公司",
+
+      displayFooter: true,
+
+      metaLocales: {
+        editLink: "在 GitHub 上编辑此页",
+      },
+    },
+
     "/en/": {
       // navbar
       navbar: enNavbar,
@@ -43,8 +57,8 @@ export default hopeTheme({
       // navbar
       navbar: zhNavbar,
 
-      // sidebar
-      sidebar: zhSidebar,
+      // The root page only redirects to /zh_CN/ and does not need a sidebar.
+      sidebar: false,
 
       footer: "Apache-2.0 license | 2019 - 2026 思澈科技（南京）有限公司",
 

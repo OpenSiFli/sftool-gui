@@ -36,4 +36,4 @@ SD 卡：可移动存储，便于数据记录和更新
 >
 > stub 中仅内置有限数量的 Flash 驱动。当所使用的 Flash 颗粒未包含在内置驱动库中时，必须手动注入外部 Flash 驱动才能正常工作。
 >
-> 有关注入Flash驱动的说明，请参见[stub配置](/Feature/README.md#stub配置)
+> 有关注入Flash驱动的说明，请参见[stub配置](/zh_CN/Feature/README.md#stub配置)

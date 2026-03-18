@@ -8,7 +8,7 @@ icon: upload
 
 ## Preparation
 
-Before performing a read operation, ensure the device is connected. For connection steps, see [Firmware Flashing -Flashing Preparation](/en/get-started/configureproject.md##flashing-preparation). Complete the serial port and baud rate configuration and confirm the device is connected.
+Before performing a read operation, ensure the device is connected. For connection steps, see [Firmware Flashing -Flashing Preparation](/en/get-started/configureproject.md#flashing-preparation). Complete the serial port and baud rate configuration and confirm the device is connected.
 
 ## Configure Read Tasks
 

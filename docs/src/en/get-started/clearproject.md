@@ -14,7 +14,7 @@ Erasing will clear data on the Flash. This operation cannot be undone!
 
 Before performing erase operations, ensure you have completed the following:
 
-- Connection setup: For specific connection steps, refer to [Firmware Flashing -Flashing Preparation](/en/get-started/configureproject.md##flashing-preparation), configure the correct serial parameters, and successfully connect the device.
+- Connection setup: For specific connection steps, refer to [Firmware Flashing -Flashing Preparation](/en/get-started/configureproject.md#flashing-preparation), configure the correct serial parameters, and successfully connect the device.
 
 - Data confirmation: Confirm there is no important unbacked data in Flash before erasing.
 

@@ -8,6 +8,11 @@ export default defineUserConfig({
   base: "/projects/sftool/",
 
   locales: {
+    "/zh_CN/": {
+      lang: "zh-CN",
+      title: "sftool-gui",
+      description: "sftool-gui",
+    },
     "/en/": {
       lang: "en-US",
       title: "sftool-gui",
