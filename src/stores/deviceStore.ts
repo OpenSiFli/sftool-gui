@@ -60,6 +60,8 @@ export const useDeviceStore = defineStore('device', {
     // 芯片与存储器映射
     chipMemoryTypes: {
       SF32LB52: ['NOR', 'NAND', 'SD'],
+      SF32LB56: ['NOR', 'NAND', 'SD'],
+      SF32LB58: ['NOR', 'NAND', 'SD'],
       SF32LB55: ['NOR', 'SD'],
       default: ['NOR'],
     } as Record<string, string[]>,
