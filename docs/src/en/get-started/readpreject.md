@@ -9,10 +9,8 @@ icon: upload
 
 ## Preparation
 
-Before performing a read operation, ensure the device is connected. For
-connection steps, see [Firmware Flashing -Flashing
-Preparation](/zh_CN/get-started/configureproject.md#烧录准备). Complete the serial
-port and baud rate configuration and confirm the device is connected.
+在执行读取操作前，请确保设备已连接。具体的连接步骤请参考 [烧录固件 -
+烧录准备](/zh_CN/get-started/configureproject.md#烧录准备)章节，完成串口和波特率的配置并成功连接设备。
 
 ## Configure Read Tasks
 
@@ -23,10 +21,12 @@ port and baud rate configuration and confirm the device is connected.
    in one run.
 
 ::: note About the "Read Size" format
+
 - Hexadecimal: supports standard hex format (e.g., 0x1000).
 - Decimal with units: supports k / m suffixes (case-insensitive).
-- Note: do not add a trailing "b" to the unit (for example, 4k is correct; 4kb
-  is incorrect). :::
+- 注意：单位后缀不需要加 b（例如：填写 4k 是正确的，填写 4kb 是错误的）。
+
+:::
 
 ![](images/image7.png)
 
