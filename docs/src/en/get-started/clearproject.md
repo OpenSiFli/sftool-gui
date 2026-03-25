@@ -10,7 +10,8 @@ icon: trash-can
 
 ::: caution
 
-擦除操作将清除 Flash 中的数据，此操作不可撤销！
+The erasure process will clear all data from the Flash memory. This operation is
+irreversible!
 
 :::
 
