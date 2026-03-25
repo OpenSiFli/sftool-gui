@@ -8,9 +8,11 @@ icon: fa-solid fa-sitemap
 
 ## Stub Configuration
 
-::: info stub 机制说明
+::: info Stub Mechanism Overview
 
-sftool 在烧录过程中会先将一段 stub 程序下载至设备 RAM，随后由上位机与该 stub 进行交互，以完成 Flash 的读取、擦除与写入操作。
+To facilitate flash programming, sftool first downloads a stub to the device
+RAM, which then handles communication with the host to execute read, erase, and
+write commands.
 
 :::
 
