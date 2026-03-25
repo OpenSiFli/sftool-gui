@@ -8,9 +8,11 @@ icon: fa-solid fa-sitemap
 
 ## Stub Configuration
 
-::: info stub Mechanism explanation During flashing, sftool first downloads a
-small stub program into the device RAM. The host then interacts with this stub
-to perform Flash read, erase, and write operations. :::
+::: info stub 机制说明
+
+sftool 在烧录过程中会先将一段 stub 程序下载至设备 RAM，随后由上位机与该 stub 进行交互，以完成 Flash 的读取、擦除与写入操作。
+
+:::
 
 ### Driver Injection and Hardware Initialization
 
