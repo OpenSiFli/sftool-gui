@@ -9,8 +9,10 @@ icon: upload
 
 ## Preparation
 
-在执行读取操作前，请确保设备已连接。具体的连接步骤请参考 [烧录固件 -
-烧录准备](/zh_CN/get-started/configureproject.md#烧录准备)章节，完成串口和波特率的配置并成功连接设备。
+Before initiating a read operation, ensure the device is connected. For detailed
+connection procedures, refer to the [Firmware Flashing -
+Preparation](/zh_CN/get-started/configureproject.md#烧录准备) section to configure
+the serial port and baud rate and establish a successful connection.
 
 ## Configure Read Tasks
 
@@ -24,7 +26,8 @@ icon: upload
 
 - Hexadecimal: supports standard hex format (e.g., 0x1000).
 - Decimal with units: supports k / m suffixes (case-insensitive).
-- 注意：单位后缀不需要加 b（例如：填写 4k 是正确的，填写 4kb 是错误的）。
+- Note: Do not include the "b" suffix for units (e.g., "4k" is correct; "4kb" is
+  incorrect).
 
 :::
 
