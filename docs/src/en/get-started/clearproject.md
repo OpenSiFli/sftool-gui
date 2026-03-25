@@ -8,8 +8,12 @@ icon: trash-can
 > modes are provided: full chip erase and area (sector) erase to meet different
 > development needs.
 
-::: caution Erasing will clear data on the Flash. This operation cannot be
-undone! :::
+::: caution
+
+The erasure process will clear all data from the Flash memory. This operation is
+irreversible!
+
+:::
 
 ## Preparation
 
