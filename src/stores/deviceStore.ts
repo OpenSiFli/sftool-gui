@@ -2,14 +2,11 @@ import { defineStore } from 'pinia';
 import { load } from '@tauri-apps/plugin-store';
 import type { ChipModel } from '../config/chips';
 import { CHIP_MODELS } from '../config/chips';
+import type { ConnectionIssue, PortInfo } from '../types/device';
+import { findMatchingPort, isPortAvailable, usbIdentityKey } from '../types/device';
 // 下载/重启行为类型
 export type ResetBeforeMode = 'default_reset' | 'no_reset' | 'no_reset_no_sync';
 export type ResetAfterMode = 'soft_reset' | 'no_reset';
-
-interface PortInfo {
-  name: string;
-  port_type: string;
-}
 
 // 存储实例
 let store: any = null;
@@ -27,6 +24,7 @@ export const useDeviceStore = defineStore('device', {
     // 设备连接状态
     isConnected: false,
     isConnecting: false,
+    connectionIssue: null as ConnectionIssue | null,
 
     // 芯片选择
     selectedChip: null as ChipModel | null,
@@ -87,10 +85,14 @@ export const useDeviceStore = defineStore('device', {
       if (!this.selectedChip || !this.selectedMemoryType) return false;
 
       if (this.selectedInterface === 'UART') {
-        return !!this.selectedPort && !!this.baudRateInput;
+        return !!this.selectedPort && this.selectedPortAvailable && !!this.baudRateInput;
       } else {
         return true; // USB接口不需要其他配置
       }
+    },
+
+    selectedPortAvailable(): boolean {
+      return isPortAvailable(this.selectedPort, this.availablePorts);
     },
 
     // 过滤的芯片列表
@@ -116,11 +118,22 @@ export const useDeviceStore = defineStore('device', {
     // 设置连接状态
     setConnected(connected: boolean) {
       this.isConnected = connected;
+      if (connected) {
+        this.connectionIssue = null;
+      }
       this.saveToStorage();
     },
 
     setConnecting(connecting: boolean) {
       this.isConnecting = connecting;
+    },
+
+    setConnectionIssue(issue: ConnectionIssue | null) {
+      this.connectionIssue = issue;
+    },
+
+    clearConnectionIssue() {
+      this.connectionIssue = null;
     },
 
     // 设置芯片
@@ -166,12 +179,55 @@ export const useDeviceStore = defineStore('device', {
       if (port) {
         this.portSearchInput = port.name;
       }
+      this.connectionIssue = null;
       this.saveToStorage();
     },
 
     // 设置可用串口列表
     setAvailablePorts(ports: PortInfo[]) {
       this.availablePorts = ports;
+    },
+
+    applyAvailablePorts(ports: PortInfo[]) {
+      const wasSelectedPortAvailable = isPortAvailable(this.selectedPort, this.availablePorts);
+      const previousSelectedPort = this.selectedPort;
+
+      this.availablePorts = ports;
+
+      if (!previousSelectedPort) {
+        return {
+          selectedPortAvailable: false,
+          selectedPortChanged: false,
+          selectionRecovered: false,
+        };
+      }
+
+      const matchedPort = findMatchingPort(previousSelectedPort, ports);
+      if (!matchedPort) {
+        return {
+          selectedPortAvailable: false,
+          selectedPortChanged: false,
+          selectionRecovered: false,
+        };
+      }
+
+      const selectedPortChanged =
+        matchedPort.name !== previousSelectedPort.name ||
+        matchedPort.port_type !== previousSelectedPort.port_type ||
+        usbIdentityKey(matchedPort.usb_info) !== usbIdentityKey(previousSelectedPort.usb_info);
+
+      this.selectedPort = matchedPort;
+      if (selectedPortChanged) {
+        this.portSearchInput = matchedPort.name;
+        this.tempPortInput = matchedPort.name;
+        this.saveToStorage();
+      }
+
+      return {
+        selectedPortAvailable: true,
+        selectedPortChanged,
+        selectionRecovered: !wasSelectedPortAvailable,
+      };
     },
 
     setLoadingPorts(loading: boolean) {
@@ -373,6 +429,7 @@ export const useDeviceStore = defineStore('device', {
 
       this.isConnected = false;
       this.isConnecting = false;
+      this.connectionIssue = null;
 
       await this.saveToStorage();
     },

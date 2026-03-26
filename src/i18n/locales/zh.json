@@ -361,6 +361,10 @@
     "pleaseCompleteConfig": "请完成所有必要的设备配置",
     "connectFailedMessage": "连接设备失败，请检查设备连接后重试",
     "connectError": "连接设备时出错",
+    "deviceRemovedNotice": "已检测到端口 {port} 被移除，连接状态已自动断开。请重新插入设备后手动连接。",
+    "deviceRecoveredNotice": "端口 {port} 已重新出现。设备配置已恢复，请手动重新连接。",
+    "deviceRemovedLog": "检测到端口 {port} 已被移除，已自动断开当前连接",
+    "deviceRecoveredLog": "检测到端口 {port} 已恢复，请手动重新连接",
     "downloadBehavior": {
       "title": "行为设定",
       "beforeLabel": "连接前操作",

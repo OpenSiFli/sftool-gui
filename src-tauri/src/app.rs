@@ -1,5 +1,6 @@
 use crate::commands::*;
 use crate::state::AppState;
+use crate::utils::spawn_serial_hotplug_watcher;
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::Manager;
@@ -47,6 +48,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             app.manage(Mutex::new(AppState::default()));
+            spawn_serial_hotplug_watcher(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

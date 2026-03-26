@@ -48,6 +48,7 @@ export function getLanguageByCode(code: string): Language {
 export const i18n = createI18n({
   legacy: false,
   locale: DEFAULT_LOCALE,
+  fallbackLocale: DEFAULT_LOCALE,
   messages,
 });
 

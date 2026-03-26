@@ -1,48 +1,14 @@
 use crate::progress::TauriProgressCallback;
 use crate::state::AppState;
 use crate::types::{DeviceConfig, PortInfo};
-use crate::utils::create_tool_instance_with_progress;
+use crate::utils::{create_tool_instance_with_progress, list_serial_ports};
 use sftool_lib::progress::ProgressSinkArc;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, State};
 
 #[tauri::command]
 pub fn get_serial_ports() -> Result<Vec<PortInfo>, String> {
-    let ports = match serialport::available_ports() {
-        Ok(ports) => ports,
-        Err(e) => return Err(format!("无法获取串口列表: {}", e)),
-    };
-
-    let port_infos = ports
-        .into_iter()
-        .filter(|_p| {
-            // 在 macOS 下过滤掉 /dev/tty* 开头的串口，只保留 /dev/cu* 的
-            #[cfg(target_os = "macos")]
-            {
-                if _p.port_name.starts_with("/dev/tty") {
-                    return false;
-                }
-            }
-            true
-        })
-        .map(|p| {
-            let port_type = match p.port_type {
-                serialport::SerialPortType::UsbPort(info) => {
-                    format!("USB ({:04x}:{:04x})", info.vid, info.pid)
-                }
-                serialport::SerialPortType::BluetoothPort => "蓝牙".to_string(),
-                serialport::SerialPortType::PciPort => "PCI".to_string(),
-                _ => "未知".to_string(),
-            };
-
-            PortInfo {
-                name: p.port_name,
-                port_type,
-            }
-        })
-        .collect();
-
-    Ok(port_infos)
+    list_serial_ports()
 }
 
 #[tauri::command]
@@ -86,8 +52,7 @@ pub async fn connect_device(
 #[tauri::command]
 pub fn disconnect_device(state: State<'_, Mutex<AppState>>) -> Result<(), String> {
     let mut app_state = state.lock().unwrap();
-    app_state.device_config = None;
-    app_state.sftool = None;
+    app_state.clear_device_connection();
     Ok(())
 }
 
