@@ -22,7 +22,7 @@
     "@typescript-eslint/parser": "^8.51.0",
     "@vitejs/plugin-vue": "^5.2.1",
     "autoprefixer": "^10.4.16",
-    "daisyui": "^4.4.24",
+    "daisyui": "^5.5.19",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.6.2",
