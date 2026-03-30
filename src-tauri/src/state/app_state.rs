@@ -21,6 +21,11 @@ impl Default for AppState {
 }
 
 impl AppState {
+    pub fn clear_device_connection(&mut self) {
+        self.device_config = None;
+        self.sftool = None;
+    }
+
     pub fn register_temp_dir(&mut self, path: PathBuf) {
         self.retained_temp_dirs.push(path);
     }

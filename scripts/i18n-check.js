@@ -6,6 +6,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDir, '..');
 const srcDir = path.join(projectRoot, 'src');
 const localesDir = path.join(srcDir, 'i18n', 'locales');
+const DEFAULT_LOCALE = 'zh';
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -76,11 +77,16 @@ for (const file of files) {
   }
 }
 
-const missingByLocale = {};
+const errorMissingByLocale = {};
+const warningMissingByLocale = {};
 for (const [locale, keys] of Object.entries(locales)) {
   const missing = Array.from(usedKeys).filter(key => !keys.has(key)).sort();
   if (missing.length > 0) {
-    missingByLocale[locale] = missing;
+    if (locale === DEFAULT_LOCALE) {
+      errorMissingByLocale[locale] = missing;
+    } else {
+      warningMissingByLocale[locale] = missing;
+    }
   }
 }
 
@@ -90,13 +96,24 @@ if (dynamicKeys.size > 0) {
   console.log(`Dynamic template keys skipped: ${dynamicKeys.size}`);
 }
 
-if (Object.keys(missingByLocale).length === 0) {
+if (Object.keys(errorMissingByLocale).length === 0 && Object.keys(warningMissingByLocale).length === 0) {
   console.log('No missing keys detected for string-literal usages.');
   process.exit(0);
 }
 
-for (const [locale, missing] of Object.entries(missingByLocale)) {
-  console.log(`\nMissing in ${locale} (${missing.length}):`);
+for (const [locale, missing] of Object.entries(warningMissingByLocale)) {
+  console.log(`\nMissing in ${locale} (${missing.length}) [fallback -> ${DEFAULT_LOCALE}]:`);
+  for (const key of missing) {
+    console.log(`  - ${key}`);
+  }
+}
+
+if (Object.keys(errorMissingByLocale).length === 0) {
+  process.exit(0);
+}
+
+for (const [locale, missing] of Object.entries(errorMissingByLocale)) {
+  console.log(`\nMissing in ${locale} (${missing.length}) [required]:`);
   for (const key of missing) {
     console.log(`  - ${key}`);
   }

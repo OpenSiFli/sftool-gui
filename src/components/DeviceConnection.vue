@@ -312,6 +312,23 @@
       {{ isConnected ? t('deviceConnection.disconnectDevice') : t('deviceConnection.connectDevice') }}
     </button>
 
+    <div
+      v-if="connectionIssue"
+      class="alert mt-3 py-2 px-3"
+      :class="connectionIssue === 'device_removed' ? 'alert-error' : 'alert-warning'"
+    >
+      <span class="material-icons text-sm">
+        {{ connectionIssue === 'device_removed' ? 'usb_off' : 'usb' }}
+      </span>
+      <span class="text-xs leading-5">
+        {{
+          connectionIssue === 'device_removed'
+            ? t('deviceConnection.deviceRemovedNotice', { port: selectedPort?.name || '-' })
+            : t('deviceConnection.deviceRecoveredNotice', { port: selectedPort?.name || '-' })
+        }}
+      </span>
+    </div>
+
     <!-- 下载行为配置 -->
     <div class="card bg-base-100 shadow-sm p-3 mt-3">
       <div
@@ -523,7 +540,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue';
+import { onMounted, onUnmounted, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
@@ -533,11 +550,7 @@ import type { ResetBeforeMode, ResetAfterMode } from '../stores/deviceStore';
 import { useStubConfigStore } from '../stores/stubConfigStore';
 import { WindowManager } from '../services/windowManager';
 import type { ChipModel } from '../config/chips';
-
-interface PortInfo {
-  name: string;
-  port_type: string;
-}
+import type { PortInfo, SerialPortsChangedEvent } from '../types/device';
 
 const { t } = useI18n();
 
@@ -605,6 +618,7 @@ const {
   tempPortInput,
   baudRateInput,
   showBaudRateDropdown,
+  connectionIssue,
   baudRates,
   availableMemoryTypes,
   isConnectionValid,
@@ -612,15 +626,37 @@ const {
   filteredPorts,
 } = storeToRefs(deviceStore);
 
+let unlistenSerialPorts: null | (() => void) = null;
+
+const syncPortsState = (ports: PortInfo[]) => {
+  const wasConnected = isConnected.value;
+  const previousIssue = connectionIssue.value;
+  const previousPortName = selectedPort.value?.name;
+  const result = deviceStore.applyAvailablePorts(ports);
+  const currentPortName = deviceStore.selectedPort?.name || previousPortName || '-';
+
+  if (wasConnected && !result.selectedPortAvailable) {
+    deviceStore.setConnected(false);
+    deviceStore.setConnecting(false);
+    deviceStore.setConnectionIssue('device_removed');
+    logStore.addMessage(t('deviceConnection.deviceRemovedLog', { port: previousPortName || '-' }), true);
+    return;
+  }
+
+  if (previousIssue === 'device_removed' && result.selectionRecovered) {
+    deviceStore.setConnectionIssue('device_recovered');
+    logStore.addMessage(t('deviceConnection.deviceRecoveredLog', { port: currentPortName }), true);
+  }
+};
+
 // 刷新串口列表
 const refreshPorts = async () => {
   try {
     deviceStore.setLoadingPorts(true);
     const ports = await invoke<PortInfo[]>('get_serial_ports');
-    deviceStore.setAvailablePorts(ports);
+    syncPortsState(ports);
   } catch (error) {
     console.error(t('errors.getPortsFailed'), error);
-    deviceStore.setAvailablePorts([]);
   } finally {
     deviceStore.setLoadingPorts(false);
   }
@@ -791,6 +827,7 @@ const connectDevice = async () => {
     try {
       await invoke<void>('disconnect_device');
       deviceStore.setConnected(false);
+      deviceStore.clearConnectionIssue();
     } catch (error) {
       console.error(t('errors.disconnectFailed'), error);
     } finally {
@@ -862,6 +899,18 @@ onMounted(async () => {
 
   // 初始化日志事件监听
   logStore.setupEventListeners();
+
+  const { listen } = await import('@tauri-apps/api/event');
+  unlistenSerialPorts = await listen<SerialPortsChangedEvent>('serial-ports-changed', event => {
+    syncPortsState(event.payload.ports);
+  });
+});
+
+onUnmounted(() => {
+  if (unlistenSerialPorts) {
+    unlistenSerialPorts();
+    unlistenSerialPorts = null;
+  }
 });
 
 // 日志相关方法
