@@ -380,7 +380,11 @@
       "apply":"Apply custom configuration",
       "invalidConfig":"The configuration contains errors and cannot be enabled.",
       "configHasErrors":"The configuration contains errors. Please check and correct them on the Stub configuration page."
-    }
+    },
+    "deviceRemovedNotice":"Port {port} has been removed, and the connection has been automatically terminated. Please reinsert the device and reconnect manually.",
+    "deviceRecoveredNotice":"Port {port} has reappeared. The device configuration has been restored; please reconnect manually.",
+    "deviceRemovedLog":"Port {port} removal detected; the current connection has been automatically disconnected.",
+    "deviceRecoveredLog":"Port {port} recovery detected; please reconnect manually."
   },
   "errors":{
     "getPortsFailed":"Failed to retrieve the serial port list:",
