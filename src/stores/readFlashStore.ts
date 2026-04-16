@@ -20,7 +20,7 @@ let store: any = null;
 // 初始化存储
 const initStore = async () => {
   if (!store) {
-    store = await load('readFlash.json', { autoSave: false });
+    store = await load('readFlash.json', { autoSave: false, defaults: {} });
   }
   return store;
 };

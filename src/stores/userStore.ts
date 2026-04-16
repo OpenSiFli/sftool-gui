@@ -10,7 +10,7 @@ let store: any = null;
 // 初始化存储
 const initStore = async () => {
   if (!store) {
-    store = await load('setting.json', { autoSave: false });
+    store = await load('setting.json', { autoSave: false, defaults: {} });
   }
   return store;
 };

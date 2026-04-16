@@ -14,7 +14,7 @@ let store: any = null;
 // 初始化存储
 const initStore = async () => {
   if (!store) {
-    store = await load('device-settings.json', { autoSave: false });
+    store = await load('device-settings.json', { autoSave: false, defaults: {} });
   }
   return store;
 };

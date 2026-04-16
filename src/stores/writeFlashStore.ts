@@ -9,7 +9,7 @@ let store: any = null;
 // 初始化存储
 const initStore = async () => {
   if (!store) {
-    store = await load('writeFlash.json', { autoSave: false });
+    store = await load('writeFlash.json', { autoSave: false, defaults: {} });
   }
   return store;
 };
