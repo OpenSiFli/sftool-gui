@@ -1,6 +1,94 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-sifli-50: #e8f6fc;
+  --color-sifli-100: #d1eef9;
+  --color-sifli-200: #a3ddf3;
+  --color-sifli-300: #75cced;
+  --color-sifli-400: #52b0e1;
+  --color-sifli-500: #3a9ed4;
+  --color-sifli-600: #2d7fb0;
+  --color-sifli-700: #23628a;
+  --color-sifli-800: #1a4663;
+  --color-sifli-900: #112a3d;
+}
+
+@plugin "daisyui" {
+  logs: false;
+  themes: false;
+}
+
+@plugin "daisyui/theme" {
+  name: 'light';
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f9fafb;
+  --color-base-300: #e5e7eb;
+  --color-base-content: #1f2937;
+  --color-primary: #52b0e1;
+  --color-primary-content: #ffffff;
+  --color-secondary: #3a9ed4;
+  --color-secondary-content: #ffffff;
+  --color-accent: #75cced;
+  --color-accent-content: #112a3d;
+  --color-neutral: #374151;
+  --color-neutral-content: #f3f4f6;
+  --color-info: #52b0e1;
+  --color-info-content: #ffffff;
+  --color-success: #22c55e;
+  --color-success-content: #ffffff;
+  --color-warning: #f59e0b;
+  --color-warning-content: #ffffff;
+  --color-error: #ef4444;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: 'dark';
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #111827;
+  --color-base-200: #1f2937;
+  --color-base-300: #374151;
+  --color-base-content: #e5e7eb;
+  --color-primary: #5eb8e8;
+  --color-primary-content: #0d1b24;
+  --color-secondary: #75cced;
+  --color-secondary-content: #112a3d;
+  --color-accent: #a3ddf3;
+  --color-accent-content: #112a3d;
+  --color-neutral: #1f2937;
+  --color-neutral-content: #d1d5db;
+  --color-info: #5eb8e8;
+  --color-info-content: #0d1b24;
+  --color-success: #22c55e;
+  --color-success-content: #052e16;
+  --color-warning: #fbbf24;
+  --color-warning-content: #422006;
+  --color-error: #f87171;
+  --color-error-content: #450a0a;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
 
 /* 全局样式 */
 html,
