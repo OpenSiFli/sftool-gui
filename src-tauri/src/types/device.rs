@@ -31,7 +31,8 @@ pub struct DeviceConfig {
     pub memory_type: String,
     pub port_name: String,
     pub baud_rate: u32,
-    pub stub_path: String,
+    pub stub_config_path: String,
+    pub external_stub_path: String,
     // use String for serde-friendly transport; parse to enums internally when needed
     pub before_operation: String,
     pub after_operation: String,

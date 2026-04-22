@@ -441,6 +441,43 @@
           <span class="text-xs">{{ t('deviceConnection.stubConfig.configHasErrors') }}</span>
         </div>
       </div>
+
+      <div class="mt-2 pt-2 border-t border-base-300/30 space-y-2">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs text-base-content/70">{{ t('deviceConnection.stubConfig.sourceLabel') }}</span>
+          <span
+            class="badge badge-sm"
+            :class="
+              applyExternalStub && !isExternalStubReady
+                ? 'badge-warning'
+                : applyExternalStub || (applyStubConfig && isStubConfigValid)
+                  ? 'badge-info'
+                  : 'badge-ghost'
+            "
+          >
+            {{ stubSourceLabel }}
+          </span>
+        </div>
+
+        <p class="text-xs text-base-content/70">
+          {{ stubSummaryMessage }}
+        </p>
+
+        <div v-if="hasExternalStubPath" class="rounded-lg bg-base-200/80 px-3 py-2">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="material-icons text-sm text-primary">draft</span>
+            <span class="font-medium">{{ externalStubFileName }}</span>
+          </div>
+          <div class="mt-1 font-mono text-[11px] break-all text-base-content/60">
+            {{ externalStubPath }}
+          </div>
+        </div>
+
+        <div v-if="hasExternalStubPath && !isExternalStubReady" class="alert alert-warning py-2 px-3">
+          <span class="material-icons text-sm">warning</span>
+          <span class="text-xs">{{ t('deviceConnection.stubConfig.externalStubMissing') }}</span>
+        </div>
+      </div>
     </div>
 
     <transition
@@ -571,7 +608,49 @@ const applyStubConfig = computed({
   },
 });
 
+const applyExternalStub = computed(() => stubConfigStore.applyExternalStub);
+const externalStubPath = computed(() => stubConfigStore.externalStubPath);
+const externalStubFileName = computed(() => stubConfigStore.externalStubFileName);
+const hasExternalStubPath = computed(() => stubConfigStore.hasExternalStubPath);
+const isExternalStubReady = computed(() => stubConfigStore.isExternalStubReady);
+
 const isStubConfigValid = computed(() => stubConfigStore.isConfigValid);
+
+const stubSourceLabel = computed(() => {
+  if (applyExternalStub.value && !isExternalStubReady.value) {
+    return t('deviceConnection.stubConfig.mode.externalMissing');
+  }
+
+  if (applyExternalStub.value && isExternalStubReady.value) {
+    return t('deviceConnection.stubConfig.mode.external');
+  }
+
+  if (applyStubConfig.value && isStubConfigValid.value) {
+    return t('deviceConnection.stubConfig.mode.configured');
+  }
+
+  return t('deviceConnection.stubConfig.mode.embedded');
+});
+
+const stubSummaryMessage = computed(() => {
+  if (applyExternalStub.value && !isExternalStubReady.value) {
+    return t('deviceConnection.stubConfig.messages.externalMissing');
+  }
+
+  if (applyExternalStub.value && isExternalStubReady.value && applyStubConfig.value && isStubConfigValid.value) {
+    return t('deviceConnection.stubConfig.messages.externalWithConfig');
+  }
+
+  if (applyExternalStub.value && isExternalStubReady.value) {
+    return t('deviceConnection.stubConfig.messages.externalOnly');
+  }
+
+  if (applyStubConfig.value && isStubConfigValid.value) {
+    return t('deviceConnection.stubConfig.messages.configOnly');
+  }
+
+  return t('deviceConnection.stubConfig.messages.embeddedOnly');
+});
 
 const stubConfigSummary = computed(() => {
   const config = stubConfigStore.config;
@@ -843,12 +922,20 @@ const connectDevice = async () => {
     // 连接设备
     deviceStore.setConnecting(true);
     try {
+      await stubConfigStore.refreshExternalStubStatus();
+
+      if (applyExternalStub.value && !isExternalStubReady.value) {
+        throw new Error(t('deviceConnection.stubConfig.externalStubUnavailable'));
+      }
+
       const connectParams: Record<string, any> = {
         chipModel: selectedChip.value!.id,
         memoryType: selectedMemoryType.value,
         interfaceType: selectedInterface.value,
         beforeOperation: downloadBefore.value,
         afterOperation: downloadAfter.value,
+        stubConfigPath: '',
+        externalStubPath: '',
       };
 
       if (selectedInterface.value === 'UART') {
@@ -864,11 +951,13 @@ const connectDevice = async () => {
       const configDir = `${cacheDir}/stub_config`;
       const configPath = `${configDir}/draft.json`;
 
-      // 如果启用 stub 配置，则传递 stub 路径，否则传空字符串表示不使用 stub
+      // 如果启用 stub 配置，则传递配置 JSON 路径
       if (applyStubConfig.value && isStubConfigValid.value) {
-        connectParams.stubPath = configPath;
-      } else {
-        connectParams.stubPath = '';
+        connectParams.stubConfigPath = configPath;
+      }
+
+      if (applyExternalStub.value && isExternalStubReady.value) {
+        connectParams.externalStubPath = externalStubPath.value;
       }
 
       // 增加超时保护，防止调用异常时卡住连接中状态
@@ -892,7 +981,7 @@ const connectDevice = async () => {
 // 组件挂载时加载串口列表和设备设置
 onMounted(async () => {
   // 从存储加载设备设置
-  await deviceStore.loadFromStorage();
+  await Promise.all([deviceStore.loadFromStorage(), stubConfigStore.loadRuntimeSettings()]);
 
   // 加载串口列表
   await refreshPorts();

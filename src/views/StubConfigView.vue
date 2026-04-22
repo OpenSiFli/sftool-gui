@@ -5,6 +5,72 @@
       <h1 class="text-3xl font-bold text-base-content">{{ $t('stubConfig.title') }}</h1>
     </div>
 
+    <div class="card bg-base-100 shadow-md mb-4">
+      <div class="card-body p-4 gap-4">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center gap-3">
+              <span class="material-icons text-primary text-2xl">upload_file</span>
+              <div>
+                <h2 class="text-lg font-bold text-base-content">{{ $t('stubConfig.externalStub.title') }}</h2>
+                <p class="text-sm text-base-content/70">{{ $t('stubConfig.externalStub.description') }}</p>
+              </div>
+            </div>
+            <p class="text-xs text-base-content/60">{{ $t('stubConfig.externalStub.localOnlyHint') }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="label-text text-xs">{{ $t('stubConfig.externalStub.apply') }}</span>
+            <input
+              type="checkbox"
+              v-model="applyExternalStub"
+              class="toggle toggle-sm toggle-primary"
+              :disabled="!hasExternalStubPath || !isExternalStubReady"
+              :title="!hasExternalStubPath ? t('stubConfig.externalStub.selectFirst') : ''"
+            />
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-base-300 bg-base-200/70 p-4">
+          <div v-if="hasExternalStubPath" class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold text-sm">{{ externalStubFileName }}</span>
+              <span v-if="applyExternalStub && isExternalStubReady" class="badge badge-success badge-sm">
+                {{ $t('stubConfig.externalStub.badges.active') }}
+              </span>
+              <span v-else-if="isExternalStubReady" class="badge badge-info badge-sm">
+                {{ $t('stubConfig.externalStub.badges.remembered') }}
+              </span>
+              <span v-else class="badge badge-warning badge-sm">
+                {{ $t('stubConfig.externalStub.badges.missing') }}
+              </span>
+            </div>
+            <div class="font-mono text-xs break-all text-base-content/70">
+              {{ externalStubPath }}
+            </div>
+          </div>
+          <div v-else class="text-sm text-base-content/60">
+            {{ $t('stubConfig.externalStub.empty') }}
+          </div>
+        </div>
+
+        <div v-if="hasExternalStubPath && !isExternalStubReady" class="alert alert-warning py-2 px-3">
+          <span class="material-icons text-sm">warning</span>
+          <span class="text-xs">{{ $t('stubConfig.externalStub.missingWarning') }}</span>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button class="btn btn-outline btn-sm" @click="selectExternalStub">
+            <span class="material-icons">folder_open</span>
+            {{ $t('stubConfig.externalStub.choose') }}
+          </button>
+          <button class="btn btn-outline btn-sm" :disabled="!hasExternalStubPath" @click="clearExternalStubSelection">
+            <span class="material-icons">delete</span>
+            {{ $t('stubConfig.externalStub.clear') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Tabs 导航 -->
     <div class="tabs tabs-boxed bg-base-100 shadow-md mb-4">
       <a class="tab" :class="{ 'tab-active': currentTab === 'storage' }" @click="currentTab = 'storage'">
@@ -674,6 +740,18 @@ const ackStubInfo = () => {
   showStubModal.value = false;
 };
 
+const applyExternalStub = computed({
+  get: () => stubConfigStore.applyExternalStub,
+  set: value => {
+    stubConfigStore.setApplyExternalStub(value);
+  },
+});
+
+const externalStubPath = computed(() => stubConfigStore.externalStubPath);
+const externalStubFileName = computed(() => stubConfigStore.externalStubFileName);
+const hasExternalStubPath = computed(() => stubConfigStore.hasExternalStubPath);
+const isExternalStubReady = computed(() => stubConfigStore.isExternalStubReady);
+
 // 从store获取响应式引用
 const currentTab = computed({
   get: () => stubConfigStore.config.currentTab,
@@ -1087,6 +1165,32 @@ const resetConfig = () => {
   logStore.addMessage(t('stubConfig.resetSuccess'));
 };
 
+const selectExternalStub = async () => {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+
+    const filePath = await open({
+      filters: [
+        { name: 'Stub', extensions: ['bin'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+      multiple: false,
+    });
+
+    if (!filePath || Array.isArray(filePath)) {
+      return;
+    }
+
+    await stubConfigStore.setExternalStubPath(filePath);
+  } catch (error) {
+    logStore.addMessage(`${t('stubConfig.externalStub.selectFailed')}: ${error}`, true);
+  }
+};
+
+const clearExternalStubSelection = async () => {
+  await stubConfigStore.clearExternalStub();
+};
+
 // 导出配置为 JSON
 const exportConfig = () => {
   const config: any = {};
@@ -1266,6 +1370,8 @@ const loadConfigFromLocal = async () => {
 onMounted(async () => {
   logStore.setupEventListeners();
   logStore.initializeLog();
+
+  await stubConfigStore.loadRuntimeSettings();
 
   // 尝试加载本地草稿
   await loadConfigFromLocal();

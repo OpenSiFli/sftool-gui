@@ -236,6 +236,23 @@
       "storage": "Storage Configuration",
       "hardware": "Hardware Configuration"
     },
+    "externalStub": {
+      "title": "External Stub",
+      "description": "Select a local stub file directly as the base image for quick testing.",
+      "apply": "Use External Stub",
+      "choose": "Choose Stub",
+      "clear": "Clear",
+      "empty": "No external stub file selected",
+      "localOnlyHint": "This path is stored only on this machine and is not included in JSON import/export files.",
+      "selectFirst": "Select an available external stub file first",
+      "missingWarning": "The remembered external stub file is currently unavailable. Check the path or choose it again.",
+      "selectFailed": "Failed to select external stub",
+      "badges": {
+        "active": "Active",
+        "remembered": "Remembered",
+        "missing": "Missing"
+      }
+    },
     "flash": {
       "title": "Flash Devices",
       "addDevice": "Add Device",
@@ -361,6 +378,10 @@
     "pleaseCompleteConfig": "Complete all required device configurations",
     "connectFailedMessage": "Failed to connect to the device. Please check the connection and try again.",
     "connectError": "An error occurred while connecting to the device.",
+    "deviceRemovedNotice": "Port {port} was removed. The connection has been disconnected automatically. Reconnect the device and connect again manually.",
+    "deviceRecoveredNotice": "Port {port} is available again. The device selection has been restored. Connect again manually when ready.",
+    "deviceRemovedLog": "Detected that port {port} was removed and disconnected the current session automatically",
+    "deviceRecoveredLog": "Detected that port {port} is available again. You can reconnect manually now.",
     "downloadBehavior": {
       "title": "Behavioral Settings",
       "beforeLabel": "Pre-connection Operations",
@@ -379,7 +400,23 @@
       "title": "Stub Configuration",
       "apply": "Apply custom configuration",
       "invalidConfig": "The configuration contains errors and cannot be enabled.",
-      "configHasErrors": "The configuration contains errors. Please check and correct them on the Stub configuration page."
+      "configHasErrors": "The configuration contains errors. Please check and correct them on the Stub configuration page.",
+      "sourceLabel": "Current stub source",
+      "externalStubMissing": "The selected external stub file is unavailable. Re-select it on the Stub Configuration page.",
+      "externalStubUnavailable": "The external stub file is unavailable. Check the path or choose it again.",
+      "mode": {
+        "embedded": "Embedded Stub",
+        "configured": "Embedded Stub + Custom Config",
+        "external": "External Stub",
+        "externalMissing": "External Stub Unavailable"
+      },
+      "messages": {
+        "embeddedOnly": "The connection will use the embedded stub directly.",
+        "configOnly": "The connection will use the embedded stub and then apply the custom Stub Configuration JSON.",
+        "externalOnly": "The connection will use the selected external stub file directly.",
+        "externalWithConfig": "The connection will load the selected external stub file first, then apply the custom Stub Configuration JSON.",
+        "externalMissing": "External stub is still enabled, but the selected file cannot be accessed now. Connection will fail until the path is fixed."
+      }
     }
   },
   "errors": {

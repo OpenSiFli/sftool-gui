@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia';
+import { exists } from '@tauri-apps/plugin-fs';
+import { load } from '@tauri-apps/plugin-store';
 import { ref, computed } from 'vue';
 
 export interface FlashDevice {
@@ -56,39 +58,64 @@ export interface StubConfig {
   };
 }
 
+// 存储实例
+let runtimeStore: any = null;
+
+const initRuntimeStore = async () => {
+  if (!runtimeStore) {
+    runtimeStore = await load('stub-settings.json', { autoSave: false, defaults: {} });
+  }
+  return runtimeStore;
+};
+
+const createDefaultConfig = (): StubConfig => ({
+  currentTab: 'storage',
+  pinConfig: {
+    enabled: false,
+    expanded: true,
+    items: [],
+  },
+  pmicConfig: {
+    enabled: false,
+    expanded: true,
+    disabled: false,
+    scl_port: 'PA',
+    scl_pin: 0,
+    sda_port: 'PA',
+    sda_pin: 1,
+    channels: [],
+  },
+  sdioConfig: {
+    enabled: false,
+    expanded: true,
+    base_address: '0x68000000',
+    pinmux: 'clk_pa34_or_pa09',
+    init_sequence: 'emmc_then_sd',
+    addressError: '',
+  },
+  flashConfig: {
+    expanded: true,
+    devices: [],
+  },
+});
+
+const getFileNameFromPath = (path: string) => {
+  const normalized = path.replace(/\\/g, '/').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  return normalized.split('/').pop() ?? '';
+};
+
 export const useStubConfigStore = defineStore('stubConfig', () => {
   const applyStubConfig = ref(false);
+  const applyExternalStub = ref(false);
+  const externalStubPath = ref('');
+  const externalStubPathExists = ref(false);
+  const runtimeSettingsLoaded = ref(false);
 
-  const config = ref<StubConfig>({
-    currentTab: 'storage',
-    pinConfig: {
-      enabled: false,
-      expanded: true,
-      items: [],
-    },
-    pmicConfig: {
-      enabled: false,
-      expanded: true,
-      disabled: false,
-      scl_port: 'PA',
-      scl_pin: 0,
-      sda_port: 'PA',
-      sda_pin: 1,
-      channels: [],
-    },
-    sdioConfig: {
-      enabled: false,
-      expanded: true,
-      base_address: '0x68000000',
-      pinmux: 'clk_pa34_or_pa09',
-      init_sequence: 'emmc_then_sd',
-      addressError: '',
-    },
-    flashConfig: {
-      expanded: true,
-      devices: [],
-    },
-  });
+  const config = ref<StubConfig>(createDefaultConfig());
 
   const saveConfig = (newConfig: Partial<StubConfig>) => {
     config.value = {
@@ -98,36 +125,7 @@ export const useStubConfigStore = defineStore('stubConfig', () => {
   };
 
   const resetConfig = () => {
-    config.value = {
-      currentTab: 'storage',
-      pinConfig: {
-        enabled: false,
-        expanded: true,
-        items: [],
-      },
-      pmicConfig: {
-        enabled: false,
-        expanded: true,
-        disabled: false,
-        scl_port: 'PA',
-        scl_pin: 0,
-        sda_port: 'PA',
-        sda_pin: 1,
-        channels: [],
-      },
-      sdioConfig: {
-        enabled: false,
-        expanded: true,
-        base_address: '0x68000000',
-        pinmux: 'clk_pa34_or_pa09',
-        init_sequence: 'emmc_then_sd',
-        addressError: '',
-      },
-      flashConfig: {
-        expanded: true,
-        devices: [],
-      },
-    };
+    config.value = createDefaultConfig();
   };
 
   const getConfig = () => {
@@ -136,6 +134,83 @@ export const useStubConfigStore = defineStore('stubConfig', () => {
 
   const setApplyStubConfig = (value: boolean) => {
     applyStubConfig.value = value;
+  };
+
+  const hasExternalStubPath = computed(() => externalStubPath.value.trim().length > 0);
+
+  const externalStubFileName = computed(() => getFileNameFromPath(externalStubPath.value));
+
+  const isExternalStubReady = computed(() => hasExternalStubPath.value && externalStubPathExists.value);
+
+  const refreshExternalStubStatus = async () => {
+    const path = externalStubPath.value.trim();
+
+    if (!path) {
+      externalStubPathExists.value = false;
+      return false;
+    }
+
+    try {
+      const available = await exists(path);
+      externalStubPathExists.value = available;
+      return available;
+    } catch (error) {
+      console.error('检查外部 Stub 文件失败:', error);
+      externalStubPathExists.value = false;
+      return false;
+    }
+  };
+
+  const saveRuntimeSettings = async () => {
+    try {
+      const storeInstance = await initRuntimeStore();
+      await storeInstance.set('externalStubPath', { value: externalStubPath.value.trim() });
+      await storeInstance.save();
+    } catch (error) {
+      console.error('保存外部 Stub 设置失败:', error);
+    }
+  };
+
+  const loadRuntimeSettings = async () => {
+    try {
+      if (!runtimeSettingsLoaded.value) {
+        const storeInstance = await initRuntimeStore();
+        const stubPathData = await storeInstance.get('externalStubPath');
+        externalStubPath.value = typeof stubPathData?.value === 'string' ? stubPathData.value.trim() : '';
+        // 外部 stub 启用状态不持久化，应用重启后默认关闭
+        applyExternalStub.value = false;
+        runtimeSettingsLoaded.value = true;
+      }
+      await refreshExternalStubStatus();
+    } catch (error) {
+      console.error('加载外部 Stub 设置失败:', error);
+      externalStubPath.value = '';
+      externalStubPathExists.value = false;
+      applyExternalStub.value = false;
+      runtimeSettingsLoaded.value = true;
+    }
+  };
+
+  const setExternalStubPath = async (path: string) => {
+    externalStubPath.value = path.trim();
+    applyExternalStub.value = false;
+    await refreshExternalStubStatus();
+    await saveRuntimeSettings();
+  };
+
+  const clearExternalStub = async () => {
+    externalStubPath.value = '';
+    externalStubPathExists.value = false;
+    applyExternalStub.value = false;
+    await saveRuntimeSettings();
+  };
+
+  const setApplyExternalStub = (value: boolean) => {
+    if (value && !isExternalStubReady.value) {
+      return;
+    }
+
+    applyExternalStub.value = value;
   };
 
   // 验证配置是否有效
@@ -204,10 +279,22 @@ export const useStubConfigStore = defineStore('stubConfig', () => {
   return {
     config,
     applyStubConfig,
+    applyExternalStub,
+    externalStubPath,
+    externalStubPathExists,
+    hasExternalStubPath,
+    externalStubFileName,
+    isExternalStubReady,
     isConfigValid,
     saveConfig,
     resetConfig,
     getConfig,
     setApplyStubConfig,
+    refreshExternalStubStatus,
+    saveRuntimeSettings,
+    loadRuntimeSettings,
+    setExternalStubPath,
+    clearExternalStub,
+    setApplyExternalStub,
   };
 });

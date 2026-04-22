@@ -16,14 +16,22 @@ pub fn create_tool_instance(config: &DeviceConfig) -> Result<Box<dyn SifliTool>,
         _ => return Err(format!("不支持的芯片型号: {}", config.chip_type)),
     };
 
+    let external_stub_path = if !config.external_stub_path.is_empty() {
+        Some(config.external_stub_path.clone())
+    } else {
+        None
+    };
+
     // 创建 SifliToolBase (无进度回调)
-    let base = SifliToolBase::new_with_no_progress(
+    let base = SifliToolBase::new_with_external_stub(
         config.port_name.clone(),
         BeforeOperation::NoReset,
         config.memory_type.to_lowercase(),
         config.baud_rate,
         3,
         false,
+        sftool_lib::progress::no_op_progress_sink(),
+        external_stub_path,
     );
 
     // 创建对应的工具实例
@@ -54,14 +62,18 @@ pub fn create_tool_instance_with_progress(
     };
 
     let (stub_path, _temp_file) = prepare_stub_path(
-        if !config.stub_path.is_empty() {
-            Some(config.stub_path.as_str())
+        if !config.stub_config_path.is_empty() {
+            Some(config.stub_config_path.as_str())
         } else {
             None
         },
         &chip_type,
         &config.memory_type.to_lowercase(),
-        None,
+        if !config.external_stub_path.is_empty() {
+            Some(config.external_stub_path.clone())
+        } else {
+            None
+        },
     )
     .map_err(|e| format!("准备存根文件失败: {}", e))?;
 

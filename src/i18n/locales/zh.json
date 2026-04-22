@@ -236,6 +236,23 @@
       "storage": "存储配置",
       "hardware": "硬件配置"
     },
+    "externalStub": {
+      "title": "外部 Stub",
+      "description": "直接选择本地 Stub 文件作为连接时的基础镜像，便于快速测试。",
+      "apply": "使用外部 Stub",
+      "choose": "选择 Stub",
+      "clear": "清除",
+      "empty": "未选择外部 Stub 文件",
+      "localOnlyHint": "该路径仅保存在当前电脑，不会写入 JSON 导入或导出文件。",
+      "selectFirst": "请先选择可用的外部 Stub 文件",
+      "missingWarning": "记住的外部 Stub 文件当前不可用，请检查路径或重新选择。",
+      "selectFailed": "选择外部 Stub 失败",
+      "badges": {
+        "active": "当前生效",
+        "remembered": "已记住",
+        "missing": "文件缺失"
+      }
+    },
     "flash": {
       "title": "FLASH 设备",
       "addDevice": "添加设备",
@@ -383,7 +400,23 @@
       "title": "Stub配置",
       "apply": "应用自定义配置",
       "invalidConfig": "配置包含错误，无法启用",
-      "configHasErrors": "配置包含错误，请前往Stub配置页面检查并修正"
+      "configHasErrors": "配置包含错误，请前往Stub配置页面检查并修正",
+      "sourceLabel": "当前 Stub 来源",
+      "externalStubMissing": "已选外部 Stub 文件不可用，请前往 Stub 配置页重新选择。",
+      "externalStubUnavailable": "外部 Stub 文件不可用，请检查路径或重新选择。",
+      "mode": {
+        "embedded": "内嵌 Stub",
+        "configured": "内嵌 Stub + 自定义配置",
+        "external": "外部 Stub",
+        "externalMissing": "外部 Stub 不可用"
+      },
+      "messages": {
+        "embeddedOnly": "当前将直接使用内嵌 Stub。",
+        "configOnly": "当前将使用内嵌 Stub，并叠加 Stub 配置页中的自定义配置。",
+        "externalOnly": "当前将直接使用所选外部 Stub 文件。",
+        "externalWithConfig": "当前将先加载所选外部 Stub 文件，再叠加 Stub 配置页中的自定义配置。",
+        "externalMissing": "外部 Stub 开关已启用，但所选文件当前不可访问，连接会失败直至路径修复。"
+      }
     }
   },
   "errors": {
