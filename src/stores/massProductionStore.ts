@@ -32,14 +32,14 @@ let logsStore: any = null;
 
 const initSettingsStore = async () => {
   if (!settingsStore) {
-    settingsStore = await load(SETTINGS_STORE_FILE, { autoSave: false });
+    settingsStore = await load(SETTINGS_STORE_FILE, { autoSave: false, defaults: {} });
   }
   return settingsStore;
 };
 
 const initLogsStore = async () => {
   if (!logsStore) {
-    logsStore = await load(LOG_STORE_FILE, { autoSave: false });
+    logsStore = await load(LOG_STORE_FILE, { autoSave: false, defaults: {} });
   }
   return logsStore;
 };
@@ -86,6 +86,8 @@ const mapPortStatusToEvent = (status: MassProductionPortStatus): MassProductionP
       return 'start';
     case 'success':
       return 'success';
+    case 'cancelled':
+      return 'cancelled';
     case 'error':
       return 'error';
     case 'disconnected':
@@ -146,6 +148,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
   const queuedCount = ref(0);
   const activeCount = ref(0);
   const successCount = ref(0);
+  const cancelledCount = ref(0);
   const failedCount = ref(0);
   const totalCount = ref(0);
 
@@ -155,7 +158,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
 
   const settingsReady = ref(false);
   const pendingFileSummary = ref<string[]>([]);
-  const progressCounters = new Map<number, { portName: string; current: number; total: number }>();
+  const progressCounters = new Map<string, { current: number; total: number }>();
 
   const recentSessionLogs = computed(() => sessionLogs.value.slice(0, 10));
 
@@ -252,6 +255,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
         maxConcurrency: snapshot.max_concurrency,
         total: snapshot.total_count,
         success: snapshot.success_count,
+        cancelled: snapshot.cancelled_count,
         failed: snapshot.failed_count,
         manualStopped: snapshot.manual_stopped,
         fileSummary: pendingFileSummary.value.length > 0 ? [...pendingFileSummary.value] : [],
@@ -320,6 +324,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     queuedCount.value = snapshot.queued_count;
     activeCount.value = snapshot.active_count;
     successCount.value = snapshot.success_count;
+    cancelledCount.value = snapshot.cancelled_count;
     failedCount.value = snapshot.failed_count;
     totalCount.value = snapshot.total_count;
 
@@ -336,6 +341,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
       currentSession.value.maxConcurrency = snapshot.max_concurrency;
       currentSession.value.total = snapshot.total_count;
       currentSession.value.success = snapshot.success_count;
+      currentSession.value.cancelled = snapshot.cancelled_count;
       currentSession.value.failed = snapshot.failed_count;
       currentSession.value.manualStopped = snapshot.manual_stopped;
 
@@ -369,6 +375,8 @@ export const useMassProductionStore = defineStore('massProduction', () => {
 
     const progressEvent = payload.event;
 
+    const progressKey = `${payload.port_name}:${progressEvent.id}`;
+
     if (progressEvent.event_type === 'start') {
       let statusChangedToFlashing = false;
       if (port.status === 'queued' || port.status === 'idle') {
@@ -380,8 +388,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
       if (progressEvent.progress_type.kind === 'bar') {
         const total = progressEvent.progress_type.total;
         const current = progressEvent.current || 0;
-        progressCounters.set(progressEvent.id, {
-          portName: payload.port_name,
+        progressCounters.set(progressKey, {
           current,
           total,
         });
@@ -403,8 +410,8 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     }
 
     if (progressEvent.event_type === 'increment') {
-      const counter = progressCounters.get(progressEvent.id);
-      if (counter && counter.portName === payload.port_name) {
+      const counter = progressCounters.get(progressKey);
+      if (counter) {
         counter.current += progressEvent.current || 0;
         if (counter.total > 0) {
           port.progress = Math.min(100, Math.round((counter.current * 100) / counter.total));
@@ -414,7 +421,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     }
 
     if (progressEvent.event_type === 'finish') {
-      progressCounters.delete(progressEvent.id);
+      progressCounters.delete(progressKey);
 
       if (progressEvent.status?.kind === 'failed') {
         port.message = progressEvent.status.message;
@@ -603,6 +610,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     queuedCount,
     activeCount,
     successCount,
+    cancelledCount,
     failedCount,
     totalCount,
     currentSession,

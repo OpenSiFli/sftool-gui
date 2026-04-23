@@ -1,14 +1,14 @@
-use crate::state::{AppState, MassProductionState};
+use crate::state::{AppState, MassProductionState, PortIdentity};
 use crate::types::{
     DeviceConfig, MassProductionLogPaths, MassProductionPortInfo, MassProductionPortStatus,
     MassProductionProgressEvent, MassProductionSnapshot, MassProductionStartRequest,
     TauriProgressContext, TauriProgressEvent, TauriProgressOperation, TauriProgressStatus,
     TauriProgressType,
 };
-use crate::utils::create_tool_instance_with_progress;
+use crate::utils::{create_tool_instance_with_progress, list_serial_ports};
 use chrono::{Local, TimeZone};
 use sftool_lib::progress::{ProgressEvent, ProgressSink, ProgressSinkArc};
-use sftool_lib::{utils::Utils, WriteFlashParams};
+use sftool_lib::{utils::Utils, CancelToken, WriteFlashParams};
 use std::any::Any;
 use std::backtrace::Backtrace;
 use std::collections::{HashMap, HashSet};
@@ -29,17 +29,17 @@ struct ProgressCounter {
     total: Option<u64>,
 }
 
-struct PortProgressCallback {
-    app_handle: AppHandle,
+struct PortProgressCallback<R: tauri::Runtime> {
+    app_handle: AppHandle<R>,
     port_name: String,
     state: Arc<Mutex<MassProductionState>>,
     contexts: Mutex<HashMap<u64, TauriProgressContext>>,
     counters: Mutex<HashMap<u64, ProgressCounter>>,
 }
 
-impl PortProgressCallback {
+impl<R: tauri::Runtime> PortProgressCallback<R> {
     fn new(
-        app_handle: AppHandle,
+        app_handle: AppHandle<R>,
         port_name: String,
         state: Arc<Mutex<MassProductionState>>,
     ) -> Self {
@@ -96,7 +96,7 @@ impl PortProgressCallback {
     }
 }
 
-impl ProgressSink for PortProgressCallback {
+impl<R: tauri::Runtime> ProgressSink for PortProgressCallback<R> {
     fn on_event(&self, event: ProgressEvent) {
         match event {
             ProgressEvent::Start { id, ctx } => {
@@ -245,8 +245,8 @@ const MASS_PRODUCTION_RUNTIME_LOG_DIRNAME: &str = "logs";
 const MASS_PRODUCTION_RUNTIME_LOG_FILENAME: &str = "mass-production-runtime.log";
 const MASS_PRODUCTION_PORT_LOG_PREFIX: &str = "mass-production-port";
 
-fn resolve_mass_production_log_paths(
-    app_handle: &AppHandle,
+fn resolve_mass_production_log_paths<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
 ) -> Result<MassProductionLogPaths, String> {
     let config_dir = app_handle
         .path()
@@ -275,7 +275,9 @@ fn resolve_mass_production_log_paths(
     })
 }
 
-fn ensure_runtime_log_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
+fn ensure_runtime_log_path<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
+) -> Result<PathBuf, String> {
     let paths = resolve_mass_production_log_paths(app_handle)?;
     let runtime_log_dir = PathBuf::from(paths.runtime_log_dir);
     fs::create_dir_all(&runtime_log_dir).map_err(|e| format!("创建量产日志目录失败: {e}"))?;
@@ -300,8 +302,8 @@ fn sanitize_log_filename_fragment(input: &str) -> String {
     trimmed.chars().take(80).collect()
 }
 
-fn ensure_port_runtime_log_path(
-    app_handle: &AppHandle,
+fn ensure_port_runtime_log_path<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
     session_id: u64,
     port_name: &str,
 ) -> Result<PathBuf, String> {
@@ -356,7 +358,11 @@ fn ensure_log_file_exists(log_path: &PathBuf) -> Result<(), String> {
 
     Ok(())
 }
-fn append_mass_runtime_log(app_handle: &AppHandle, level: &str, message: &str) {
+fn append_mass_runtime_log<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
+    level: &str,
+    message: &str,
+) {
     let runtime_log_path = match ensure_runtime_log_path(app_handle) {
         Ok(path) => path,
         Err(error) => {
@@ -371,8 +377,8 @@ fn append_mass_runtime_log(app_handle: &AppHandle, level: &str, message: &str) {
     }
 }
 
-fn append_mass_port_runtime_log(
-    app_handle: &AppHandle,
+fn append_mass_port_runtime_log<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
     session_id: u64,
     port_name: &str,
     level: &str,
@@ -392,8 +398,8 @@ fn append_mass_port_runtime_log(
     }
 }
 
-fn append_mass_worker_runtime_log(
-    app_handle: &AppHandle,
+fn append_mass_worker_runtime_log<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
     session_id: u64,
     port_name: &str,
     level: &str,
@@ -441,6 +447,21 @@ fn sanitize_request(
         if !std::path::Path::new(&file.file_path).exists() {
             return Err(format!("文件不存在: {}", file.file_path));
         }
+    }
+
+    if !request.stub_config_path.trim().is_empty()
+        && !std::path::Path::new(&request.stub_config_path).exists()
+    {
+        return Err(format!("Stub 配置文件不存在: {}", request.stub_config_path));
+    }
+
+    if !request.external_stub_path.trim().is_empty()
+        && !std::path::Path::new(&request.external_stub_path).exists()
+    {
+        return Err(format!(
+            "外部 Stub 文件不存在: {}",
+            request.external_stub_path
+        ));
     }
 
     Ok(request)
@@ -502,57 +523,36 @@ fn is_port_allowed(port: &MassProductionPortInfo, request: &MassProductionStartR
 }
 
 fn enumerate_ports() -> Result<Vec<MassProductionPortInfo>, String> {
-    let ports = serialport::available_ports().map_err(|e| format!("无法获取串口列表: {e}"))?;
-
-    let mut result = Vec::new();
-
-    for p in ports {
-        #[cfg(target_os = "macos")]
-        if p.port_name.starts_with("/dev/tty") {
-            continue;
-        }
-
-        let mut vid: Option<String> = None;
-        let mut pid: Option<String> = None;
-        let mut serial_number: Option<String> = None;
-        let mut location_path: Option<String> = None;
-
-        let port_type = match p.port_type {
-            serialport::SerialPortType::UsbPort(info) => {
-                vid = Some(format!("{:04X}", info.vid));
-                pid = Some(format!("{:04X}", info.pid));
-                serial_number = info.serial_number.clone();
-                location_path = Some(p.port_name.clone());
-                format!("USB ({:04X}:{:04X})", info.vid, info.pid)
+    let ports = list_serial_ports()?;
+    let now = now_millis();
+    Ok(ports
+        .into_iter()
+        .map(|port| {
+            let usb_info = port.usb_info;
+            MassProductionPortInfo {
+                id: port.name.clone(),
+                name: port.name.clone(),
+                port_type: port.port_type,
+                vid: usb_info.as_ref().map(|info| format!("{:04X}", info.vid)),
+                pid: usb_info.as_ref().map(|info| format!("{:04X}", info.pid)),
+                serial_number: usb_info
+                    .as_ref()
+                    .and_then(|info| info.serial_number.clone()),
+                location_path: Some(port.name.clone()),
+                chip: None,
+                status: MassProductionPortStatus::Idle,
+                progress: 0,
+                message: None,
+                is_allowed: true,
+                last_seen_at: now,
+                task_started_at: None,
+                task_finished_at: None,
             }
-            serialport::SerialPortType::BluetoothPort => "蓝牙".to_string(),
-            serialport::SerialPortType::PciPort => "PCI".to_string(),
-            serialport::SerialPortType::Unknown => "未知".to_string(),
-        };
-
-        result.push(MassProductionPortInfo {
-            id: p.port_name.clone(),
-            name: p.port_name.clone(),
-            port_type,
-            vid,
-            pid,
-            serial_number,
-            location_path,
-            chip: None,
-            status: MassProductionPortStatus::Idle,
-            progress: 0,
-            message: None,
-            is_allowed: true,
-            last_seen_at: now_millis(),
-            task_started_at: None,
-            task_finished_at: None,
-        });
-    }
-
-    Ok(result)
+        })
+        .collect())
 }
 
-fn emit_snapshot(app_handle: &AppHandle, snapshot: &MassProductionSnapshot) {
+fn emit_snapshot<R: tauri::Runtime>(app_handle: &AppHandle<R>, snapshot: &MassProductionSnapshot) {
     if let Err(e) = app_handle.emit("mass-production-snapshot", snapshot.clone()) {
         eprintln!("Failed to emit mass production snapshot: {e}");
     }
@@ -574,6 +574,52 @@ fn queue_port(state: &mut MassProductionState, port_name: &str, now: u64) {
     }
 }
 
+fn reset_terminal_port_for_requeue(port: &mut MassProductionPortInfo, now: u64) {
+    port.status = MassProductionPortStatus::Idle;
+    port.progress = 0;
+    port.message = Some("Ready".to_string());
+    port.task_started_at = Some(now);
+    port.task_finished_at = None;
+}
+
+fn can_reset_terminal_status(port: &MassProductionPortInfo) -> bool {
+    matches!(
+        port.status,
+        MassProductionPortStatus::Success
+            | MassProductionPortStatus::Error
+            | MassProductionPortStatus::Cancelled
+            | MassProductionPortStatus::Disconnected
+            | MassProductionPortStatus::Filtered
+    )
+}
+
+fn consume_hotplug_reconnect_candidate(
+    state: &mut MassProductionState,
+    scanned: &MassProductionPortInfo,
+) -> bool {
+    let identity = PortIdentity::from_port(scanned);
+    let matches: Vec<String> = state
+        .ports
+        .iter()
+        .filter_map(|(name, port)| {
+            if can_reset_terminal_status(port) && PortIdentity::from_port(port) == identity {
+                Some(name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    if matches.len() == 1 {
+        state
+            .hotplug_connected
+            .retain(|candidate| candidate != &identity);
+        return true;
+    }
+
+    false
+}
+
 fn scan_ports(state: &mut MassProductionState, trigger_flash: bool) -> Result<(), String> {
     let scanned_ports = enumerate_ports()?;
     let now = now_millis();
@@ -591,6 +637,7 @@ fn scan_ports(state: &mut MassProductionState, trigger_flash: bool) -> Result<()
 
         scanned.chip = state.request.as_ref().map(|req| req.chip_model.clone());
         scanned.is_allowed = allowed;
+        let should_reset_from_hotplug = consume_hotplug_reconnect_candidate(state, &scanned);
 
         if let Some(existing) = state.ports.get_mut(&name) {
             existing.port_type = scanned.port_type;
@@ -615,11 +662,11 @@ fn scan_ports(state: &mut MassProductionState, trigger_flash: bool) -> Result<()
                 existing.status,
                 MassProductionPortStatus::Filtered | MassProductionPortStatus::Disconnected
             ) {
-                existing.status = MassProductionPortStatus::Idle;
-                existing.progress = 0;
-                existing.message = Some("Ready".to_string());
-                existing.task_started_at = None;
-                existing.task_finished_at = None;
+                reset_terminal_port_for_requeue(existing, now);
+            } else if trigger_flash && can_reset_terminal_status(existing) {
+                reset_terminal_port_for_requeue(existing, now);
+            } else if should_reset_from_hotplug && can_reset_terminal_status(existing) {
+                reset_terminal_port_for_requeue(existing, now);
             }
 
             let should_queue = if let Some(request) = &state.request {
@@ -707,21 +754,25 @@ fn build_write_flash_params(
     })
 }
 
-fn run_worker(
-    app_handle: AppHandle,
+fn run_worker<R: tauri::Runtime>(
+    app_handle: AppHandle<R>,
     state: Arc<Mutex<MassProductionState>>,
     request: MassProductionStartRequest,
     port_name: String,
     session_id: u64,
 ) {
     let now = now_millis();
+    let cancel_token = CancelToken::new();
 
     {
         let mut locked = state.lock().unwrap();
-        if locked.session_id != session_id {
+        if locked.session_id != session_id || !locked.running {
             locked.active_ports.remove(&port_name);
             return;
         }
+        locked
+            .active_cancel_tokens
+            .insert(port_name.clone(), cancel_token.clone());
 
         if let Some(port) = locked.ports.get_mut(&port_name) {
             port.status = MassProductionPortStatus::Flashing;
@@ -753,12 +804,17 @@ fn run_worker(
             memory_type: request.memory_type.clone(),
             port_name: port_name.clone(),
             baud_rate: request.baud_rate.unwrap_or(1_000_000),
-            stub_path: request.stub_path.clone(),
+            stub_config_path: request.stub_config_path.clone(),
+            external_stub_path: request.external_stub_path.clone(),
             before_operation: request.before_operation.clone(),
             after_operation: request.after_operation.clone(),
         };
 
-        let mut tool = create_tool_instance_with_progress(&device_config, progress_callback)?;
+        let mut tool = create_tool_instance_with_progress(
+            &device_config,
+            progress_callback,
+            cancel_token.clone(),
+        )?;
         let params = build_write_flash_params(&request)?;
         tool.write_flash(&params)
             .map_err(|e| format!("写入 Flash 失败: {e}"))?;
@@ -800,16 +856,29 @@ fn run_worker(
         let mut locked = state.lock().unwrap();
         if locked.session_id != session_id {
             locked.active_ports.remove(&port_name);
+            locked.active_cancel_tokens.remove(&port_name);
             return;
         }
 
         locked.active_ports.remove(&port_name);
+        locked.active_cancel_tokens.remove(&port_name);
 
         let finished_at = now_millis();
+        let is_cancelled = result
+            .as_ref()
+            .err()
+            .map(|error| error.to_lowercase())
+            .is_some_and(|error| {
+                error.contains("operation cancelled")
+                    || error.contains("cancelled")
+                    || error.contains("canceled")
+            });
         let is_success = result.is_ok();
 
         if is_success {
             locked.success_count = locked.success_count.saturating_add(1);
+        } else if is_cancelled {
+            locked.cancelled_count = locked.cancelled_count.saturating_add(1);
         } else {
             locked.failed_count = locked.failed_count.saturating_add(1);
         }
@@ -821,6 +890,10 @@ fn run_worker(
                 port.status = MassProductionPortStatus::Success;
                 port.progress = 100;
                 port.message = Some("Completed".to_string());
+            } else if is_cancelled {
+                port.status = MassProductionPortStatus::Cancelled;
+                port.progress = 0;
+                port.message = Some("Cancelled by user".to_string());
             } else if let Err(e) = &result {
                 port.status = MassProductionPortStatus::Error;
                 port.message = Some(e.clone());
@@ -836,7 +909,10 @@ fn run_worker(
     emit_snapshot(&app_handle, &snapshot);
 }
 
-fn dispatch_workers(app_handle: &AppHandle, state: &Arc<Mutex<MassProductionState>>) {
+fn dispatch_workers<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
+    state: &Arc<Mutex<MassProductionState>>,
+) {
     let mut tasks: Vec<(String, MassProductionStartRequest, u64)> = Vec::new();
 
     {
@@ -864,6 +940,13 @@ fn dispatch_workers(app_handle: &AppHandle, state: &Arc<Mutex<MassProductionStat
             };
 
             if !port.is_allowed || port.status != MassProductionPortStatus::Queued {
+                continue;
+            }
+
+            if !locked.running {
+                if let Some(port) = locked.ports.get_mut(&port_name) {
+                    reset_terminal_port_for_requeue(port, now_millis());
+                }
                 continue;
             }
 
@@ -971,6 +1054,8 @@ pub async fn mass_production_start(
         let _ = handle.join();
     }
 
+    let initial_ports = enumerate_ports()?;
+
     {
         let mut locked = mass_state.lock().unwrap();
         if locked.running {
@@ -983,7 +1068,9 @@ pub async fn mass_production_start(
 
         let session_id = locked.session_id.saturating_add(1);
         locked.reset_for_start(request.clone(), session_id, now_millis());
-
+        for port in initial_ports {
+            locked.ports.insert(port.name.clone(), port);
+        }
         scan_ports(&mut locked, true)?;
     }
 
@@ -1016,7 +1103,26 @@ pub async fn mass_production_stop(
         locked.running = false;
         locked.manual_stopped = true;
         locked.pending_trigger_flash = false;
-        locked.queue.clear();
+        for token in locked.active_cancel_tokens.values() {
+            token.cancel();
+        }
+        let queued_ports: Vec<String> = locked.queue.drain(..).collect();
+        let now = now_millis();
+        for port_name in queued_ports {
+            let mut did_cancel = false;
+            if let Some(port) = locked.ports.get_mut(&port_name) {
+                if port.status == MassProductionPortStatus::Queued {
+                    port.status = MassProductionPortStatus::Cancelled;
+                    port.progress = 0;
+                    port.message = Some("Cancelled by user".to_string());
+                    port.task_finished_at = Some(now);
+                    did_cancel = true;
+                }
+            }
+            if did_cancel {
+                locked.cancelled_count = locked.cancelled_count.saturating_add(1);
+            }
+        }
         if locked.active_ports.is_empty() {
             locked.ended_at = Some(now_millis());
         }
@@ -1027,9 +1133,48 @@ pub async fn mass_production_stop(
         let _ = join_handle.join();
     }
 
+    for _ in 0..20 {
+        if mass_state.lock().unwrap().active_ports.is_empty() {
+            break;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+
     let snapshot = { mass_state.lock().unwrap().to_snapshot() };
     emit_snapshot(&app_handle, &snapshot);
     Ok(snapshot)
+}
+
+pub fn mass_production_handle_hotplug_event<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
+    connected_identities: Vec<PortIdentity>,
+) {
+    let app_state = app_handle.state::<Mutex<AppState>>();
+    let Ok(app_state) = app_state.lock() else {
+        return;
+    };
+    let mass_state = app_state.mass_production.clone();
+    drop(app_state);
+
+    {
+        let mut locked = mass_state.lock().unwrap();
+        if !locked.running && locked.request.is_none() {
+            return;
+        }
+        locked.hotplug_connected.extend(connected_identities);
+        if let Err(error) = scan_ports(&mut locked, false) {
+            append_mass_runtime_log(
+                app_handle,
+                "ERROR",
+                &format!("hotplug rescan failed: {error}"),
+            );
+            return;
+        }
+    }
+
+    dispatch_workers(app_handle, &mass_state);
+    let snapshot = { mass_state.lock().unwrap().to_snapshot() };
+    emit_snapshot(app_handle, &snapshot);
 }
 
 #[tauri::command]

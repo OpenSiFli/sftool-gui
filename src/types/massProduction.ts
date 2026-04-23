@@ -13,6 +13,7 @@ export type MassProductionPortStatus =
   | 'idle'
   | 'queued'
   | 'flashing'
+  | 'cancelled'
   | 'success'
   | 'error'
   | 'filtered'
@@ -27,7 +28,8 @@ export interface MassProductionStartRequest {
   chip_model: string;
   memory_type: string;
   baud_rate?: number;
-  stub_path: string;
+  stub_config_path: string;
+  external_stub_path: string;
   before_operation: string;
   after_operation: string;
   files: MassProductionWriteFileInfo[];
@@ -73,6 +75,7 @@ export interface MassProductionSnapshot {
   queued_count: number;
   active_count: number;
   success_count: number;
+  cancelled_count: number;
   failed_count: number;
   total_count: number;
   ports: MassProductionPortInfo[];

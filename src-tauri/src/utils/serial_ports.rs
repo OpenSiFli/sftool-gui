@@ -1,4 +1,6 @@
+use crate::commands::mass_production_handle_hotplug_event;
 use crate::state::AppState;
+use crate::state::PortIdentity;
 use crate::types::{PortInfo, SerialPortsChangedEvent, UsbInfo};
 use futures_lite::{future, StreamExt};
 use nusb::hotplug::HotplugEvent;
@@ -92,6 +94,7 @@ fn refresh_ports_after_hotplug<R: Runtime>(
     }
 
     clear_disconnected_device_state(app_handle, &ports);
+    let connected_identities = extract_connected_identities(last_ports, &ports);
 
     app_handle
         .emit(
@@ -102,8 +105,39 @@ fn refresh_ports_after_hotplug<R: Runtime>(
         )
         .map_err(|e| format!("发送串口列表变化事件失败: {e}"))?;
 
+    mass_production_handle_hotplug_event(app_handle, connected_identities);
+
     *last_ports = ports;
     Ok(())
+}
+
+fn extract_connected_identities(
+    previous_ports: &[PortInfo],
+    current_ports: &[PortInfo],
+) -> Vec<PortIdentity> {
+    current_ports
+        .iter()
+        .filter(|port| {
+            !previous_ports
+                .iter()
+                .any(|previous| previous.name == port.name)
+        })
+        .map(|port| PortIdentity {
+            vid: port
+                .usb_info
+                .as_ref()
+                .map(|info| format!("{:04X}", info.vid)),
+            pid: port
+                .usb_info
+                .as_ref()
+                .map(|info| format!("{:04X}", info.pid)),
+            serial_number: port
+                .usb_info
+                .as_ref()
+                .and_then(|info| info.serial_number.clone()),
+            location_path: Some(port.name.clone()),
+        })
+        .collect()
 }
 
 fn wait_for_settled_ports<F>(

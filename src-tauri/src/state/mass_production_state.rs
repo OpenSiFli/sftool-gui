@@ -2,8 +2,28 @@ use crate::types::{
     MassProductionPortInfo, MassProductionPortStatus, MassProductionSnapshot,
     MassProductionStartRequest,
 };
+use sftool_lib::CancelToken;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::thread::JoinHandle;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PortIdentity {
+    pub vid: Option<String>,
+    pub pid: Option<String>,
+    pub serial_number: Option<String>,
+    pub location_path: Option<String>,
+}
+
+impl PortIdentity {
+    pub fn from_port(port: &MassProductionPortInfo) -> Self {
+        Self {
+            vid: port.vid.clone(),
+            pid: port.pid.clone(),
+            serial_number: port.serial_number.clone(),
+            location_path: port.location_path.clone(),
+        }
+    }
+}
 
 pub struct MassProductionState {
     pub running: bool,
@@ -12,12 +32,15 @@ pub struct MassProductionState {
     pub ports: HashMap<String, MassProductionPortInfo>,
     pub queue: VecDeque<String>,
     pub active_ports: HashSet<String>,
+    pub active_cancel_tokens: HashMap<String, CancelToken>,
     pub session_id: u64,
     pub started_at: Option<u64>,
     pub ended_at: Option<u64>,
     pub manual_stopped: bool,
     pub success_count: u32,
+    pub cancelled_count: u32,
     pub failed_count: u32,
+    pub hotplug_connected: Vec<PortIdentity>,
     pub supervisor_thread: Option<JoinHandle<()>>,
 }
 
@@ -30,12 +53,15 @@ impl Default for MassProductionState {
             ports: HashMap::new(),
             queue: VecDeque::new(),
             active_ports: HashSet::new(),
+            active_cancel_tokens: HashMap::new(),
             session_id: 0,
             started_at: None,
             ended_at: None,
             manual_stopped: false,
             success_count: 0,
+            cancelled_count: 0,
             failed_count: 0,
+            hotplug_connected: Vec::new(),
             supervisor_thread: None,
         }
     }
@@ -54,12 +80,15 @@ impl MassProductionState {
         self.ports.clear();
         self.queue.clear();
         self.active_ports.clear();
+        self.active_cancel_tokens.clear();
         self.session_id = session_id;
         self.started_at = Some(started_at);
         self.ended_at = None;
         self.manual_stopped = false;
         self.success_count = 0;
+        self.cancelled_count = 0;
         self.failed_count = 0;
+        self.hotplug_connected.clear();
     }
 
     pub fn to_snapshot(&self) -> MassProductionSnapshot {
@@ -77,6 +106,7 @@ impl MassProductionState {
 
         let total_count = self
             .success_count
+            .saturating_add(self.cancelled_count)
             .saturating_add(self.failed_count)
             .saturating_add(active_count)
             .saturating_add(queued_count);
@@ -105,6 +135,7 @@ impl MassProductionState {
             queued_count,
             active_count,
             success_count: self.success_count,
+            cancelled_count: self.cancelled_count,
             failed_count: self.failed_count,
             total_count,
             ports,

@@ -64,6 +64,7 @@
             :class="{
               'opacity-50 grayscale': !massProductionStore.isPortAllowed(port),
               'border-success bg-success/5': port.status === 'success' && massProductionStore.isPortAllowed(port),
+              'border-neutral bg-base-200/60': port.status === 'cancelled' && massProductionStore.isPortAllowed(port),
               'border-error bg-error/5': port.status === 'error' && massProductionStore.isPortAllowed(port),
               'border-primary bg-primary/5': port.status === 'flashing' && massProductionStore.isPortAllowed(port),
               'border-warning bg-warning/5': port.status === 'queued' && massProductionStore.isPortAllowed(port),
@@ -275,6 +276,10 @@
                 ><span class="text-error">{{ currentSession.failed }}</span>
               </div>
               <div class="flex justify-between">
+                <span>{{ t('massProduction.cancelled') }}</span
+                ><span class="text-base-content/70">{{ currentSession.cancelled }}</span>
+              </div>
+              <div class="flex justify-between">
                 <span>{{ t('massProduction.manualStopped') }}</span
                 ><span>{{ currentSession.manualStopped ? t('massProduction.yes') : t('massProduction.no') }}</span>
               </div>
@@ -312,6 +317,9 @@
               </div>
               <div class="mt-1 flex justify-between text-base-content/70">
                 <span>{{ session.success }}/{{ session.total }}</span>
+                <span v-if="session.cancelled > 0">
+                  {{ t('massProduction.cancelledCount', { count: session.cancelled }) }}
+                </span>
                 <span class="text-error" v-if="session.failed > 0">
                   {{ t('massProduction.failedCount', { count: session.failed }) }}
                 </span>
@@ -633,7 +641,7 @@ const failedPortEvents = computed(() => {
   }
 
   return selectedSessionForDetail.value.portEvents.filter(
-    event => event.type === 'error' || event.type === 'disconnected'
+    event => event.type === 'error' || event.type === 'cancelled' || event.type === 'disconnected'
   );
 });
 
@@ -754,10 +762,20 @@ const parseFlashAddressForMassProduction = (file: { name: string; address?: stri
 };
 
 const createStartRequest = async (): Promise<MassProductionStartRequest> => {
-  const stubPath =
+  await stubConfigStore.loadRuntimeSettings();
+  await stubConfigStore.refreshExternalStubStatus();
+
+  if (stubConfigStore.applyExternalStub && !stubConfigStore.isExternalStubReady) {
+    throw new Error(t('deviceConnection.stubConfig.externalStubUnavailable'));
+  }
+
+  const stubConfigPath =
     stubConfigStore.applyStubConfig && stubConfigStore.isConfigValid
       ? `${await appDataDir()}/stub_config/draft.json`
       : '';
+
+  const externalStubPath =
+    stubConfigStore.applyExternalStub && stubConfigStore.isExternalStubReady ? stubConfigStore.externalStubPath : '';
 
   const baudRate = Number.parseInt(deviceStore.baudRateInput, 10);
 
@@ -765,7 +783,8 @@ const createStartRequest = async (): Promise<MassProductionStartRequest> => {
     chip_model: selectedChip.value!.id,
     memory_type: selectedMemoryType.value!,
     baud_rate: Number.isNaN(baudRate) ? undefined : baudRate,
-    stub_path: stubPath,
+    stub_config_path: stubConfigPath,
+    external_stub_path: externalStubPath,
     before_operation: deviceStore.downloadBehavior.before,
     after_operation: deviceStore.downloadBehavior.after,
     files: writeFlashStore.selectedFiles.map(file => ({
@@ -907,6 +926,8 @@ const getStatusBadgeClass = (status: MassProductionPortStatus) => {
       return 'badge-success';
     case 'error':
       return 'badge-error';
+    case 'cancelled':
+      return 'badge-neutral';
     case 'flashing':
       return 'badge-primary';
     case 'queued':
@@ -924,6 +945,8 @@ const getStatusProgressClass = (status: MassProductionPortStatus) => {
       return 'bg-success';
     case 'error':
       return 'bg-error';
+    case 'cancelled':
+      return 'bg-base-content/30';
     case 'flashing':
       return 'bg-primary';
     case 'queued':
@@ -980,6 +1003,7 @@ onMounted(async () => {
     massProductionStore.loadFromStorage(),
     massProductionStore.fetchMassProductionLogPaths(),
     deviceStore.loadFromStorage(),
+    stubConfigStore.loadRuntimeSettings(),
     writeFlashStore.loadFilesFromStorage(),
   ]);
 

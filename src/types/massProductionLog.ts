@@ -1,4 +1,4 @@
-export type MassProductionPortEventType = 'queued' | 'start' | 'success' | 'error' | 'disconnected';
+export type MassProductionPortEventType = 'queued' | 'start' | 'success' | 'error' | 'cancelled' | 'disconnected';
 
 export interface MassProductionPortLogEvent {
   id: string;
@@ -20,6 +20,7 @@ export interface MassProductionSessionLog {
   maxConcurrency: number;
   total: number;
   success: number;
+  cancelled: number;
   failed: number;
   manualStopped: boolean;
   fileSummary: string[];
