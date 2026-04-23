@@ -16,6 +16,7 @@ const routes = [
   { path: '/about', name: 'About', component: AboutView },
   { path: '/log-window', name: 'LogWindow', component: LogWindowView },
   { path: '/stubconfig', name: 'StubConfig', component: StubConfig },
+  { path: '/mass-production', name: 'MassProduction', component: () => import('../views/MassProductionView.vue') },
 ];
 
 const router = createRouter({

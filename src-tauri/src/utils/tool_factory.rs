@@ -1,8 +1,8 @@
 use crate::types::DeviceConfig;
 use crate::utils::stub_ops::prepare_stub_path;
 use sftool_lib::{
-    create_sifli_tool, progress::ProgressSinkArc, BeforeOperation, ChipType, SifliTool,
-    SifliToolBase,
+    create_sifli_tool, progress::ProgressSinkArc, BeforeOperation, CancelToken, ChipType,
+    SifliTool, SifliToolBase,
 };
 
 /// 创建 SifliTool 实例（无进度回调）
@@ -43,6 +43,7 @@ pub fn create_tool_instance(config: &DeviceConfig) -> Result<Box<dyn SifliTool>,
 pub fn create_tool_instance_with_progress(
     config: &DeviceConfig,
     progress_callback: ProgressSinkArc,
+    cancel_token: CancelToken,
 ) -> Result<Box<dyn SifliTool>, String> {
     // 解析芯片类型
     let chip_type = match config.chip_type.to_uppercase().as_str() {
@@ -78,7 +79,7 @@ pub fn create_tool_instance_with_progress(
     .map_err(|e| format!("准备存根文件失败: {}", e))?;
 
     // 创建 SifliToolBase (带进度回调)
-    let base = SifliToolBase::new_with_external_stub(
+    let base = SifliToolBase::new_with_external_stub_and_cancel(
         config.port_name.clone(),
         before_enum,
         config.memory_type.to_lowercase(),
@@ -87,6 +88,7 @@ pub fn create_tool_instance_with_progress(
         false,
         progress_callback,
         stub_path,
+        cancel_token,
     );
 
     // 创建对应的工具实例
