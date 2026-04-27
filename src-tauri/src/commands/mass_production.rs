@@ -441,6 +441,8 @@ fn sanitize_request(
         return Err("未配置固件文件，无法启动量产".to_string());
     }
 
+    should_soft_reset_after_operation(&request.after_operation)?;
+
     request.max_concurrency = request.max_concurrency.clamp(1, 32);
 
     for file in &request.files {
@@ -465,6 +467,14 @@ fn sanitize_request(
     }
 
     Ok(request)
+}
+
+fn should_soft_reset_after_operation(after_operation: &str) -> Result<bool, String> {
+    match after_operation.trim() {
+        "soft_reset" => Ok(true),
+        "no_reset" | "" => Ok(false),
+        other => Err(format!("不支持的下载后操作: {other}")),
+    }
 }
 
 fn is_port_allowed(port: &MassProductionPortInfo, request: &MassProductionStartRequest) -> bool {
@@ -819,6 +829,25 @@ fn run_worker<R: tauri::Runtime>(
         tool.write_flash(&params)
             .map_err(|e| format!("写入 Flash 失败: {e}"))?;
 
+        if should_soft_reset_after_operation(&request.after_operation)? {
+            append_mass_worker_runtime_log(
+                &app_handle,
+                session_id,
+                &port_name,
+                "INFO",
+                "post-operation soft reset started",
+            );
+            tool.soft_reset()
+                .map_err(|e| format!("下载后软复位失败: {e}"))?;
+            append_mass_worker_runtime_log(
+                &app_handle,
+                session_id,
+                &port_name,
+                "INFO",
+                "post-operation soft reset finished",
+            );
+        }
+
         Ok(())
     }))
     .map_err(|panic_payload| {
@@ -1015,6 +1044,30 @@ fn with_mass_state(
     Ok(app_state.mass_production.clone())
 }
 
+fn release_connected_tool_for_mass_production(app_state: &mut AppState) -> Result<bool, String> {
+    let Some(tool) = app_state.sftool.as_ref() else {
+        return Ok(false);
+    };
+
+    if Arc::strong_count(tool) > 1 {
+        return Err("普通模式设备操作仍在执行，请等待完成后再启动量产".to_string());
+    }
+
+    let tool = tool.clone();
+    match tool.try_lock() {
+        Ok(guard) => drop(guard),
+        Err(std::sync::TryLockError::WouldBlock) => {
+            return Err("普通模式设备操作仍在执行，请等待完成后再启动量产".to_string());
+        }
+        Err(std::sync::TryLockError::Poisoned(e)) => {
+            return Err(format!("普通模式设备连接状态异常: {e}"));
+        }
+    }
+
+    app_state.clear_device_connection();
+    Ok(true)
+}
+
 #[tauri::command]
 pub async fn mass_production_start(
     app_handle: AppHandle,
@@ -1055,6 +1108,19 @@ pub async fn mass_production_start(
     }
 
     let initial_ports = enumerate_ports()?;
+
+    let released_regular_connection = {
+        let mut app_state = state.lock().map_err(|e| format!("获取应用状态失败: {e}"))?;
+        release_connected_tool_for_mass_production(&mut app_state)?
+    };
+
+    if released_regular_connection {
+        append_mass_runtime_log(
+            &app_handle,
+            "INFO",
+            "released regular device connection before mass production start",
+        );
+    }
 
     {
         let mut locked = mass_state.lock().unwrap();

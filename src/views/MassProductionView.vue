@@ -819,6 +819,10 @@ const toggleMassProduction = async () => {
 
     const request = await createStartRequest();
     await massProductionStore.startMassProduction(request);
+    if (deviceStore.isConnected) {
+      deviceStore.setConnected(false);
+      deviceStore.clearConnectionIssue();
+    }
   } catch (error) {
     alert(`Mass production failed: ${error}`);
   } finally {
