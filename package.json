@@ -20,7 +20,7 @@
     "@tauri-apps/cli": "2.10.1",
     "@typescript-eslint/eslint-plugin": "^8.51.0",
     "@typescript-eslint/parser": "^8.51.0",
-    "@vitejs/plugin-vue": "^6.0.5",
+    "@vitejs/plugin-vue": "^6.0.6",
     "daisyui": "^5.5.19",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
