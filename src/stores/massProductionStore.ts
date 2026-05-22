@@ -307,6 +307,17 @@ export const useMassProductionStore = defineStore('massProduction', () => {
 
   const applySnapshot = (snapshot: MassProductionSnapshot) => {
     const previousPorts = new Map(ports.value.map(port => [port.name, port]));
+    const hasCurrentSession = currentSession.value != null;
+    const isSnapshotForNewSession = hasCurrentSession && currentSession.value?.sessionId !== snapshot.session_id;
+    const shouldIgnoreEndedHistorySnapshot = snapshot.ended_at != null && isSnapshotForNewSession;
+    const sessionWasFinalized =
+      currentSession.value?.sessionId === snapshot.session_id && currentSession.value.endedAt != null;
+    const shouldIgnoreFinalizedSessionSnapshot = sessionWasFinalized && snapshot.ended_at == null;
+    const shouldAppendSessionEvents = !sessionWasFinalized && !shouldIgnoreEndedHistorySnapshot;
+
+    if (shouldIgnoreEndedHistorySnapshot || shouldIgnoreFinalizedSessionSnapshot) {
+      return;
+    }
 
     isRunning.value = snapshot.is_running;
     isEnabled.value = snapshot.is_enabled;
@@ -318,8 +329,10 @@ export const useMassProductionStore = defineStore('massProduction', () => {
     chipModel.value = snapshot.chip_model ?? null;
     memoryType.value = snapshot.memory_type ?? null;
 
-    autoDownload.value = snapshot.auto_download;
-    maxConcurrency.value = clampConcurrency(snapshot.max_concurrency);
+    if (snapshot.is_enabled) {
+      autoDownload.value = snapshot.auto_download;
+      maxConcurrency.value = clampConcurrency(snapshot.max_concurrency);
+    }
 
     queuedCount.value = snapshot.queued_count;
     activeCount.value = snapshot.active_count;
@@ -345,26 +358,33 @@ export const useMassProductionStore = defineStore('massProduction', () => {
       currentSession.value.failed = snapshot.failed_count;
       currentSession.value.manualStopped = snapshot.manual_stopped;
 
-      for (const port of ports.value) {
-        const previousPort = previousPorts.get(port.name);
-        const previousStatus = previousPort?.status;
-        const previousMessage = previousPort?.message;
+      if (shouldAppendSessionEvents) {
+        for (const port of ports.value) {
+          const previousPort = previousPorts.get(port.name);
+          const previousStatus = previousPort?.status;
+          const previousMessage = previousPort?.message;
 
-        if (previousStatus === port.status) {
-          if (port.status === 'error' && previousMessage !== port.message) {
-            appendPortEvent(port, 'error');
+          if (previousStatus === port.status) {
+            if (port.status === 'error' && previousMessage !== port.message) {
+              appendPortEvent(port, 'error');
+            }
+            continue;
           }
-          continue;
-        }
 
-        const eventType = mapPortStatusToEvent(port.status);
-        if (eventType) {
-          appendPortEvent(port, eventType);
+          const eventType = mapPortStatusToEvent(port.status);
+          if (eventType) {
+            appendPortEvent(port, eventType);
+          }
         }
       }
     }
 
-    if (currentSession.value && snapshot.ended_at && currentSession.value.sessionId === snapshot.session_id) {
+    if (
+      !shouldIgnoreEndedHistorySnapshot &&
+      currentSession.value &&
+      snapshot.ended_at &&
+      currentSession.value.sessionId === snapshot.session_id
+    ) {
       void finalizeCurrentSession();
     }
   };
@@ -398,7 +418,7 @@ export const useMassProductionStore = defineStore('massProduction', () => {
         }
       }
 
-      if (statusChangedToFlashing) {
+      if (statusChangedToFlashing && currentSession.value?.endedAt == null) {
         appendPortEvent(port, 'start');
       }
       return;

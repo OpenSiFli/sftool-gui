@@ -53,6 +53,32 @@
     "ready": "Ready",
     "maxConcurrency": "Max Concurrency",
     "maxConcurrencyHint": "Range: 1 - 32, default 8",
+    "stubSource": {
+      "title": "Stub Source",
+      "edit": "Edit",
+      "current": "Current source",
+      "applyConfig": "Apply Stub configuration",
+      "useExternalStub": "Use external Stub",
+      "externalFile": "External file",
+      "notSelected": "Not selected",
+      "available": "External Stub available",
+      "missing": "External Stub unavailable",
+      "invalidConfig": "Stub configuration is invalid and cannot be enabled.",
+      "mode": {
+        "embedded": "Embedded Stub",
+        "configured": "Embedded Stub + Custom Config",
+        "external": "External Stub",
+        "externalConfigured": "External Stub + Custom Config",
+        "externalMissing": "External Stub Unavailable"
+      },
+      "message": {
+        "embeddedOnly": "The embedded Stub will be used directly.",
+        "configOnly": "The embedded Stub will be used with the custom Stub Configuration applied.",
+        "externalOnly": "The selected external Stub file will be used directly.",
+        "externalWithConfig": "The selected external Stub file will be loaded first, then the custom Stub Configuration will be applied.",
+        "externalMissing": "External Stub is enabled, but the selected file is not accessible. Starting mass production will fail."
+      }
+    },
     "sessionSummary": "Current Session",
     "sessionHistory": "Session History",
     "startedAt": "Started",

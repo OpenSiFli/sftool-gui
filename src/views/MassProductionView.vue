@@ -221,6 +221,53 @@
           </label>
         </div>
 
+        <div class="form-control">
+          <label class="label justify-between gap-2">
+            <span class="label-text font-semibold">{{ t('massProduction.stubSource.title') }}</span>
+            <button class="btn btn-xs btn-ghost gap-1" @click="openStubConfigPage" :disabled="isEnabled">
+              <span class="material-icons text-sm">tune</span>
+              {{ t('massProduction.stubSource.edit') }}
+            </button>
+          </label>
+          <div class="bg-base-200/70 rounded-lg p-3 text-xs space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-base-content/70">{{ t('massProduction.stubSource.current') }}</span>
+              <span class="badge badge-sm badge-outline text-[10px]">{{ stubSourceLabel }}</span>
+            </div>
+            <div class="text-[11px] text-base-content/70 leading-snug">{{ stubSourceMessage }}</div>
+
+            <label class="label cursor-pointer justify-between gap-3 p-0">
+              <span class="label-text text-xs">{{ t('massProduction.stubSource.applyConfig') }}</span>
+              <input
+                type="checkbox"
+                class="toggle toggle-primary toggle-xs"
+                v-model="applyStubConfigModel"
+                :disabled="isEnabled || !isStubConfigValid"
+              />
+            </label>
+            <div v-if="!isStubConfigValid" class="text-[10px] text-warning">
+              {{ t('massProduction.stubSource.invalidConfig') }}
+            </div>
+
+            <label class="label cursor-pointer justify-between gap-3 p-0">
+              <span class="label-text text-xs">{{ t('massProduction.stubSource.useExternalStub') }}</span>
+              <input
+                type="checkbox"
+                class="toggle toggle-primary toggle-xs"
+                v-model="applyExternalStubModel"
+                :disabled="isExternalStubToggleDisabled"
+              />
+            </label>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-base-content/70">{{ t('massProduction.stubSource.externalFile') }}</span>
+              <span class="font-mono text-right break-all max-w-[9rem]" :title="externalStubFileName || undefined">
+                {{ externalStubLabel }}
+              </span>
+            </div>
+            <div class="text-[10px]" :class="externalStubStatusClass">{{ externalStubStatus }}</div>
+          </div>
+        </div>
+
         <div class="form-control flex-1 flex flex-col min-h-0">
           <label class="label justify-between">
             <span class="label-text font-semibold">{{ t('massProduction.firmwareFiles') }}</span>
@@ -584,6 +631,7 @@
 import { listen } from '@tauri-apps/api/event';
 import { appDataDir } from '@tauri-apps/api/path';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useMassProductionStore, type FilterType } from '../stores/massProductionStore';
@@ -595,6 +643,7 @@ import type { MassProductionPortStatus, MassProductionStartRequest } from '../ty
 import FlashFileCard from '../components/FlashFileCard.vue';
 
 const { t } = useI18n();
+const router = useRouter();
 
 const massProductionStore = useMassProductionStore();
 const deviceStore = useDeviceStore();
@@ -657,6 +706,93 @@ const autoDownloadModel = computed({
 const maxConcurrencyModel = computed({
   get: () => massProductionStore.maxConcurrency,
   set: value => massProductionStore.setMaxConcurrency(value),
+});
+
+const isStubConfigValid = computed(() => stubConfigStore.isConfigValid);
+const isExternalStubReady = computed(() => stubConfigStore.isExternalStubReady);
+const hasExternalStubPath = computed(() => stubConfigStore.hasExternalStubPath);
+const externalStubFileName = computed(() => stubConfigStore.externalStubFileName);
+const isExternalStubToggleDisabled = computed(() => {
+  return isEnabled.value || (!stubConfigStore.applyExternalStub && !stubConfigStore.isExternalStubReady);
+});
+
+const applyStubConfigModel = computed({
+  get: () => stubConfigStore.applyStubConfig,
+  set: value => {
+    if (value && !stubConfigStore.isConfigValid) {
+      return;
+    }
+    stubConfigStore.setApplyStubConfig(value);
+  },
+});
+
+const applyExternalStubModel = computed({
+  get: () => stubConfigStore.applyExternalStub,
+  set: value => {
+    stubConfigStore.setApplyExternalStub(value);
+  },
+});
+
+const stubSourceLabel = computed(() => {
+  if (stubConfigStore.applyExternalStub && !stubConfigStore.isExternalStubReady) {
+    return t('massProduction.stubSource.mode.externalMissing') as string;
+  }
+
+  if (stubConfigStore.applyExternalStub && stubConfigStore.isExternalStubReady && stubConfigStore.applyStubConfig) {
+    return t('massProduction.stubSource.mode.externalConfigured') as string;
+  }
+
+  if (stubConfigStore.applyExternalStub && stubConfigStore.isExternalStubReady) {
+    return t('massProduction.stubSource.mode.external') as string;
+  }
+
+  if (stubConfigStore.applyStubConfig && stubConfigStore.isConfigValid) {
+    return t('massProduction.stubSource.mode.configured') as string;
+  }
+
+  return t('massProduction.stubSource.mode.embedded') as string;
+});
+
+const stubSourceMessage = computed(() => {
+  if (stubConfigStore.applyExternalStub && !stubConfigStore.isExternalStubReady) {
+    return t('massProduction.stubSource.message.externalMissing') as string;
+  }
+
+  if (stubConfigStore.applyExternalStub && stubConfigStore.isExternalStubReady && stubConfigStore.applyStubConfig) {
+    return t('massProduction.stubSource.message.externalWithConfig') as string;
+  }
+
+  if (stubConfigStore.applyExternalStub && stubConfigStore.isExternalStubReady) {
+    return t('massProduction.stubSource.message.externalOnly') as string;
+  }
+
+  if (stubConfigStore.applyStubConfig && stubConfigStore.isConfigValid) {
+    return t('massProduction.stubSource.message.configOnly') as string;
+  }
+
+  return t('massProduction.stubSource.message.embeddedOnly') as string;
+});
+
+const externalStubLabel = computed(() => {
+  return externalStubFileName.value || (t('massProduction.stubSource.notSelected') as string);
+});
+
+const externalStubStatus = computed(() => {
+  if (!hasExternalStubPath.value) {
+    return t('massProduction.stubSource.notSelected') as string;
+  }
+
+  return isExternalStubReady.value
+    ? (t('massProduction.stubSource.available') as string)
+    : (t('massProduction.stubSource.missing') as string);
+});
+
+const externalStubStatusClass = computed(() => {
+  if (isExternalStubReady.value) {
+    return 'text-success';
+  }
+
+  return hasExternalStubPath.value ? 'text-error' : 'text-base-content/60';
 });
 
 const previewPorts = computed(() => {
@@ -761,6 +897,43 @@ const parseFlashAddressForMassProduction = (file: { name: string; address?: stri
   return parsedAddress;
 };
 
+const validateMassProductionFiles = () => {
+  const usedAddresses = new Map<number, string>();
+  let firstError = '';
+
+  writeFlashStore.selectedFiles.forEach((file, index) => {
+    if (writeFlashStore.isAutoAddressFile(file.name)) {
+      writeFlashStore.updateFileAddressError(index, '');
+      return;
+    }
+
+    const rawAddress = (file.address || '').trim();
+    let error = '';
+
+    if (!rawAddress) {
+      error = t('writeFlash.validation.addressRequired') as string;
+    } else if (!/^0x[0-9a-fA-F]+$/.test(rawAddress)) {
+      error = t('writeFlash.validation.invalidAddress') as string;
+    } else {
+      const parsedAddress = Number.parseInt(rawAddress, 16);
+      if (!Number.isInteger(parsedAddress) || parsedAddress < 0 || parsedAddress > 0xffffffff) {
+        error = t('writeFlash.validation.addressTooLarge') as string;
+      } else if (usedAddresses.has(parsedAddress)) {
+        error = t('writeFlash.validation.duplicateAddress') as string;
+      } else {
+        usedAddresses.set(parsedAddress, file.name);
+      }
+    }
+
+    writeFlashStore.updateFileAddressError(index, error);
+    if (error && !firstError) {
+      firstError = `${file.name}: ${error}`;
+    }
+  });
+
+  return firstError;
+};
+
 const createStartRequest = async (): Promise<MassProductionStartRequest> => {
   await stubConfigStore.loadRuntimeSettings();
   await stubConfigStore.refreshExternalStubStatus();
@@ -769,10 +942,11 @@ const createStartRequest = async (): Promise<MassProductionStartRequest> => {
     throw new Error(t('deviceConnection.stubConfig.externalStubUnavailable'));
   }
 
-  const stubConfigPath =
-    stubConfigStore.applyStubConfig && stubConfigStore.isConfigValid
-      ? `${await appDataDir()}/stub_config/draft.json`
-      : '';
+  if (stubConfigStore.applyStubConfig && !stubConfigStore.isConfigValid) {
+    throw new Error(t('deviceConnection.stubConfig.configHasErrors'));
+  }
+
+  const stubConfigPath = stubConfigStore.applyStubConfig ? `${await appDataDir()}/stub_config/draft.json` : '';
 
   const externalStubPath =
     stubConfigStore.applyExternalStub && stubConfigStore.isExternalStubReady ? stubConfigStore.externalStubPath : '';
@@ -812,7 +986,18 @@ const toggleMassProduction = async () => {
       return;
     }
 
-    if (!canStart.value) {
+    if (!selectedChip.value || !selectedMemoryType.value || writeFlashStore.selectedFiles.length === 0) {
+      alert(t('massProduction.startHint'));
+      return;
+    }
+
+    const fileValidationError = validateMassProductionFiles();
+    if (fileValidationError) {
+      alert(fileValidationError);
+      return;
+    }
+
+    if (!writeFlashStore.canStartFlashing) {
       alert(t('massProduction.startHint'));
       return;
     }
@@ -850,6 +1035,10 @@ const addRule = (type: FilterType) => {
     value: '',
     enabled: true,
   });
+};
+
+const openStubConfigPage = () => {
+  void router.push({ name: 'StubConfig' });
 };
 
 const openMassProductionLogDirectory = async () => {
@@ -1008,6 +1197,7 @@ onMounted(async () => {
     massProductionStore.fetchMassProductionLogPaths(),
     deviceStore.loadFromStorage(),
     stubConfigStore.loadRuntimeSettings(),
+    stubConfigStore.loadConfigDraftFromLocal(),
     writeFlashStore.loadFilesFromStorage(),
   ]);
 

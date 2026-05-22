@@ -445,9 +445,21 @@ fn sanitize_request(
 
     request.max_concurrency = request.max_concurrency.clamp(1, 32);
 
+    let mut fixed_addresses = HashMap::new();
     for file in &request.files {
         if !std::path::Path::new(&file.file_path).exists() {
             return Err(format!("文件不存在: {}", file.file_path));
+        }
+
+        if file.address != 0 {
+            if let Some(existing_file_path) =
+                fixed_addresses.insert(file.address, file.file_path.clone())
+            {
+                return Err(format!(
+                    "烧录地址重复: 0x{:08X} 已用于 {} 和 {}",
+                    file.address, existing_file_path, file.file_path
+                ));
+            }
         }
     }
 
@@ -608,6 +620,29 @@ fn consume_hotplug_reconnect_candidate(
     scanned: &MassProductionPortInfo,
 ) -> bool {
     let identity = PortIdentity::from_port(scanned);
+    if !state
+        .hotplug_connected
+        .iter()
+        .any(|candidate| candidate == &identity)
+    {
+        return false;
+    }
+
+    if state
+        .ports
+        .get(&scanned.name)
+        .map(|port| !can_reset_terminal_status(port) && PortIdentity::from_port(port) != identity)
+        .unwrap_or(false)
+    {
+        return false;
+    }
+
+    let should_reset_same_name_replacement = state
+        .ports
+        .get(&scanned.name)
+        .map(|port| can_reset_terminal_status(port) && PortIdentity::from_port(port) != identity)
+        .unwrap_or(false);
+
     let matches: Vec<String> = state
         .ports
         .iter()
@@ -620,14 +655,11 @@ fn consume_hotplug_reconnect_candidate(
         })
         .collect();
 
-    if matches.len() == 1 {
-        state
-            .hotplug_connected
-            .retain(|candidate| candidate != &identity);
-        return true;
-    }
+    state
+        .hotplug_connected
+        .retain(|candidate| candidate != &identity);
 
-    false
+    matches.len() == 1 || should_reset_same_name_replacement
 }
 
 fn scan_ports(state: &mut MassProductionState, trigger_flash: bool) -> Result<(), String> {
@@ -639,22 +671,34 @@ fn scan_ports(state: &mut MassProductionState, trigger_flash: bool) -> Result<()
         let name = scanned.name.clone();
         seen.insert(name.clone());
 
-        let allowed = state
-            .request
-            .as_ref()
-            .map(|req| is_port_allowed(&scanned, req))
-            .unwrap_or(true);
+        let allowed = if state.running {
+            state
+                .request
+                .as_ref()
+                .map(|req| is_port_allowed(&scanned, req))
+                .unwrap_or(true)
+        } else {
+            true
+        };
 
-        scanned.chip = state.request.as_ref().map(|req| req.chip_model.clone());
+        scanned.chip = if state.running {
+            state.request.as_ref().map(|req| req.chip_model.clone())
+        } else {
+            None
+        };
         scanned.is_allowed = allowed;
         let should_reset_from_hotplug = consume_hotplug_reconnect_candidate(state, &scanned);
 
         if let Some(existing) = state.ports.get_mut(&name) {
+            let should_defer_identity_update = state.active_ports.contains(&name);
             existing.port_type = scanned.port_type;
-            existing.vid = scanned.vid;
-            existing.pid = scanned.pid;
-            existing.serial_number = scanned.serial_number;
-            existing.location_path = scanned.location_path;
+            if !should_defer_identity_update {
+                existing.vid = scanned.vid;
+                existing.pid = scanned.pid;
+                existing.serial_number = scanned.serial_number;
+                existing.location_path = scanned.location_path;
+            }
+            existing.chip = scanned.chip;
             existing.last_seen_at = now;
             existing.is_allowed = allowed;
 
@@ -1224,7 +1268,7 @@ pub fn mass_production_handle_hotplug_event<R: tauri::Runtime>(
 
     {
         let mut locked = mass_state.lock().unwrap();
-        if !locked.running && locked.request.is_none() {
+        if !locked.running {
             return;
         }
         locked.hotplug_connected.extend(connected_identities);
@@ -1369,4 +1413,105 @@ pub async fn mass_production_open_log_directory(app_handle: AppHandle) -> Result
         .map_err(|e| format!("打开量产日志目录失败: {e}"))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_port(name: &str, status: MassProductionPortStatus) -> MassProductionPortInfo {
+        MassProductionPortInfo {
+            id: name.to_string(),
+            name: name.to_string(),
+            port_type: "usb".to_string(),
+            vid: Some("1234".to_string()),
+            pid: Some("5678".to_string()),
+            serial_number: Some("SN".to_string()),
+            location_path: Some("loc".to_string()),
+            chip: None,
+            status,
+            progress: 0,
+            message: None,
+            is_allowed: true,
+            last_seen_at: 0,
+            task_started_at: None,
+            task_finished_at: None,
+        }
+    }
+
+    #[test]
+    fn hotplug_reconnect_requires_recorded_identity() {
+        let mut state = MassProductionState::default();
+        let existing = test_port("COM1", MassProductionPortStatus::Success);
+        let scanned = test_port("COM1", MassProductionPortStatus::Idle);
+        state.ports.insert(existing.name.clone(), existing);
+
+        assert!(!consume_hotplug_reconnect_candidate(&mut state, &scanned));
+
+        state
+            .hotplug_connected
+            .push(PortIdentity::from_port(&scanned));
+        assert!(consume_hotplug_reconnect_candidate(&mut state, &scanned));
+        assert!(state.hotplug_connected.is_empty());
+    }
+
+    #[test]
+    fn new_hotplug_identity_is_consumed_without_terminal_match() {
+        let mut state = MassProductionState::default();
+        let scanned = test_port("COM1", MassProductionPortStatus::Idle);
+        state
+            .hotplug_connected
+            .push(PortIdentity::from_port(&scanned));
+
+        assert!(!consume_hotplug_reconnect_candidate(&mut state, &scanned));
+        assert!(state.hotplug_connected.is_empty());
+    }
+
+    #[test]
+    fn same_port_name_replacement_resets_terminal_port() {
+        let mut state = MassProductionState::default();
+        let existing = test_port("COM1", MassProductionPortStatus::Success);
+        let mut scanned = test_port("COM1", MassProductionPortStatus::Idle);
+        scanned.serial_number = Some("SN2".to_string());
+        state.ports.insert(existing.name.clone(), existing);
+        state
+            .hotplug_connected
+            .push(PortIdentity::from_port(&scanned));
+
+        assert!(consume_hotplug_reconnect_candidate(&mut state, &scanned));
+        assert!(state.hotplug_connected.is_empty());
+    }
+
+    #[test]
+    fn hotplug_identity_for_active_port_is_consumed_without_reset() {
+        let mut state = MassProductionState::default();
+        let existing = test_port("COM1", MassProductionPortStatus::Flashing);
+        let scanned = test_port("COM1", MassProductionPortStatus::Idle);
+        state.ports.insert(existing.name.clone(), existing);
+        state
+            .hotplug_connected
+            .push(PortIdentity::from_port(&scanned));
+
+        assert!(!consume_hotplug_reconnect_candidate(&mut state, &scanned));
+        assert!(state.hotplug_connected.is_empty());
+    }
+
+    #[test]
+    fn active_same_name_replacement_keeps_token_for_later_requeue() {
+        let mut state = MassProductionState::default();
+        let existing = test_port("COM1", MassProductionPortStatus::Flashing);
+        let mut scanned = test_port("COM1", MassProductionPortStatus::Idle);
+        scanned.serial_number = Some("SN2".to_string());
+        state.ports.insert(existing.name.clone(), existing);
+        state
+            .hotplug_connected
+            .push(PortIdentity::from_port(&scanned));
+
+        assert!(!consume_hotplug_reconnect_candidate(&mut state, &scanned));
+        assert_eq!(state.hotplug_connected.len(), 1);
+
+        state.ports.get_mut("COM1").unwrap().status = MassProductionPortStatus::Success;
+        assert!(consume_hotplug_reconnect_candidate(&mut state, &scanned));
+        assert!(state.hotplug_connected.is_empty());
+    }
 }
