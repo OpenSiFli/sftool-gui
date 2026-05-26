@@ -4941,7 +4941,9 @@ dependencies = [
 
 [[package]]
 name = "sftool-lib"
-version = "0.2.2"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d85e04a1271af946b5586daaca89fd0438ff247b553f8f04b93629e2be2d6aea"
 dependencies = [
  "bitfield 0.19.4",
  "crc",
