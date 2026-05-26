@@ -19,7 +19,18 @@
 
         <!-- 页面导航菜单 -->
         <li>
-          <router-link to="/write-flash" class="nav-item">
+          <router-link to="/mass-production" class="nav-item">
+            <div class="icon-box">
+              <span class="material-icons">factory</span>
+              <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.mass_production') }}</div>
+            </div>
+            <span class="label" :class="{ 'hidden-label': isCollapsed }">
+              {{ $t('navbar.mass_production') }}
+            </span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/write-flash" class="nav-item" :class="{ 'disabled-nav-item': isMassProductionActive }">
             <div class="icon-box">
               <span class="material-icons">memory</span>
               <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.flash') }}</div>
@@ -30,7 +41,7 @@
           </router-link>
         </li>
         <li>
-          <router-link to="/read-flash" class="nav-item">
+          <router-link to="/read-flash" class="nav-item" :class="{ 'disabled-nav-item': isMassProductionActive }">
             <div class="icon-box">
               <span class="material-icons">file_upload</span>
               <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.read_flash') }}</div>
@@ -41,7 +52,7 @@
           </router-link>
         </li>
         <li>
-          <router-link to="/erase-flash" class="nav-item">
+          <router-link to="/erase-flash" class="nav-item" :class="{ 'disabled-nav-item': isMassProductionActive }">
             <div class="icon-box">
               <span class="material-icons">delete_forever</span>
               <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.erase_flash') }}</div>
@@ -52,7 +63,7 @@
           </router-link>
         </li>
         <li>
-          <router-link to="/stubconfig" class="nav-item">
+          <router-link to="/stubconfig" class="nav-item" :class="{ 'disabled-nav-item': isMassProductionActive }">
             <div class="icon-box">
               <span class="material-icons">build</span>
               <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.stub_config') }}</div>
@@ -63,7 +74,7 @@
           </router-link>
         </li>
         <li>
-          <router-link to="/setting" class="nav-item">
+          <router-link to="/setting" class="nav-item" :class="{ 'disabled-nav-item': isMassProductionActive }">
             <div class="icon-box">
               <span class="material-icons">settings</span>
               <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.setting') }}</div>
@@ -74,7 +85,7 @@
           </router-link>
         </li>
         <li>
-          <router-link to="/about" class="nav-item">
+          <router-link to="/about" class="nav-item" :class="{ 'disabled-nav-item': isMassProductionActive }">
             <div class="icon-box">
               <span class="material-icons">help_outline</span>
               <div v-if="isCollapsed" class="tooltip">{{ $t('navbar.about') }}</div>
@@ -91,9 +102,13 @@
 
 <script setup lang="ts">
 import { useUserStore } from '../stores/userStore.ts';
-import { ref, onMounted } from 'vue';
+import { useMassProductionStore } from '../stores/massProductionStore.ts';
+import { ref, onMounted, computed } from 'vue';
 
 const userStore = useUserStore();
+const massProductionStore = useMassProductionStore();
+
+const isMassProductionActive = computed(() => massProductionStore.isEnabled);
 
 // 导航栏折叠状态，使用userStore的状态
 const isCollapsed = ref(userStore.menuCollapsed);
@@ -205,10 +220,6 @@ onMounted(() => {
   background-color: rgba(82, 176, 225, 0.3) !important;
   color: #52b0e1 !important;
   font-weight: 500 !important;
-  box-shadow:
-    0 0 0 2px rgba(82, 176, 225, 0.5) !important,
-    inset 4px 0 0 #52b0e1 !important,
-    0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* 悬停和激活状态下的图标效果 */
@@ -262,13 +273,6 @@ onMounted(() => {
   .toggle-btn:hover .material-icons,
   .nav-item.router-link-active .material-icons {
     color: #5eb8e8 !important;
-  }
-
-  .nav-item.router-link-active {
-    box-shadow:
-      0 0 0 2px rgba(94, 184, 232, 0.5) !important,
-      inset 4px 0 0 #5eb8e8 !important,
-      0 4px 8px rgba(0, 0, 0, 0.2) !important;
   }
 
   .tooltip {

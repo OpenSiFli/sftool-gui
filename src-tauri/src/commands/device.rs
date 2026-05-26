@@ -3,6 +3,7 @@ use crate::state::AppState;
 use crate::types::{DeviceConfig, PortInfo};
 use crate::utils::{create_tool_instance_with_progress, list_serial_ports};
 use sftool_lib::progress::ProgressSinkArc;
+use sftool_lib::CancelToken;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, State};
 
@@ -41,7 +42,8 @@ pub async fn connect_device(
     let progress_callback: ProgressSinkArc = Arc::new(TauriProgressCallback::new(app_handle));
 
     // 创建带进度回调的工具实例
-    let tool = create_tool_instance_with_progress(&device_config, progress_callback)?;
+    let tool =
+        create_tool_instance_with_progress(&device_config, progress_callback, CancelToken::new())?;
 
     // 保存设备配置和工具实例到状态
     let mut app_state = state.lock().unwrap();

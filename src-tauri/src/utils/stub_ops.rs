@@ -71,3 +71,45 @@ pub fn prepare_stub_path(
     let path = temp_file.path().to_string_lossy().to_string();
     Ok((Some(path), Some(temp_file)))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::prepare_stub_path;
+    use sftool_lib::ChipType;
+    use std::io::Write;
+    use std::path::Path;
+
+    #[test]
+    fn prepare_stub_path_without_config_preserves_original_stub_path() {
+        let external_stub_path = Some("/tmp/custom_stub.bin".to_string());
+
+        let (path, temp_owner) =
+            prepare_stub_path(None, &ChipType::SF32LB52, "nor", external_stub_path.clone())
+                .unwrap();
+
+        assert_eq!(path, external_stub_path);
+        assert!(temp_owner.is_none());
+    }
+
+    #[test]
+    fn prepared_stub_temp_file_lives_until_owner_is_dropped() {
+        let mut config_file = tempfile::NamedTempFile::new().unwrap();
+        config_file.write_all(b"{}").unwrap();
+        config_file.flush().unwrap();
+
+        let (stub_path, temp_owner) = prepare_stub_path(
+            Some(config_file.path().to_str().unwrap()),
+            &ChipType::SF32LB52,
+            "nor",
+            None,
+        )
+        .unwrap();
+
+        let stub_path = stub_path.unwrap();
+        let temp_owner = temp_owner.expect("custom stub config should create a temp stub file");
+        assert!(Path::new(&stub_path).exists());
+
+        drop(temp_owner);
+        assert!(!Path::new(&stub_path).exists());
+    }
+}

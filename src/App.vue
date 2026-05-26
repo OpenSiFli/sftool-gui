@@ -41,6 +41,7 @@ export default {
       switch (route.path) {
         case '/setting':
         case '/about':
+        case '/mass-production':
           return false;
         case '/':
         case '/write-flash':

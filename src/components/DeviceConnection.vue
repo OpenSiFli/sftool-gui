@@ -928,6 +928,10 @@ const connectDevice = async () => {
         throw new Error(t('deviceConnection.stubConfig.externalStubUnavailable'));
       }
 
+      if (applyStubConfig.value && !isStubConfigValid.value) {
+        throw new Error(t('deviceConnection.stubConfig.configHasErrors'));
+      }
+
       const connectParams: Record<string, any> = {
         chipModel: selectedChip.value!.id,
         memoryType: selectedMemoryType.value,
@@ -952,7 +956,7 @@ const connectDevice = async () => {
       const configPath = `${configDir}/draft.json`;
 
       // 如果启用 stub 配置，则传递配置 JSON 路径
-      if (applyStubConfig.value && isStubConfigValid.value) {
+      if (applyStubConfig.value) {
         connectParams.stubConfigPath = configPath;
       }
 
@@ -981,7 +985,11 @@ const connectDevice = async () => {
 // 组件挂载时加载串口列表和设备设置
 onMounted(async () => {
   // 从存储加载设备设置
-  await Promise.all([deviceStore.loadFromStorage(), stubConfigStore.loadRuntimeSettings()]);
+  await Promise.all([
+    deviceStore.loadFromStorage(),
+    stubConfigStore.loadRuntimeSettings(),
+    stubConfigStore.loadConfigDraftFromLocal(),
+  ]);
 
   // 加载串口列表
   await refreshPorts();

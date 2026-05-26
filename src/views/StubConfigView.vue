@@ -684,50 +684,21 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLogStore } from '../stores/logStore';
 import { useStubConfigStore } from '../stores/stubConfigStore';
+import {
+  AVAILABLE_PMIC_CHANNELS,
+  createFlashDevice,
+  createPinItem,
+  exportStubConfigDraft,
+  isValidFlashCapacity,
+  isValidHexAddress,
+  isValidHexByte,
+  parseStubConfigDraft,
+  type FlashDevice,
+} from '../utils/stubConfigDraft';
 
 const { t } = useI18n();
 const logStore = useLogStore();
 const stubConfigStore = useStubConfigStore();
-
-type PinPort = 'PA' | 'PB' | 'PBR';
-type PinLevel = 'low' | 'high';
-type PinItem = {
-  id: string;
-  port: PinPort;
-  number: number;
-  level: PinLevel;
-};
-
-type FlashMedia = 'nor' | 'nand';
-type FlashDevice = {
-  id: string;
-  media: FlashMedia;
-  driver_index: number;
-  manufacturer_id: string;
-  device_type: string;
-  density_id: string;
-  flags: string;
-  nor_dtr?: boolean;
-  nand_dual_plane?: boolean;
-  nand_page_size?: number;
-  nand_block_size?: number;
-  nand_ecc_mode?: number;
-  capacity_bytes: string | number;
-  expanded: boolean;
-  capacityError?: string;
-  manufacturerIdError?: string;
-  deviceTypeError?: string;
-  densityIdError?: string;
-  flagsError?: string;
-};
-
-const normalizePinPort = (port?: string): PinPort => {
-  return port === 'PB' || port === 'PBR' ? port : 'PA';
-};
-
-const normalizePinLevel = (level?: string): PinLevel => {
-  return level === 'high' ? 'high' : 'low';
-};
 
 // Stub 机制弹窗控制
 const showStubModal = ref(false);
@@ -791,18 +762,7 @@ const flashConfig = computed({
 const flashDevices = computed<FlashDevice[]>(() => flashConfig.value.devices as FlashDevice[]);
 
 // PMIC 可用通道
-const availablePmicChannels = [
-  '1v8_lvsw100_1',
-  '1v8_lvsw100_2',
-  '1v8_lvsw100_3',
-  '1v8_lvsw100_4',
-  '1v8_lvsw100_5',
-  'vbat_hvsw150_1',
-  'vbat_hvsw150_2',
-  'ldo33',
-  'ldo30',
-  'ldo28',
-];
+const availablePmicChannels = AVAILABLE_PMIC_CHANNELS;
 
 // 计算是否有冲突
 const hasConflict = computed(() => {
@@ -834,17 +794,6 @@ const toggleSection = (section: 'pin' | 'pmic' | 'sdio' | 'flash') => {
       flashConfig.value.expanded = !flashConfig.value.expanded;
       break;
   }
-};
-
-// 添加 PIN 配置
-const createPinItem = (overrides: Partial<PinItem> = {}): PinItem => {
-  return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    port: normalizePinPort(overrides.port),
-    number: overrides.number ?? 0,
-    level: normalizePinLevel(overrides.level),
-    ...overrides,
-  };
 };
 
 const ensurePinIds = () => {
@@ -879,8 +828,7 @@ const validateBaseAddress = () => {
     return;
   }
 
-  const addressValue = parseInt(address, 16);
-  if (addressValue > 0xffffffff) {
+  if (!isValidHexAddress(address)) {
     sdioConfig.value.addressError = t('stubConfig.sdio.addressTooLarge');
     return;
   }
@@ -897,53 +845,9 @@ const validateCapacity = (device: any) => {
     return;
   }
 
-  const valueStr = String(value).trim();
-
-  // 支持的格式：
-  // 1. 十进制数字：16777216
-  // 2. 十六进制：0x1000000
-  // 3. 带单位：16M, 16MB, 1G, 1GB, 256K, 256KB
-
-  // 检查十进制数字
-  const decimalPattern = /^\d+$/;
-  if (decimalPattern.test(valueStr)) {
-    const num = parseInt(valueStr, 10);
-    if (num > 0 && num <= 0xffffffff) {
-      device.capacityError = '';
-      return;
-    }
-  }
-
-  // 检查十六进制
-  const hexPattern = /^0x[0-9A-Fa-f]{1,8}$/;
-  if (hexPattern.test(valueStr)) {
-    const num = parseInt(valueStr, 16);
-    if (num > 0 && num <= 0xffffffff) {
-      device.capacityError = '';
-      return;
-    }
-  }
-
-  // 检查带单位的格式
-  const unitPattern = /^[0-9]+[kKmMgG]$/;
-  const match = valueStr.match(unitPattern);
-  if (match) {
-    const numValue = parseFloat(match[1]);
-    const unit = match[2].toUpperCase();
-
-    let bytes = 0;
-    if (unit === 'K' || unit === 'KB') {
-      bytes = numValue * 1024;
-    } else if (unit === 'M' || unit === 'MB') {
-      bytes = numValue * 1024 * 1024;
-    } else if (unit === 'G' || unit === 'GB') {
-      bytes = numValue * 1024 * 1024 * 1024;
-    }
-
-    if (bytes > 0 && bytes <= 0xffffffff) {
-      device.capacityError = '';
-      return;
-    }
+  if (isValidFlashCapacity(value)) {
+    device.capacityError = '';
+    return;
   }
 
   device.capacityError = t('stubConfig.flash.invalidCapacity');
@@ -966,16 +870,9 @@ const validateHexField = (device: any, fieldName: string) => {
     return;
   }
 
-  const valueStr = String(value).trim();
-
-  // 检查十六进制格式：0x00 到 0xFF
-  const hexPattern = /^0x[0-9a-fA-F]{1,2}$/;
-  if (hexPattern.test(valueStr)) {
-    const num = parseInt(valueStr, 16);
-    if (num >= 0 && num <= 0xff) {
-      device[errorFieldName] = '';
-      return;
-    }
+  if (isValidHexByte(value)) {
+    device[errorFieldName] = '';
+    return;
   }
 
   device[errorFieldName] = t('stubConfig.flash.invalidHexValue');
@@ -1040,31 +937,6 @@ const validateFlashDeviceRequired = (device: FlashDevice) => {
   validateHexField(device, 'device_type');
   validateHexField(device, 'density_id');
   validateHexField(device, 'flags');
-};
-
-const createFlashDevice = (overrides: Partial<FlashDevice> = {}): FlashDevice => {
-  return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    media: 'nor',
-    driver_index: 0,
-    manufacturer_id: '',
-    device_type: '',
-    density_id: '',
-    flags: '0x00',
-    nor_dtr: false,
-    nand_dual_plane: false,
-    nand_page_size: 2048,
-    nand_block_size: 64,
-    nand_ecc_mode: 0,
-    capacity_bytes: '', // 16MB
-    expanded: false,
-    capacityError: '',
-    manufacturerIdError: '',
-    deviceTypeError: '',
-    densityIdError: '',
-    flagsError: '',
-    ...overrides,
-  };
 };
 
 // 检查单个 Flash 设备是否配置有误
@@ -1193,49 +1065,7 @@ const clearExternalStubSelection = async () => {
 
 // 导出配置为 JSON
 const exportConfig = () => {
-  const config: any = {};
-
-  // 只添加启用的配置
-  if (pinConfig.value.enabled && pinConfig.value.items.length > 0) {
-    config.pins = pinConfig.value.items.map(item => ({
-      port: item.port,
-      number: item.number,
-      level: item.level,
-    }));
-  }
-
-  if (pmicConfig.value.enabled) {
-    config.pmic = {
-      disabled: pmicConfig.value.disabled,
-      scl_port: pmicConfig.value.scl_port,
-      scl_pin: pmicConfig.value.scl_pin,
-      sda_port: pmicConfig.value.sda_port,
-      sda_pin: pmicConfig.value.sda_pin,
-      channels: pmicConfig.value.channels,
-    };
-  }
-
-  if (sdioConfig.value.enabled) {
-    config.sd0 = {
-      base_address: sdioConfig.value.base_address,
-      pinmux: sdioConfig.value.pinmux,
-      init_sequence: sdioConfig.value.init_sequence,
-    };
-  }
-
-  if (flashConfig.value.devices.length > 0) {
-    config.flash = flashConfig.value.devices.map(device => ({
-      media: device.media,
-      driver_index: device.driver_index,
-      manufacturer_id: device.manufacturer_id,
-      device_type: device.device_type,
-      density_id: device.density_id,
-      flags: device.flags,
-      capacity_bytes: device.capacity_bytes,
-    }));
-  }
-
-  return config;
+  return exportStubConfigDraft(stubConfigStore.config);
 };
 
 // 导出到文件
@@ -1263,58 +1093,8 @@ const exportConfigToFile = async () => {
 
 // 应用导入的配置
 const applyImportedConfig = (config: any) => {
-  // pins
-  if (Array.isArray(config.pins)) {
-    pinConfig.value.enabled = config.pins.length > 0;
-    pinConfig.value.items = config.pins
-      .map((p: any) =>
-        createPinItem({
-          port: normalizePinPort(p.port),
-          number: Number(p.number) || 0,
-          level: normalizePinLevel(p.level),
-        })
-      )
-      .slice(0, 12);
-  }
-
-  // pmic
-  if (config.pmic) {
-    pmicConfig.value.enabled = !config.pmic.disabled;
-    pmicConfig.value.disabled = !!config.pmic.disabled;
-    pmicConfig.value.scl_port = config.pmic.scl_port ?? 'PA';
-    pmicConfig.value.scl_pin = Number(config.pmic.scl_pin) || 0;
-    pmicConfig.value.sda_port = config.pmic.sda_port ?? 'PA';
-    pmicConfig.value.sda_pin = Number(config.pmic.sda_pin) || 1;
-    pmicConfig.value.channels = Array.isArray(config.pmic.channels)
-      ? config.pmic.channels.filter((c: string) => availablePmicChannels.includes(c))
-      : [];
-  }
-
-  // sd0
-  if (config.sd0) {
-    sdioConfig.value.enabled = true;
-    sdioConfig.value.base_address = config.sd0.base_address ?? '0x60000000';
-    sdioConfig.value.pinmux = config.sd0.pinmux === 'clk_pa60_or_pa39' ? 'clk_pa60_or_pa39' : 'clk_pa34_or_pa09';
-    sdioConfig.value.init_sequence = config.sd0.init_sequence === 'sd_then_emmc' ? 'sd_then_emmc' : 'emmc_then_sd';
-  }
-
-  // flash
-  if (Array.isArray(config.flash)) {
-    flashConfig.value.devices = config.flash.slice(0, 12).map((f: any) => {
-      const device = createFlashDevice({
-        media: f.media === 'nand' ? 'nand' : 'nor',
-        driver_index: Number(f.driver_index) || 0,
-        manufacturer_id: f.manufacturer_id ?? '0x00',
-        device_type: f.device_type ?? '0x00',
-        density_id: f.density_id ?? '0x00',
-        flags: f.flags ?? '0x00',
-        capacity_bytes: f.capacity_bytes ?? '0x1000000',
-      });
-      parseFlagsToUi(device);
-      validateFlashDeviceRequired(device);
-      return device;
-    });
-  }
+  stubConfigStore.saveConfig(parseStubConfigDraft(config));
+  hydrateConfigForUi();
 };
 
 // 从文件导入
@@ -1340,29 +1120,15 @@ const importConfigFromFile = async () => {
   }
 };
 
-// 从本地加载草稿
-const loadConfigFromLocal = async () => {
-  try {
-    const { appDataDir } = await import('@tauri-apps/api/path');
-    const { readTextFile, exists } = await import('@tauri-apps/plugin-fs');
-
-    // 获取应用数据目录
-    const dataDir = await appDataDir();
-    const configPath = `${dataDir}/stub_config/draft.json`;
-
-    // 检查文件是否存在
-    const fileExists = await exists(configPath);
-    if (!fileExists) {
-      return;
-    }
-
-    // 读取并应用配置
-    const content = await readTextFile(configPath);
-    const parsed = JSON.parse(content);
-    applyImportedConfig(parsed);
-  } catch (error) {
-    console.error('Failed to load config draft:', error);
-    // 静默失败，不影响用户体验
+const hydrateConfigForUi = () => {
+  collapseAllFlashDevices();
+  ensurePinIds();
+  flashConfig.value.devices.forEach(device => {
+    parseFlagsToUi(device);
+    validateFlashDeviceRequired(device);
+  });
+  if (sdioConfig.value.enabled) {
+    validateBaseAddress();
   }
 };
 
@@ -1374,10 +1140,8 @@ onMounted(async () => {
   await stubConfigStore.loadRuntimeSettings();
 
   // 尝试加载本地草稿
-  await loadConfigFromLocal();
-  collapseAllFlashDevices();
-  ensurePinIds();
-  flashConfig.value.devices.forEach(device => parseFlagsToUi(device));
+  await stubConfigStore.loadConfigDraftFromLocal();
+  hydrateConfigForUi();
 });
 
 // 监听配置变化，自动保存到Pinia store和本地

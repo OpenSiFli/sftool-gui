@@ -1,4 +1,6 @@
+use crate::commands::mass_production_handle_hotplug_event;
 use crate::state::AppState;
+use crate::state::PortIdentity;
 use crate::types::{PortInfo, SerialPortsChangedEvent, UsbInfo};
 use futures_lite::{future, StreamExt};
 use nusb::hotplug::HotplugEvent;
@@ -92,6 +94,7 @@ fn refresh_ports_after_hotplug<R: Runtime>(
     }
 
     clear_disconnected_device_state(app_handle, &ports);
+    let connected_identities = extract_connected_identities(last_ports, &ports);
 
     app_handle
         .emit(
@@ -102,8 +105,44 @@ fn refresh_ports_after_hotplug<R: Runtime>(
         )
         .map_err(|e| format!("发送串口列表变化事件失败: {e}"))?;
 
+    mass_production_handle_hotplug_event(app_handle, connected_identities);
+
     *last_ports = ports;
     Ok(())
+}
+
+fn extract_connected_identities(
+    previous_ports: &[PortInfo],
+    current_ports: &[PortInfo],
+) -> Vec<PortIdentity> {
+    current_ports
+        .iter()
+        .filter(|port| {
+            let identity = port_identity_from_info(port);
+            !previous_ports
+                .iter()
+                .any(|previous| port_identity_from_info(previous) == identity)
+        })
+        .map(port_identity_from_info)
+        .collect()
+}
+
+fn port_identity_from_info(port: &PortInfo) -> PortIdentity {
+    PortIdentity {
+        vid: port
+            .usb_info
+            .as_ref()
+            .map(|info| format!("{:04X}", info.vid)),
+        pid: port
+            .usb_info
+            .as_ref()
+            .map(|info| format!("{:04X}", info.pid)),
+        serial_number: port
+            .usb_info
+            .as_ref()
+            .and_then(|info| info.serial_number.clone()),
+        location_path: Some(port.name.clone()),
+    }
 }
 
 fn wait_for_settled_ports<F>(
@@ -162,7 +201,10 @@ fn normalize_port_infos(ports: &mut [PortInfo]) {
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_port_infos, serial_port_exists, wait_for_settled_ports};
+    use super::{
+        extract_connected_identities, normalize_port_infos, serial_port_exists,
+        wait_for_settled_ports,
+    };
     use crate::types::{PortInfo, UsbInfo};
 
     fn make_port(name: &str) -> PortInfo {
@@ -220,5 +262,18 @@ mod tests {
         .unwrap();
 
         assert_eq!(ports, expected_ports);
+    }
+
+    #[test]
+    fn extracts_connected_identity_when_same_port_name_changes_device() {
+        let previous_ports = vec![make_port("COM3")];
+        let mut replacement = make_port("COM3");
+        replacement.usb_info.as_mut().unwrap().serial_number = Some("DEF".to_string());
+        let current_ports = vec![replacement];
+
+        let connected = extract_connected_identities(&previous_ports, &current_ports);
+
+        assert_eq!(connected.len(), 1);
+        assert_eq!(connected[0].serial_number.as_deref(), Some("DEF"));
     }
 }
