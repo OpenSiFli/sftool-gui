@@ -23,7 +23,7 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
 
     outputHashes = {
-      "sftool-lib-0.1.12" = "sha256-ke+zeLGqBaOsKX6JGgnCBUnb9Zr3++kio6TOm3MGsA8=";
+      "sftool-lib-0.2.3" = "sha256-1vJmGgaLJq7ZDTg83vTdxLyWIddymyKsGkSP5Jscw0I=";
     };
     lockFile = ../src-tauri/Cargo.lock;
   };

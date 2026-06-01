@@ -27,6 +27,7 @@ flexibly meet different project needs.
 |  SF32LB52  |     NOR, NAND, SD      |       UART        |
 |  SF32LB55  |        NOR, SD         |       UART        |
 |  SF32LB56  |          NOR           |     UART, USB     |
+|  SF32LB57  |          NOR           |       UART        |
 |  SF32LB58  |          NOR           |     UART, USB     |
 
 ### Memory Types Overview

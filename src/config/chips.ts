@@ -18,6 +18,10 @@ export const CHIP_MODELS: ChipModel[] = [
     name: 'SF32LB56',
   },
   {
+    id: 'SF32LB57',
+    name: 'SF32LB57',
+  },
+  {
     id: 'SF32LB58',
     name: 'SF32LB58',
   },

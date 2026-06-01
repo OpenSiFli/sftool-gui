@@ -59,6 +59,7 @@ export const useDeviceStore = defineStore('device', {
     chipMemoryTypes: {
       SF32LB52: ['NOR', 'NAND', 'SD'],
       SF32LB56: ['NOR', 'NAND', 'SD'],
+      SF32LB57: ['NOR'],
       SF32LB58: ['NOR', 'NAND', 'SD'],
       SF32LB55: ['NOR', 'SD'],
       default: ['NOR'],
