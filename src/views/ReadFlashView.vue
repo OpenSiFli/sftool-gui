@@ -238,6 +238,7 @@ import { useI18n } from 'vue-i18n';
 import { listen } from '@tauri-apps/api/event';
 import { useLogStore } from '../stores/logStore';
 import { useReadFlashStore } from '../stores/readFlashStore';
+import { useOperationStatusStore } from '../stores/operationStatusStore';
 import { MessageParser } from '../utils/messageParser';
 import { OperationType, type ProgressEvent } from '../types/progress';
 import ReadTaskCard from '../components/ReadTaskCard.vue';
@@ -245,6 +246,7 @@ import ReadTaskCard from '../components/ReadTaskCard.vue';
 const { t } = useI18n();
 const logStore = useLogStore();
 const readFlashStore = useReadFlashStore();
+const operationStatusStore = useOperationStatusStore();
 
 // 格式化文件大小
 const formatFileSize = (bytes: number | undefined): string => {
@@ -513,9 +515,13 @@ const handleAddTask = () => {
 
 // 开始读取
 const startReading = async () => {
-  if (!validateAllTasks()) return;
+  if (!validateAllTasks()) {
+    operationStatusStore.clear();
+    return;
+  }
 
   readFlashStore.setReadingState(true);
+  operationStatusStore.markRunning('read_flash');
   readFlashStore.resetProgressStates();
 
   logStore.addMessage(t('readFlash.log.startReading'));
@@ -554,6 +560,7 @@ const startReading = async () => {
 
     // 所有任务完成
     readFlashStore.setReadCompleted(true);
+    operationStatusStore.markSucceeded('read_flash');
     readFlashStore.updateProgress({
       percentage: 100,
       completedCount: tasks.length,
@@ -561,6 +568,7 @@ const startReading = async () => {
     });
     logStore.addMessage(t('readFlash.status.completed'));
   } catch (error) {
+    operationStatusStore.markFailed('read_flash');
     logStore.addMessage(`${t('readFlash.status.failed')}: ${error}`, true);
   } finally {
     readFlashStore.setReadingState(false);

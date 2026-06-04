@@ -573,15 +573,18 @@ import { invoke } from '@tauri-apps/api/core';
 import { useLogStore } from '../stores/logStore';
 import { useDeviceStore } from '../stores/deviceStore';
 import type { ResetBeforeMode, ResetAfterMode } from '../stores/deviceStore';
+import { useOperationStatusStore } from '../stores/operationStatusStore';
 import { useStubConfigStore } from '../stores/stubConfigStore';
 import { WindowManager } from '../services/windowManager';
 import type { ChipModel, InterfaceType, MemoryType } from '../config/chips';
 import type { PortInfo, SerialPortsChangedEvent } from '../types/device';
+import { resolveDeviceStatus } from '../utils/statusDisplay';
 
 const { t } = useI18n();
 
 const logStore = useLogStore();
 const deviceStore = useDeviceStore();
+const operationStatusStore = useOperationStatusStore();
 const stubConfigStore = useStubConfigStore();
 
 // 从 store 中获取计算属性和状态 - 使用 storeToRefs 保持响应性
@@ -1066,26 +1069,21 @@ const getLogMessageClass = (message: string) => {
   return 'border-l-info text-base-content/80 bg-base-100/50';
 };
 
+const resolvedDeviceStatus = computed(() =>
+  resolveDeviceStatus({
+    isConnected: isConnected.value,
+    isConnecting: isConnecting.value,
+    connectionIssue: connectionIssue.value,
+    operation: operationStatusStore.currentStatus,
+  })
+);
+
 const getStatusTextClass = () => {
-  if (logStore.hasErrors) {
-    return 'text-error font-medium';
-  } else if (logStore.isFlashing) {
-    return 'text-success font-medium';
-  } else {
-    return 'text-info';
-  }
+  return resolvedDeviceStatus.value.className;
 };
 
 const getStatusText = () => {
-  if (logStore.hasErrors) {
-    return t('deviceConnection.status') + ': ' + t('deviceConnection.connectionFailed');
-  } else if (logStore.isFlashing) {
-    return t('deviceConnection.status') + ': ' + t('writeFlash.status.starting');
-  } else {
-    return logStore.messages.length > 0
-      ? t('deviceConnection.moreMessages', { count: logStore.messages.length })
-      : t('deviceConnection.noLogMessages');
-  }
+  return t('deviceConnection.status') + ': ' + t(resolvedDeviceStatus.value.textKey);
 };
 
 const openLogWindow = async () => {
