@@ -288,6 +288,7 @@ import { listen } from '@tauri-apps/api/event';
 import { useLogStore } from '../stores/logStore';
 import { useWriteFlashStore } from '../stores/writeFlashStore';
 import { useDeviceStore } from '../stores/deviceStore';
+import { useOperationStatusStore } from '../stores/operationStatusStore';
 import { ProgressHandler } from '../utils/progressHandler';
 import { parseSftoolParamFile, isSftoolParamFile, formatValidationErrors } from '../utils/sftoolParamParser';
 import type { FlashFile } from '../types/progress';
@@ -297,6 +298,7 @@ const { t } = useI18n();
 const logStore = useLogStore();
 const writeFlashStore = useWriteFlashStore();
 const deviceStore = useDeviceStore();
+const operationStatusStore = useOperationStatusStore();
 
 // 创建进度处理器实例
 const progressHandler = new ProgressHandler(writeFlashStore);
@@ -811,10 +813,14 @@ const flashProcess = async () => {
 
 // 开始烧录
 const startFlashing = async () => {
-  if (!validateAllFiles()) return;
+  if (!validateAllFiles()) {
+    operationStatusStore.clear();
+    return;
+  }
 
   writeFlashStore.setFlashingState(true);
   logStore.setFlashing(true);
+  operationStatusStore.markRunning('write_flash');
 
   // 重置所有状态
   progressHandler.resetAllStates();
@@ -836,8 +842,10 @@ const startFlashing = async () => {
     logStore.addMessage('所有文件验证通过，开始烧录过程...');
 
     await flashProcess();
+    operationStatusStore.markSucceeded('write_flash');
     logStore.addMessage(`${t('writeFlash.status.completed')}`, true);
   } catch (error) {
+    operationStatusStore.markFailed('write_flash');
     logStore.addMessage(`${t('writeFlash.status.failed')}: ${error}`, true);
     writeFlashStore.setFlashCompleted(false);
   } finally {

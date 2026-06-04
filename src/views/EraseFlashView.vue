@@ -159,10 +159,12 @@ import { onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLogStore } from '../stores/logStore';
 import { useEraseFlashStore } from '../stores/eraseFlashStore';
+import { useOperationStatusStore } from '../stores/operationStatusStore';
 
 const { t } = useI18n();
 const logStore = useLogStore();
 const eraseFlashStore = useEraseFlashStore();
+const operationStatusStore = useOperationStatusStore();
 
 // 解析带SI单位的大小值
 const parseSizeWithUnit = (sizeStr: string): number | null => {
@@ -268,10 +270,17 @@ const validateSize = () => {
 
 // 开始擦除
 const startErasing = async () => {
-  if (!validateAddress()) return;
-  if (eraseFlashStore.eraseMode === 'region' && !validateSize()) return;
+  if (!validateAddress()) {
+    operationStatusStore.clear();
+    return;
+  }
+  if (eraseFlashStore.eraseMode === 'region' && !validateSize()) {
+    operationStatusStore.clear();
+    return;
+  }
 
   eraseFlashStore.setErasingState(true);
+  operationStatusStore.markRunning('erase_flash');
   eraseFlashStore.setEraseCompleted(false);
 
   const modeText = eraseFlashStore.eraseMode === 'full' ? t('eraseFlash.fullErase') : t('eraseFlash.regionErase');
@@ -296,8 +305,10 @@ const startErasing = async () => {
     }
 
     eraseFlashStore.setEraseCompleted(true);
+    operationStatusStore.markSucceeded('erase_flash');
     logStore.addMessage(t('eraseFlash.status.completed'));
   } catch (error) {
+    operationStatusStore.markFailed('erase_flash');
     logStore.addMessage(`${t('eraseFlash.status.failed')}: ${error}`, true);
   } finally {
     eraseFlashStore.setErasingState(false);
