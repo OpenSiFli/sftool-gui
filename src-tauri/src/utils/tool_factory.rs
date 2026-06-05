@@ -9,12 +9,9 @@ use sftool_lib::{
 use std::any::Any;
 use std::io::ErrorKind as IoErrorKind;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::thread;
 use std::time::Duration;
 
 const CONNECT_ATTEMPTS: i8 = 1;
-const SERIAL_OPEN_RETRY_ATTEMPTS: u8 = 10;
-const SERIAL_OPEN_RETRY_DELAY: Duration = Duration::from_millis(500);
 
 struct ToolWithStubOwner {
     inner: Box<dyn SifliTool>,
@@ -90,43 +87,11 @@ fn parse_chip_type(chip_type: &str) -> Result<ChipType, String> {
 }
 
 fn wait_for_serial_port(port_name: &str, baud_rate: u32) -> Result<(), String> {
-    wait_for_serial_port_with_retry(port_name, SERIAL_OPEN_RETRY_ATTEMPTS, || {
-        serialport::new(port_name, baud_rate)
-            .timeout(Duration::from_millis(200))
-            .open()
-            .map(|_| ())
-    })
-}
-
-fn wait_for_serial_port_with_retry<F>(
-    port_name: &str,
-    max_attempts: u8,
-    mut opener: F,
-) -> Result<(), String>
-where
-    F: FnMut() -> serialport::Result<()>,
-{
-    let attempts = max_attempts.max(1);
-    let mut last_error: Option<serialport::Error> = None;
-
-    for attempt in 1..=attempts {
-        match opener() {
-            Ok(()) => return Ok(()),
-            Err(error) => {
-                if attempt == attempts {
-                    return Err(format_serial_open_error(port_name, &error));
-                }
-
-                last_error = Some(error);
-                thread::sleep(SERIAL_OPEN_RETRY_DELAY);
-            }
-        }
-    }
-
-    match last_error {
-        Some(error) => Err(format_serial_open_error(port_name, &error)),
-        None => Err(format!("串口 {} 打开失败：未执行连接尝试", port_name)),
-    }
+    serialport::new(port_name, baud_rate)
+        .timeout(Duration::from_millis(200))
+        .open()
+        .map(|_| ())
+        .map_err(|error| format_serial_open_error(port_name, &error))
 }
 
 fn format_serial_open_error(port_name: &str, error: &serialport::Error) -> String {
