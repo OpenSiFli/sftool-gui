@@ -20,13 +20,11 @@ const createId = () => {
   return `log-${random}`;
 };
 
-const normalizeLevel = (level: unknown, important?: boolean, message?: string): LogLevel => {
+const normalizeLevel = (level: unknown, message?: string): LogLevel => {
   if (typeof level === 'string') {
     const normalized = level === 'warn' ? 'warning' : level;
     if (validLevels.has(normalized as LogLevel)) return normalized as LogLevel;
   }
-
-  if (important) return 'error';
 
   const lowerMessage = message?.toLowerCase() ?? '';
   if (
@@ -92,7 +90,7 @@ export const createLogEntry = (input: LogEntryInput): LogEntry => {
   return {
     id: input.id ?? createId(),
     timestamp: normalizeTimestamp(timestamp),
-    level: normalizeLevel(input.level, input.important, message),
+    level: normalizeLevel(input.level, message),
     source: normalizeSource(input.source),
     message,
     target: input.target,
