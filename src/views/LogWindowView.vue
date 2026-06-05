@@ -12,8 +12,8 @@
         <h1 class="text-lg font-semibold text-base-content">
           {{ $t('writeFlash.logLabel') }}
         </h1>
-        <div class="badge badge-sm" :class="logStore.messages.length > 0 ? 'badge-primary' : 'badge-ghost'">
-          {{ logStore.messages.length }}
+        <div class="badge badge-sm" :class="logEntries.length > 0 ? 'badge-primary' : 'badge-ghost'">
+          {{ logEntries.length }}
         </div>
       </div>
 
@@ -135,7 +135,7 @@
         ref="logContainer"
         class="h-full overflow-y-auto font-mono text-sm leading-relaxed scrollable-container bg-base-200 rounded-lg p-4"
       >
-        <div v-if="filteredLogMessages.length === 0" class="text-center text-base-content/60 py-8">
+        <div v-if="filteredLogEntries.length === 0" class="text-center text-base-content/60 py-8">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-12 w-12 mx-auto mb-4 text-base-content/40"
@@ -155,22 +155,22 @@
         <div v-else>
           <!-- 日志消息列表 -->
           <div
-            v-for="(message, index) in filteredLogMessages"
-            :key="index"
+            v-for="entry in filteredLogEntries"
+            :key="entry.id"
             class="mb-2 py-2 px-3 rounded hover:bg-base-300/50 transition-colors group border-l-2"
-            :class="getLogMessageClass(message)"
+            :class="getLogEntryFrameClass(entry)"
           >
             <div class="flex items-start gap-3">
               <!-- 日志级别指示器 -->
-              <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" :class="getLogLevelIndicator(message)"></div>
+              <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" :class="getLogEntryIndicatorClass(entry)"></div>
 
               <!-- 日志内容 -->
-              <pre class="flex-1 whitespace-pre-wrap break-words text-sm">{{ message }}</pre>
+              <pre class="flex-1 whitespace-pre-wrap break-words text-sm">{{ formatLogEntry(entry) }}</pre>
 
               <!-- 复制按钮 -->
               <button
                 class="btn btn-xs btn-ghost opacity-0 group-hover:opacity-100 transition-opacity"
-                @click="copyLogMessage(message)"
+                @click="copyLogMessage(entry)"
                 title="复制这条日志"
               >
                 <svg
@@ -199,8 +199,8 @@
       class="flex items-center justify-between px-4 py-3 border-t border-base-300 bg-base-50 text-xs text-base-content/60 flex-shrink-0"
     >
       <div class="flex items-center gap-4">
-        <span>总消息: {{ logStore.messages.length }}</span>
-        <span v-if="logLevel !== 'all'">已过滤: {{ filteredLogMessages.length }}</span>
+        <span>总消息: {{ logEntries.length }}</span>
+        <span v-if="logLevel !== 'all'">已过滤: {{ filteredLogEntries.length }}</span>
       </div>
 
       <div class="flex items-center gap-2">
@@ -220,43 +220,28 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import { useLogStore } from '../stores/logStore';
+import {
+  formatLogEntry,
+  getLogEntryFrameClass,
+  getLogEntryIndicatorClass,
+  matchesLogLevelFilter,
+} from '../utils/logEntries';
+import type { LogEntry, LogLevelFilter } from '../types/log';
 const logStore = useLogStore();
 
 // 响应式状态
 const logContainer = ref<HTMLElement | null>(null);
 const autoScroll = ref(true);
-const logLevel = ref<'all' | 'info' | 'error'>('all');
+const logLevel = ref<LogLevelFilter>('all');
 const alwaysOnTop = ref(false);
 
 // 计算属性
-const logMessages = computed(() => logStore.messages);
+const logEntries = computed(() => logStore.entries);
 
 // 过滤后的日志消息
-const filteredLogMessages = computed(() => {
-  if (logLevel.value === 'all') {
-    return logMessages.value;
-  }
-
-  return logMessages.value.filter((message: string) => {
-    const lowerMessage = message.toLowerCase();
-    if (logLevel.value === 'error') {
-      return (
-        lowerMessage.includes('error') ||
-        lowerMessage.includes('failed') ||
-        lowerMessage.includes('错误') ||
-        lowerMessage.includes('失败')
-      );
-    } else if (logLevel.value === 'info') {
-      return (
-        !lowerMessage.includes('error') &&
-        !lowerMessage.includes('failed') &&
-        !lowerMessage.includes('错误') &&
-        !lowerMessage.includes('失败')
-      );
-    }
-    return true;
-  });
-});
+const filteredLogEntries = computed(() =>
+  logEntries.value.filter(entry => matchesLogLevelFilter(entry, logLevel.value))
+);
 
 // 方法
 const toggleAutoScroll = () => {
@@ -266,7 +251,7 @@ const toggleAutoScroll = () => {
   }
 };
 
-const setLogLevel = (level: 'all' | 'info' | 'error') => {
+const setLogLevel = (level: LogLevelFilter) => {
   logLevel.value = level;
   nextTick(() => {
     if (autoScroll.value) {
@@ -295,7 +280,7 @@ const exportLogs = async () => {
     });
 
     if (filePath) {
-      const logContent = logMessages.value.join('\n');
+      const logContent = logEntries.value.map(formatLogEntry).join('\n');
       await writeTextFile(filePath, logContent);
       logStore.addMessage(`日志导出成功: ${filePath}`);
     }
@@ -315,7 +300,8 @@ const toggleAlwaysOnTop = async () => {
   }
 };
 
-const copyLogMessage = async (message: string) => {
+const copyLogMessage = async (entry: LogEntry) => {
+  const message = formatLogEntry(entry);
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(message);
@@ -346,53 +332,9 @@ const scrollToBottom = () => {
   }
 };
 
-const getLogMessageClass = (message: string) => {
-  const lowerMessage = message.toLowerCase();
-  if (
-    lowerMessage.includes('error') ||
-    lowerMessage.includes('failed') ||
-    lowerMessage.includes('错误') ||
-    lowerMessage.includes('失败')
-  ) {
-    return 'border-l-error text-error/90 bg-error/5';
-  } else if (
-    lowerMessage.includes('success') ||
-    lowerMessage.includes('completed') ||
-    lowerMessage.includes('成功') ||
-    lowerMessage.includes('完成')
-  ) {
-    return 'border-l-success text-success/90 bg-success/5';
-  } else if (lowerMessage.includes('warning') || lowerMessage.includes('warn') || lowerMessage.includes('警告')) {
-    return 'border-l-warning text-warning/90 bg-warning/5';
-  }
-  return 'border-l-info text-base-content bg-base-100/50';
-};
-
-const getLogLevelIndicator = (message: string) => {
-  const lowerMessage = message.toLowerCase();
-  if (
-    lowerMessage.includes('error') ||
-    lowerMessage.includes('failed') ||
-    lowerMessage.includes('错误') ||
-    lowerMessage.includes('失败')
-  ) {
-    return 'bg-error';
-  } else if (
-    lowerMessage.includes('success') ||
-    lowerMessage.includes('completed') ||
-    lowerMessage.includes('成功') ||
-    lowerMessage.includes('完成')
-  ) {
-    return 'bg-success';
-  } else if (lowerMessage.includes('warning') || lowerMessage.includes('warn') || lowerMessage.includes('警告')) {
-    return 'bg-warning';
-  }
-  return 'bg-info';
-};
-
 // 监听日志变化，自动滚动到底部
 watch(
-  () => logMessages.value.length,
+  () => logEntries.value.length,
   () => {
     if (autoScroll.value) {
       scrollToBottom();
