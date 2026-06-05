@@ -7,6 +7,8 @@ use sftool_lib::{
     SifliTool, SifliToolBase, SifliToolTrait, WriteFlashParams, WriteFlashTrait,
 };
 
+const CONNECT_ATTEMPTS: i8 = 1;
+
 struct ToolWithStubOwner {
     inner: Box<dyn SifliTool>,
     _temp_stub_file: Option<tempfile::NamedTempFile>,
@@ -93,7 +95,7 @@ pub fn create_tool_instance(config: &DeviceConfig) -> Result<Box<dyn SifliTool>,
         BeforeOperation::NoReset,
         config.memory_type.to_lowercase(),
         config.baud_rate,
-        3,
+        CONNECT_ATTEMPTS,
         false,
         sftool_lib::progress::no_op_progress_sink(),
         external_stub_path,
@@ -149,7 +151,7 @@ pub fn create_tool_instance_with_progress(
         before_enum,
         config.memory_type.to_lowercase(),
         config.baud_rate,
-        1,
+        CONNECT_ATTEMPTS,
         false,
         progress_callback,
         stub_path,

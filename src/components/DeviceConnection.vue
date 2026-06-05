@@ -721,6 +721,7 @@ const syncPortsState = (ports: PortInfo[]) => {
     deviceStore.setConnected(false);
     deviceStore.setConnecting(false);
     deviceStore.setConnectionIssue('device_removed');
+    operationStatusStore.clear();
     logStore.addMessage(t('deviceConnection.deviceRemovedLog', { port: previousPortName || '-' }), true);
     return;
   }
@@ -910,6 +911,7 @@ const connectDevice = async () => {
       await invoke<void>('disconnect_device');
       deviceStore.setConnected(false);
       deviceStore.clearConnectionIssue();
+      operationStatusStore.clear();
     } catch (error) {
       console.error(t('errors.disconnectFailed'), error);
     } finally {
@@ -924,6 +926,7 @@ const connectDevice = async () => {
 
     // 连接设备
     deviceStore.setConnecting(true);
+    operationStatusStore.clear();
     try {
       await stubConfigStore.refreshExternalStubStatus();
 
@@ -972,11 +975,13 @@ const connectDevice = async () => {
 
       deviceStore.setConnected(success);
       if (!success) {
+        operationStatusStore.clear();
         alert(t('deviceConnection.connectFailedMessage'));
       }
     } catch (error) {
       console.error(t('errors.connectFailed'), error);
       deviceStore.setConnected(false);
+      operationStatusStore.clear();
       const errorMessage = error instanceof Error ? error.message : String(error);
       alert(`${t('deviceConnection.connectError')}: ${errorMessage}`);
     } finally {
@@ -987,6 +992,8 @@ const connectDevice = async () => {
 
 // 组件挂载时加载串口列表和设备设置
 onMounted(async () => {
+  operationStatusStore.clear();
+
   // 从存储加载设备设置
   await Promise.all([
     deviceStore.loadFromStorage(),
