@@ -2,10 +2,27 @@ use crate::progress::TauriProgressCallback;
 use crate::state::AppState;
 use crate::types::{DeviceConfig, PortInfo};
 use crate::utils::{create_tool_instance_with_progress, list_serial_ports};
+use chrono::Local;
+use serde_json::json;
 use sftool_lib::progress::ProgressSinkArc;
 use sftool_lib::CancelToken;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
+
+fn emit_system_log(app_handle: &AppHandle, message: &str, important: bool) {
+    let timestamp = Local::now().format("%H:%M:%S");
+    let formatted_message = format!("[{}] {}", timestamp, message);
+
+    if let Err(error) = app_handle.emit(
+        "log-message",
+        json!({
+            "message": formatted_message,
+            "important": important,
+        }),
+    ) {
+        eprintln!("Failed to emit system log message: {error}");
+    }
+}
 
 #[tauri::command]
 pub fn get_serial_ports() -> Result<Vec<PortInfo>, String> {
@@ -39,11 +56,21 @@ pub async fn connect_device(
     };
 
     // 创建 Tauri 进度回调
-    let progress_callback: ProgressSinkArc = Arc::new(TauriProgressCallback::new(app_handle));
+    let progress_callback: ProgressSinkArc =
+        Arc::new(TauriProgressCallback::new(app_handle.clone()));
 
     // 创建带进度回调的工具实例
-    let tool =
-        create_tool_instance_with_progress(&device_config, progress_callback, CancelToken::new())?;
+    let tool = match create_tool_instance_with_progress(
+        &device_config,
+        progress_callback,
+        CancelToken::new(),
+    ) {
+        Ok(tool) => tool,
+        Err(error) => {
+            emit_system_log(&app_handle, &format!("连接失败: {error}"), true);
+            return Err(error);
+        }
+    };
 
     // 保存设备配置和工具实例到状态
     let mut app_state = state.lock().unwrap();

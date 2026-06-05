@@ -144,28 +144,17 @@
       <div class="mb-2">
         <div class="flex justify-center gap-4">
           <div
+            v-for="interfaceType in interfaceOptions"
+            :key="interfaceType"
             class="flex items-center justify-center cursor-pointer p-2 rounded-lg transition-colors duration-200 w-20 h-10"
-            :class="
-              selectedInterface === 'UART'
-                ? 'bg-primary/20 border border-primary'
-                : 'bg-base-100 hover:bg-base-300/50 border border-base-300'
-            "
-            @click="selectInterface('UART')"
-            :disabled="isConnected || isConnecting"
+            :class="getInterfaceOptionClass(interfaceType)"
+            :title="getInterfaceOptionTitle(interfaceType)"
+            :aria-disabled="isInterfaceOptionDisabled(interfaceType)"
+            @click="selectInterface(interfaceType)"
           >
-            <span class="font-medium" :class="selectedInterface === 'UART' ? 'text-primary' : ''">UART</span>
-          </div>
-          <div
-            class="flex items-center justify-center cursor-pointer p-2 rounded-lg transition-colors duration-200 w-20 h-10"
-            :class="
-              selectedInterface === 'USB'
-                ? 'bg-primary/20 border border-primary'
-                : 'bg-base-100 hover:bg-base-300/50 border border-base-300'
-            "
-            @click="selectInterface('USB')"
-            :disabled="isConnected || isConnecting"
-          >
-            <span class="font-medium" :class="selectedInterface === 'USB' ? 'text-primary' : ''">USB</span>
+            <span class="font-medium" :class="selectedInterface === interfaceType ? 'text-primary' : ''">
+              {{ interfaceType }}
+            </span>
           </div>
         </div>
       </div>
@@ -586,7 +575,7 @@ import { useDeviceStore } from '../stores/deviceStore';
 import type { ResetBeforeMode, ResetAfterMode } from '../stores/deviceStore';
 import { useStubConfigStore } from '../stores/stubConfigStore';
 import { WindowManager } from '../services/windowManager';
-import type { ChipModel } from '../config/chips';
+import type { ChipModel, InterfaceType, MemoryType } from '../config/chips';
 import type { PortInfo, SerialPortsChangedEvent } from '../types/device';
 
 const { t } = useI18n();
@@ -689,6 +678,8 @@ const {
   showMemoryTypeDropdown,
   tempMemoryTypeInput,
   selectedInterface,
+  availableInterfaces,
+  interfaceOptions,
   availablePorts,
   isLoadingPorts,
   selectedPort,
@@ -817,13 +808,41 @@ const selectChip = (chip: ChipModel) => {
 };
 
 // 选择存储器类型
-const selectMemoryType = (memoryType: string) => {
+const selectMemoryType = (memoryType: MemoryType) => {
   deviceStore.setSelectedMemoryType(memoryType);
   deviceStore.setShowMemoryTypeDropdown(false);
 };
 
 // 选择接口类型
-const selectInterface = (interfaceType: string) => {
+const isInterfaceOptionDisabled = (interfaceType: InterfaceType) => {
+  return isConnected.value || isConnecting.value || !availableInterfaces.value.includes(interfaceType);
+};
+
+const getInterfaceOptionClass = (interfaceType: InterfaceType) => {
+  if (isInterfaceOptionDisabled(interfaceType)) {
+    return 'bg-base-200 text-base-content/40 border border-base-300 cursor-not-allowed opacity-60';
+  }
+
+  if (selectedInterface.value === interfaceType) {
+    return 'bg-primary/20 border border-primary';
+  }
+
+  return 'bg-base-100 hover:bg-base-300/50 border border-base-300';
+};
+
+const getInterfaceOptionTitle = (interfaceType: InterfaceType) => {
+  if (!selectedChip.value || availableInterfaces.value.includes(interfaceType)) {
+    return '';
+  }
+
+  return t('deviceConnection.unsupportedInterfaceForChip', {
+    chip: selectedChip.value.name,
+    interface: interfaceType,
+  }) as string;
+};
+
+const selectInterface = (interfaceType: InterfaceType) => {
+  if (isInterfaceOptionDisabled(interfaceType)) return;
   deviceStore.setSelectedInterface(interfaceType);
 };
 

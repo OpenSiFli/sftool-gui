@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { load } from '@tauri-apps/plugin-store';
-import type { ChipModel } from '../config/chips';
-import { CHIP_MODELS } from '../config/chips';
+import type { ChipModel, InterfaceType, MemoryType } from '../config/chips';
+import { ALL_INTERFACES, CHIP_MODELS, getSupportedInterfaces, getSupportedMemoryTypes } from '../config/chips';
 import type { ConnectionIssue, PortInfo } from '../types/device';
 import { findMatchingPort, isPortAvailable, usbIdentityKey } from '../types/device';
 // 下载/重启行为类型
@@ -33,13 +33,13 @@ export const useDeviceStore = defineStore('device', {
     tempChipInput: 'SF32LB52',
 
     // 存储器类型
-    selectedMemoryType: 'NOR' as string | null,
+    selectedMemoryType: 'NOR' as MemoryType | null,
     memoryTypeInput: 'NOR',
     showMemoryTypeDropdown: false,
     tempMemoryTypeInput: 'NOR',
 
     // 接口设置
-    selectedInterface: 'UART',
+    selectedInterface: 'UART' as InterfaceType,
 
     // 串口设置
     availablePorts: [] as PortInfo[],
@@ -55,15 +55,6 @@ export const useDeviceStore = defineStore('device', {
     tempBaudRateInput: '',
     baudRates: [1000000, 1500000, 3000000, 6000000],
 
-    // 芯片与存储器映射
-    chipMemoryTypes: {
-      SF32LB52: ['NOR', 'NAND', 'SD'],
-      SF32LB56: ['NOR', 'NAND', 'SD'],
-      SF32LB58: ['NOR', 'NAND', 'SD'],
-      SF32LB55: ['NOR', 'SD'],
-      default: ['NOR'],
-    } as Record<string, string[]>,
-
     // 下载行为设置（保存到设备相关设置）
     downloadBehavior: {
       before: 'default_reset' as ResetBeforeMode,
@@ -73,16 +64,29 @@ export const useDeviceStore = defineStore('device', {
 
   getters: {
     // 获取当前芯片可用的存储器类型
-    availableMemoryTypes(): string[] {
+    availableMemoryTypes(): MemoryType[] {
       if (!this.selectedChip) return [];
-      return (
-        this.chipMemoryTypes[this.selectedChip.id as keyof typeof this.chipMemoryTypes] || this.chipMemoryTypes.default
-      );
+      return getSupportedMemoryTypes(this.selectedChip.id);
+    },
+
+    // 获取当前芯片支持的接口类型
+    availableInterfaces(): InterfaceType[] {
+      if (!this.selectedChip) return [];
+      return getSupportedInterfaces(this.selectedChip.id);
+    },
+
+    // 所有接口选项，UI 可据此显示禁用态
+    interfaceOptions(): InterfaceType[] {
+      return ALL_INTERFACES;
+    },
+
+    isSelectedInterfaceSupported(): boolean {
+      return this.availableInterfaces.includes(this.selectedInterface);
     },
 
     // 连接验证
     isConnectionValid(): boolean {
-      if (!this.selectedChip || !this.selectedMemoryType) return false;
+      if (!this.selectedChip || !this.selectedMemoryType || !this.isSelectedInterfaceSupported) return false;
 
       if (this.selectedInterface === 'UART') {
         return !!this.selectedPort && this.selectedPortAvailable && !!this.baudRateInput;
@@ -141,31 +145,43 @@ export const useDeviceStore = defineStore('device', {
       this.selectedChip = chip;
       if (chip) {
         this.chipSearchInput = chip.name;
-        // 重置存储器类型
-        this.selectedMemoryType = null;
-        this.memoryTypeInput = '';
 
-        // 如果只有一种存储器类型，则自动选择
-        if (this.availableMemoryTypes.length === 1) {
-          this.setSelectedMemoryType(this.availableMemoryTypes[0]);
+        const memoryTypes = getSupportedMemoryTypes(chip.id);
+        if (!this.selectedMemoryType || !memoryTypes.includes(this.selectedMemoryType)) {
+          this.setSelectedMemoryType(memoryTypes[0] || null);
+        } else {
+          this.memoryTypeInput = this.selectedMemoryType;
+          this.tempMemoryTypeInput = this.selectedMemoryType;
+        }
+
+        const interfaces = getSupportedInterfaces(chip.id);
+        if (!interfaces.includes(this.selectedInterface)) {
+          this.setSelectedInterface(interfaces[0] || 'UART');
         }
       }
       this.saveToStorage();
     },
 
     // 设置存储器类型
-    setSelectedMemoryType(memoryType: string | null) {
+    setSelectedMemoryType(memoryType: MemoryType | null) {
       this.selectedMemoryType = memoryType;
       if (memoryType) {
         this.memoryTypeInput = memoryType;
+        this.tempMemoryTypeInput = memoryType;
+      } else {
+        this.memoryTypeInput = '';
+        this.tempMemoryTypeInput = '';
       }
       this.saveToStorage();
     },
 
     // 设置接口类型
     setSelectedInterface(interfaceType: string) {
-      this.selectedInterface = interfaceType;
-      if (interfaceType !== 'UART') {
+      const selectedInterface = interfaceType as InterfaceType;
+      if (!this.availableInterfaces.includes(selectedInterface)) return;
+
+      this.selectedInterface = selectedInterface;
+      if (selectedInterface !== 'UART') {
         // 如果不是UART接口，重置串口和波特率
         this.selectedPort = null;
         this.portSearchInput = '';
@@ -323,9 +339,12 @@ export const useDeviceStore = defineStore('device', {
         // 加载存储器类型
         const memoryTypeData = await storeInstance.get('selectedMemoryType');
         if (memoryTypeData?.value) {
-          this.selectedMemoryType = memoryTypeData.value;
-          this.memoryTypeInput = memoryTypeData.value;
-          this.tempMemoryTypeInput = memoryTypeData.value;
+          const memoryType = memoryTypeData.value as MemoryType;
+          if (this.availableMemoryTypes.includes(memoryType)) {
+            this.selectedMemoryType = memoryType;
+            this.memoryTypeInput = memoryType;
+            this.tempMemoryTypeInput = memoryType;
+          }
         } else if (this.availableMemoryTypes.length > 0) {
           // 默认选择第一个可用的存储器类型
           this.selectedMemoryType = this.availableMemoryTypes[0];
@@ -335,8 +354,10 @@ export const useDeviceStore = defineStore('device', {
 
         // 加载接口类型
         const interfaceData = await storeInstance.get('selectedInterface');
-        if (interfaceData?.value) {
+        if (interfaceData?.value && this.availableInterfaces.includes(interfaceData.value)) {
           this.selectedInterface = interfaceData.value;
+        } else if (!this.availableInterfaces.includes(this.selectedInterface) && this.availableInterfaces.length > 0) {
+          this.selectedInterface = this.availableInterfaces[0];
         }
 
         // 加载串口设置
