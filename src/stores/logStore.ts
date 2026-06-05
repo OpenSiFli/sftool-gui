@@ -68,7 +68,6 @@ export const useLogStore = defineStore('log', () => {
 
   const addMessage = (message: string, important: boolean = false) => {
     addEntry({
-      level: important ? 'error' : undefined,
       source: 'frontend',
       message,
       important,
