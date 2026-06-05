@@ -464,6 +464,7 @@
     "noStorageTypeAvailable": "无可用存储器类型",
     "interfaceSettings": "接口设置",
     "interfaceType": "接口类型",
+    "unsupportedInterfaceForChip": "{chip} 不支持 {interface} 接口",
     "serialPort": "串口号",
     "serialPortPlaceholder": "请选择或搜索串口",
     "noPortFound": "未检测到串口设备",

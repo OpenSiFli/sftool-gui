@@ -464,6 +464,7 @@
     "noStorageTypeAvailable": "No memory types available",
     "interfaceSettings": "Interface Settings",
     "interfaceType": "Interface Type",
+    "unsupportedInterfaceForChip": "{chip} does not support the {interface} interface",
     "serialPort": "COM Port",
     "serialPortPlaceholder": "Select or search for a COM port",
     "noPortFound": "No COM port detected",
