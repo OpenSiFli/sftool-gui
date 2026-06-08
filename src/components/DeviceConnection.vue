@@ -1044,8 +1044,6 @@ const connectDevice = async () => {
 
 // 组件挂载时加载串口列表和设备设置
 onMounted(async () => {
-  operationStatusStore.clear();
-
   // 从存储加载设备设置
   await Promise.all([
     deviceStore.loadFromStorage(),
