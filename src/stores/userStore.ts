@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
 import { load } from '@tauri-apps/plugin-store';
+import { DEFAULT_LOG_MAX_ENTRIES, normalizeLogSettings, type LogSettings } from '../utils/logSettings';
+import type { LogLevelFilter } from '../types/log';
 
 // 主题类型
 export type ThemeType = 'dark' | 'light' | 'system';
@@ -20,6 +22,8 @@ export const useUserStore = defineStore('user', {
     language: '',
     theme: 'system' as ThemeType,
     menuCollapsed: false,
+    logMaxEntries: DEFAULT_LOG_MAX_ENTRIES,
+    logLevelFilter: 'all' as LogLevelFilter,
   }),
   actions: {
     async loadLanguage() {
@@ -101,10 +105,32 @@ export const useUserStore = defineStore('user', {
       await storeInstance.save();
     },
 
+    async loadLogSettings() {
+      const storeInstance = await initStore();
+      const val = await storeInstance.get('logSettings');
+      const settings = normalizeLogSettings(val?.value);
+      this.logMaxEntries = settings.maxEntries;
+      this.logLevelFilter = settings.levelFilter;
+    },
+
+    async setLogSettings(settings: Partial<LogSettings>) {
+      const normalized = normalizeLogSettings({
+        maxEntries: settings.maxEntries ?? this.logMaxEntries,
+        levelFilter: settings.levelFilter ?? this.logLevelFilter,
+      });
+      this.logMaxEntries = normalized.maxEntries;
+      this.logLevelFilter = normalized.levelFilter;
+
+      const storeInstance = await initStore();
+      await storeInstance.set('logSettings', { value: normalized });
+      await storeInstance.save();
+    },
+
     async loadAll() {
       await this.loadLanguage();
       await this.loadTheme();
       await this.loadMenuState();
+      await this.loadLogSettings();
     },
   },
 });

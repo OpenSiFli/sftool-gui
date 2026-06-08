@@ -134,10 +134,53 @@ export const formatLogEntry = (entry: LogEntry): string => {
   return `[${timestamp}] [${entry.level}] [${entry.source}${target}] ${entry.message}`;
 };
 
+const formatDisplayTarget = (target?: string): string => {
+  if (!target) return '';
+  const parts = target.split('::').filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : target;
+};
+
+export const formatLogEntryForDisplay = (entry: LogEntry): string => {
+  const date = new Date(entry.timestamp);
+  const timestamp = Number.isNaN(date.getTime()) ? entry.timestamp : date.toLocaleTimeString();
+  const target = formatDisplayTarget(entry.target);
+  const source = target ? `${entry.source} ${target}` : entry.source;
+  return `[${timestamp}] [${entry.level}] [${source}] ${entry.message}`;
+};
+
 export const matchesLogLevelFilter = (entry: LogEntry, filter: LogLevelFilter): boolean => {
   if (filter === 'all') return true;
   if (filter === 'error') return entry.level === 'error';
   return entry.level !== 'error';
+};
+
+export const isBlockingLogError = (entry: LogEntry): boolean => {
+  return entry.level === 'error' && entry.source !== 'tracing';
+};
+
+const isStatusLogEntry = (entry: Pick<LogEntry, 'level' | 'source' | 'message'>): boolean => {
+  if (entry.level === 'debug' || entry.level === 'trace') return false;
+  if (entry.source === 'tracing') return false;
+  if (/^command\s*:/i.test(entry.message.trim())) return false;
+  return true;
+};
+
+export const getLatestLogStatusText = (
+  entries: Pick<LogEntry, 'level' | 'source' | 'message'>[],
+  errorText = '发现错误'
+) => {
+  const latestEntry = getLatestLogStatusEntry(entries);
+  if (!latestEntry) return '';
+  if (isBlockingLogError(latestEntry as LogEntry)) return errorText;
+  return latestEntry.message;
+};
+
+export const getLatestLogStatusEntry = <T extends Pick<LogEntry, 'level' | 'source' | 'message'>>(entries: T[]) => {
+  return [...entries].reverse().find(isStatusLogEntry);
+};
+
+export const getRecentLogPreviewEntries = (entries: LogEntry[], filter: LogLevelFilter, limit: number): LogEntry[] => {
+  return entries.filter(entry => matchesLogLevelFilter(entry, filter)).slice(-limit);
 };
 
 export const getLogEntryTextClass = (entry: LogEntry): string => {

@@ -1,7 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { setupProgressEventLogger } from '../utils/progressEventLogger';
-import { createLogEntry, formatLogEntry, normalizeLogEntry } from '../utils/logEntries';
+import {
+  createLogEntry,
+  formatLogEntry,
+  getLatestLogStatusText,
+  isBlockingLogError,
+  normalizeLogEntry,
+} from '../utils/logEntries';
+import { DEFAULT_LOG_MAX_ENTRIES } from '../utils/logSettings';
+import { useUserStore } from './userStore';
 import type { LogEntry, LogEntryInput } from '../types/log';
 
 export interface LogMessage {
@@ -27,7 +35,7 @@ export const useLogStore = defineStore('log', () => {
   // 状态
   const entries = ref<LogEntry[]>([]);
   const isFlashing = ref(false);
-  const maxMessages = ref(1000); // 最大日志条数限制
+  const maxMessages = ref(DEFAULT_LOG_MAX_ENTRIES); // 最大日志条数限制
 
   // 计算属性
   const messages = computed(() => entries.value.map(formatLogEntry));
@@ -36,8 +44,10 @@ export const useLogStore = defineStore('log', () => {
     return messages.value.length > 0 ? messages.value[messages.value.length - 1] : '';
   });
 
+  const latestStatusText = computed(() => getLatestLogStatusText(entries.value));
+
   const hasErrors = computed(() => {
-    return entries.value.some(entry => entry.level === 'error');
+    return entries.value.some(isBlockingLogError);
   });
 
   // 方法
@@ -72,6 +82,13 @@ export const useLogStore = defineStore('log', () => {
       message,
       important,
     });
+  };
+
+  const setMaxMessages = (value: number) => {
+    maxMessages.value = value;
+    if (entries.value.length > maxMessages.value) {
+      entries.value = entries.value.slice(-maxMessages.value);
+    }
   };
 
   const clearLogs = () => {
@@ -187,8 +204,11 @@ export const useLogStore = defineStore('log', () => {
 
       await setupProgressEventLogger({
         addMessage,
+        addEntry,
         isEnabled: async () => !(await isLogWindow()),
       });
+
+      setMaxMessages(useUserStore().logMaxEntries);
 
       eventListenerInitialized = true;
     } catch (error) {
@@ -201,14 +221,17 @@ export const useLogStore = defineStore('log', () => {
     entries,
     messages,
     isFlashing,
+    maxMessages,
 
     // 计算属性
     latestMessage,
+    latestStatusText,
     hasErrors,
 
     // 方法
     addEntry,
     addMessage,
+    setMaxMessages,
     clearLogs,
     setFlashing,
     initializeLog,

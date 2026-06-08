@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod commands;
+pub mod logging;
 pub mod progress;
 pub mod state;
 pub mod types;
