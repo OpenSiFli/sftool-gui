@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, markRaw } from 'vue';
 import { useUserStore, ThemeType } from '../stores/userStore';
+import { useLogStore } from '../stores/logStore';
 import { useI18n } from 'vue-i18n';
 import { availableLanguages, Language, getLanguageByCode } from '../i18n';
 import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
+import type { LogLevelFilter } from '../types/log';
 
 // 获取用户存储和国际化
 const userStore = useUserStore();
+const logStore = useLogStore();
 const { locale } = useI18n();
 
 // 设置的实时状态
 const activeTheme = ref<ThemeType>(userStore.theme as ThemeType);
 const activeLanguage = ref<string>(userStore.language);
+const activeLogLevelFilter = ref<LogLevelFilter>(userStore.logLevelFilter);
+const activeLogMaxEntries = ref<number>(userStore.logMaxEntries);
 
 // 当前语言对象
 const currentLanguage = computed<Language>(() => {
@@ -50,6 +55,19 @@ const updateLanguage = async (lang: string) => {
   locale.value = lang;
   isLanguageDropdownOpen.value = false; // 关闭下拉菜单
   showFeedback('language');
+};
+
+const updateLogLevelFilter = async (levelFilter: LogLevelFilter) => {
+  activeLogLevelFilter.value = levelFilter;
+  await userStore.setLogSettings({ levelFilter });
+  showFeedback('log');
+};
+
+const updateLogMaxEntries = async () => {
+  await userStore.setLogSettings({ maxEntries: activeLogMaxEntries.value });
+  activeLogMaxEntries.value = userStore.logMaxEntries;
+  logStore.setMaxMessages(userStore.logMaxEntries);
+  showFeedback('log');
 };
 
 // 切换语言下拉菜单的显示状态
@@ -298,6 +316,74 @@ onMounted(() => {
                 <span class="material-icons check-icon" :class="{ visible: activeTheme === theme }">
                   check_circle
                 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 日志设置 -->
+      <section>
+        <div class="mb-6 flex items-center">
+          <span class="material-icons text-2xl mr-3 text-primary">article</span>
+          <h2 class="text-2xl font-semibold">{{ $t('setting.log') }}</h2>
+          <div
+            class="ml-auto transition-all duration-300"
+            :class="{ 'opacity-100': feedbackItems.get('log'), 'opacity-0': !feedbackItems.get('log') }"
+          >
+            <span class="inline-flex items-center px-3 py-1 bg-success/20 text-success rounded-full">
+              <span class="material-icons text-sm mr-1">check_circle</span>
+              <span>{{ $t('setting.feedback_applied') }}</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-4">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="material-icons text-primary">filter_alt</span>
+                <div>
+                  <div class="font-medium">{{ $t('setting.log_level_filter') }}</div>
+                  <div class="text-sm text-base-content/60">{{ $t('setting.log_level_filter_desc') }}</div>
+                </div>
+              </div>
+              <div class="join w-full">
+                <button
+                  v-for="filter in ['all', 'info', 'error']"
+                  :key="filter"
+                  class="btn join-item flex-1"
+                  :class="{ 'btn-primary': activeLogLevelFilter === filter }"
+                  @click="updateLogLevelFilter(filter as LogLevelFilter)"
+                >
+                  {{ $t(`logWindow.${filter === 'all' ? 'showAll' : filter === 'info' ? 'infoOnly' : 'errorsOnly'}`) }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-4">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="material-icons text-primary">storage</span>
+                <div>
+                  <div class="font-medium">{{ $t('setting.log_max_entries') }}</div>
+                  <div class="text-sm text-base-content/60">{{ $t('setting.log_max_entries_desc') }}</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model.number="activeLogMaxEntries"
+                  type="number"
+                  min="100"
+                  max="10000"
+                  step="100"
+                  class="input input-bordered w-full"
+                  @change="updateLogMaxEntries"
+                />
+                <button class="btn btn-primary" @click="updateLogMaxEntries">
+                  <span class="material-icons">save</span>
+                </button>
               </div>
             </div>
           </div>

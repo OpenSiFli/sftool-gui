@@ -37,3 +37,5 @@ tempfile = "3.17.1"
 unarc-rs = "0.6.0"
 walkdir = "2"
 chrono = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

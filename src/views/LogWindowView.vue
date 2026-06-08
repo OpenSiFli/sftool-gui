@@ -165,7 +165,7 @@
               <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" :class="getLogEntryIndicatorClass(entry)"></div>
 
               <!-- 日志内容 -->
-              <pre class="flex-1 whitespace-pre-wrap break-words text-sm">{{ formatLogEntry(entry) }}</pre>
+              <pre class="flex-1 whitespace-pre-wrap break-words text-sm">{{ formatLogEntryForDisplay(entry) }}</pre>
 
               <!-- 复制按钮 -->
               <button
@@ -220,19 +220,22 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import { useLogStore } from '../stores/logStore';
+import { useUserStore } from '../stores/userStore';
 import {
   formatLogEntry,
+  formatLogEntryForDisplay,
   getLogEntryFrameClass,
   getLogEntryIndicatorClass,
   matchesLogLevelFilter,
 } from '../utils/logEntries';
 import type { LogEntry, LogLevelFilter } from '../types/log';
 const logStore = useLogStore();
+const userStore = useUserStore();
 
 // 响应式状态
 const logContainer = ref<HTMLElement | null>(null);
 const autoScroll = ref(true);
-const logLevel = ref<LogLevelFilter>('all');
+const logLevel = ref<LogLevelFilter>(userStore.logLevelFilter);
 const alwaysOnTop = ref(false);
 
 // 计算属性
@@ -301,7 +304,7 @@ const toggleAlwaysOnTop = async () => {
 };
 
 const copyLogMessage = async (entry: LogEntry) => {
-  const message = formatLogEntry(entry);
+  const message = formatLogEntryForDisplay(entry);
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(message);

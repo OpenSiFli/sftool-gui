@@ -1,28 +1,12 @@
+use crate::logging::emit_system_error;
 use crate::progress::TauriProgressCallback;
 use crate::state::AppState;
 use crate::types::{DeviceConfig, PortInfo};
 use crate::utils::{create_tool_instance_with_progress, list_serial_ports};
-use chrono::Local;
-use serde_json::json;
 use sftool_lib::progress::ProgressSinkArc;
 use sftool_lib::CancelToken;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, State};
-
-fn emit_system_log(app_handle: &AppHandle, message: &str, important: bool) {
-    let timestamp = Local::now().format("%H:%M:%S");
-    let formatted_message = format!("[{}] {}", timestamp, message);
-
-    if let Err(error) = app_handle.emit(
-        "log-message",
-        json!({
-            "message": formatted_message,
-            "important": important,
-        }),
-    ) {
-        eprintln!("Failed to emit system log message: {error}");
-    }
-}
+use tauri::{AppHandle, State};
 
 #[tauri::command]
 pub fn get_serial_ports() -> Result<Vec<PortInfo>, String> {
@@ -67,7 +51,7 @@ pub async fn connect_device(
     ) {
         Ok(tool) => tool,
         Err(error) => {
-            emit_system_log(&app_handle, &format!("连接失败: {error}"), true);
+            emit_system_error(&app_handle, format!("连接失败: {error}"));
             return Err(error);
         }
     };

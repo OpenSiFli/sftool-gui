@@ -1,4 +1,5 @@
 use crate::commands::*;
+use crate::logging::initialize_tracing;
 use crate::state::AppState;
 use crate::utils::spawn_serial_hotplug_watcher;
 use std::sync::Mutex;
@@ -47,6 +48,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            initialize_tracing(app.handle().clone());
             app.manage(Mutex::new(AppState::default()));
             spawn_serial_hotplug_watcher(app.handle().clone());
             Ok(())

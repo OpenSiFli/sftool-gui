@@ -158,7 +158,7 @@
                 <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" :class="getLogEntryIndicatorClass(entry)"></div>
 
                 <!-- 日志内容 -->
-                <pre class="flex-1 whitespace-pre-wrap break-words text-xs">{{ formatLogEntry(entry) }}</pre>
+                <pre class="flex-1 whitespace-pre-wrap break-words text-xs">{{ formatLogEntryForDisplay(entry) }}</pre>
 
                 <!-- 复制按钮（仅在悬停时显示） -->
                 <button
@@ -211,8 +211,10 @@
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLogStore } from '../stores/logStore';
+import { useUserStore } from '../stores/userStore';
 import {
   formatLogEntry,
+  formatLogEntryForDisplay,
   getLogEntryIndicatorClass,
   getLogEntryTextClass,
   matchesLogLevelFilter,
@@ -221,6 +223,7 @@ import type { LogEntry, LogLevelFilter } from '../types/log';
 
 const { t } = useI18n();
 const logStore = useLogStore();
+const userStore = useUserStore();
 
 // Props
 interface Props {
@@ -235,7 +238,7 @@ const emit = defineEmits<{
 // 响应式状态
 const logContainer = ref<HTMLElement | null>(null);
 const autoScroll = ref(true);
-const logLevel = ref<LogLevelFilter>('all');
+const logLevel = ref<LogLevelFilter>(userStore.logLevelFilter);
 
 // 计算属性
 const isVisible = computed({
@@ -302,7 +305,7 @@ const exportLogs = async () => {
 };
 
 const copyLogMessage = async (entry: LogEntry) => {
-  const message = formatLogEntry(entry);
+  const message = formatLogEntryForDisplay(entry);
   try {
     // 使用浏览器的 Clipboard API 作为备选
     if (navigator.clipboard && navigator.clipboard.writeText) {
