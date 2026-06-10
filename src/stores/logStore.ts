@@ -1,6 +1,16 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { setupProgressEventLogger } from '../utils/progressEventLogger';
+import {
+  createLogEntry,
+  formatLogEntry,
+  getLatestLogStatusText,
+  isBlockingLogError,
+  normalizeLogEntry,
+} from '../utils/logEntries';
+import { DEFAULT_LOG_MAX_ENTRIES } from '../utils/logSettings';
+import { useUserStore } from './userStore';
+import type { LogEntry, LogEntryInput } from '../types/log';
 
 export interface LogMessage {
   id: string;
@@ -23,53 +33,71 @@ const isLogWindow = async (): Promise<boolean> => {
 
 export const useLogStore = defineStore('log', () => {
   // 状态
-  const messages = ref<string[]>([]);
+  const entries = ref<LogEntry[]>([]);
   const isFlashing = ref(false);
-  const maxMessages = ref(1000); // 最大日志条数限制
+  const maxMessages = ref(DEFAULT_LOG_MAX_ENTRIES); // 最大日志条数限制
 
   // 计算属性
+  const messages = computed(() => entries.value.map(formatLogEntry));
+
   const latestMessage = computed(() => {
     return messages.value.length > 0 ? messages.value[messages.value.length - 1] : '';
   });
 
+  const latestStatusText = computed(() => getLatestLogStatusText(entries.value));
+
   const hasErrors = computed(() => {
-    return messages.value.some(message => {
-      const lowerMessage = message.toLowerCase();
-      return (
-        lowerMessage.includes('error') ||
-        lowerMessage.includes('failed') ||
-        lowerMessage.includes('错误') ||
-        lowerMessage.includes('失败')
-      );
-    });
+    return entries.value.some(isBlockingLogError);
   });
 
   // 方法
+  const addEntry = (entryInput: LogEntryInput, shouldEmit = true) => {
+    const entry = createLogEntry(entryInput);
+    if (entries.value.some(currentEntry => currentEntry.id === entry.id)) return entry;
+
+    entries.value.push(entry);
+    if (entries.value.length > maxMessages.value) {
+      entries.value = entries.value.slice(-maxMessages.value);
+    }
+
+    if (entry.important) {
+      console.log('Important log message:', formatLogEntry(entry));
+    }
+
+    if (shouldEmit) {
+      emitLogEvent('app-log', entry);
+      emitLogEvent('log-message', {
+        id: entry.id,
+        message: formatLogEntry(entry),
+        important: entry.important,
+      });
+    }
+
+    return entry;
+  };
+
   const addMessage = (message: string, important: boolean = false) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const formattedMessage = `[${timestamp}] ${message}`;
+    addEntry({
+      source: 'frontend',
+      message,
+      important,
+    });
+  };
 
-    messages.value.push(formattedMessage);
-
-    // 限制日志条数，避免内存过度使用
-    if (messages.value.length > maxMessages.value) {
-      messages.value = messages.value.slice(-maxMessages.value);
+  const setMaxMessages = (value: number) => {
+    maxMessages.value = value;
+    if (entries.value.length > maxMessages.value) {
+      entries.value = entries.value.slice(-maxMessages.value);
     }
-
-    // 如果是重要消息，可以触发一些特殊处理
-    if (important) {
-      console.log('Important log message:', formattedMessage);
-    }
-
-    // 发送跨窗口事件
-    emitLogEvent('log-message', { message: formattedMessage, important });
   };
 
   const clearLogs = () => {
-    messages.value = [];
-    const timestamp = new Date().toLocaleTimeString();
-    const clearMessage = `[${timestamp}] 日志已清空`;
-    messages.value.push(clearMessage);
+    entries.value = [];
+    addEntry({
+      level: 'info',
+      source: 'system',
+      message: '日志已清空',
+    });
 
     // 发送清空日志事件
     emitLogEvent('log-clear', {});
@@ -114,21 +142,22 @@ export const useLogStore = defineStore('log', () => {
     try {
       const { listen } = await import('@tauri-apps/api/event');
 
+      await listen('app-log', (event: any) => {
+        const entry = normalizeLogEntry(event.payload);
+        addEntry(entry, false);
+      });
+
       // 监听日志消息事件
       await listen('log-message', (event: any) => {
-        const { message } = event.payload;
-        if (message && !messages.value.includes(message)) {
-          messages.value.push(message);
-          // 限制日志条数
-          if (messages.value.length > maxMessages.value) {
-            messages.value = messages.value.slice(-maxMessages.value);
-          }
+        const entry = normalizeLogEntry(event.payload);
+        if (entry.message) {
+          addEntry(entry, false);
         }
       });
 
       // 监听清空日志事件
       await listen('log-clear', () => {
-        messages.value = [];
+        entries.value = [];
       });
 
       // 监听烧录状态事件
@@ -140,10 +169,11 @@ export const useLogStore = defineStore('log', () => {
       // 监听日志同步请求，发送当前所有日志到新窗口
       await listen('log-sync-request', async () => {
         // 只有当前窗口有日志时才广播，避免空窗口覆盖有内容的窗口
-        if (messages.value.length === 0) return;
+        if (entries.value.length === 0) return;
         try {
           const { emit } = await import('@tauri-apps/api/event');
           await emit('log-sync-data', {
+            entries: entries.value,
             messages: messages.value,
             isFlashing: isFlashing.value,
           });
@@ -154,22 +184,31 @@ export const useLogStore = defineStore('log', () => {
 
       // 监听日志同步数据
       await listen('log-sync-data', (event: any) => {
-        const { messages: syncedMessages, isFlashing: syncedFlashing } = event.payload;
-        if (syncedMessages && Array.isArray(syncedMessages)) {
+        const { entries: syncedEntries, messages: syncedMessages, isFlashing: syncedFlashing } = event.payload;
+        if (syncedEntries && Array.isArray(syncedEntries)) {
+          if (entries.value.length > 0 && syncedEntries.length < entries.value.length) {
+            return;
+          }
+          entries.value = syncedEntries.map(normalizeLogEntry);
+          isFlashing.value = syncedFlashing;
+        } else if (syncedMessages && Array.isArray(syncedMessages)) {
           // 如果传入的日志比当前的少且当前已有数据，忽略以防止被空日志覆盖
-          if (messages.value.length > 0 && syncedMessages.length < messages.value.length) {
+          if (entries.value.length > 0 && syncedMessages.length < entries.value.length) {
             return;
           }
           // 同步日志和状态
-          messages.value = syncedMessages;
+          entries.value = syncedMessages.map(message => normalizeLogEntry({ message }));
           isFlashing.value = syncedFlashing;
         }
       });
 
       await setupProgressEventLogger({
         addMessage,
+        addEntry,
         isEnabled: async () => !(await isLogWindow()),
       });
+
+      setMaxMessages(useUserStore().logMaxEntries);
 
       eventListenerInitialized = true;
     } catch (error) {
@@ -179,15 +218,20 @@ export const useLogStore = defineStore('log', () => {
 
   return {
     // 状态
-    messages: messages,
-    isFlashing: isFlashing,
+    entries,
+    messages,
+    isFlashing,
+    maxMessages,
 
     // 计算属性
     latestMessage,
+    latestStatusText,
     hasErrors,
 
     // 方法
+    addEntry,
     addMessage,
+    setMaxMessages,
     clearLogs,
     setFlashing,
     initializeLog,

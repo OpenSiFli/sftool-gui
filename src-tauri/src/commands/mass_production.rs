@@ -1,3 +1,4 @@
+use crate::logging::{emit_app_log, AppLogEntry};
 use crate::state::{AppState, MassProductionState, PortIdentity};
 use crate::types::{
     DeviceConfig, MassProductionLogPaths, MassProductionPortInfo, MassProductionPortStatus,
@@ -363,6 +364,15 @@ fn append_mass_runtime_log<R: tauri::Runtime>(
     level: &str,
     message: &str,
 ) {
+    emit_app_log(app_handle, AppLogEntry::mass_production(level, message));
+    append_mass_runtime_log_file(app_handle, level, message);
+}
+
+fn append_mass_runtime_log_file<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
+    level: &str,
+    message: &str,
+) {
     let runtime_log_path = match ensure_runtime_log_path(app_handle) {
         Ok(path) => path,
         Err(error) => {
@@ -405,7 +415,14 @@ fn append_mass_worker_runtime_log<R: tauri::Runtime>(
     level: &str,
     message: &str,
 ) {
-    append_mass_runtime_log(
+    emit_app_log(
+        app_handle,
+        AppLogEntry::mass_production(level, message)
+            .with_session_id(session_id)
+            .with_port(port_name),
+    );
+
+    append_mass_runtime_log_file(
         app_handle,
         level,
         &format!("session_id={session_id} port={port_name} {message}"),

@@ -517,36 +517,60 @@
                 :class="logStore.isFlashing ? 'bg-success animate-pulse' : logStore.hasErrors ? 'bg-error' : 'bg-info'"
               ></div>
               {{ t('deviceConnection.systemLog') }}
-              <div class="badge badge-xs" :class="logStore.messages.length > 0 ? 'badge-primary' : 'badge-ghost'">
-                {{ logStore.messages.length }}
+              <div class="badge badge-xs" :class="logStore.entries.length > 0 ? 'badge-primary' : 'badge-ghost'">
+                {{ filteredPreviewLogEntries.length }}/{{ logStore.entries.length }}
               </div>
             </h4>
-            <button
-              @click="openLogWindow"
-              class="btn btn-xs btn-primary btn-outline"
-              :title="t('deviceConnection.openLogWindow')"
-            >
-              <span class="material-icons text-xs">open_in_new</span>
-            </button>
+            <div class="flex items-center gap-1">
+              <div class="dropdown dropdown-bottom dropdown-end">
+                <button tabindex="0" class="btn btn-xs btn-ghost btn-square" :title="t('logWindow.filter')">
+                  <span class="material-icons text-xs">filter_list</span>
+                </button>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32">
+                  <li>
+                    <a @click="setPreviewLogLevel('all')" :class="{ active: previewLogLevel === 'all' }">
+                      {{ t('logWindow.showAll') }}
+                    </a>
+                  </li>
+                  <li>
+                    <a @click="setPreviewLogLevel('info')" :class="{ active: previewLogLevel === 'info' }">
+                      {{ t('logWindow.infoOnly') }}
+                    </a>
+                  </li>
+                  <li>
+                    <a @click="setPreviewLogLevel('error')" :class="{ active: previewLogLevel === 'error' }">
+                      {{ t('logWindow.errorsOnly') }}
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              <button
+                @click="openLogWindow"
+                class="btn btn-xs btn-primary btn-outline"
+                :title="t('deviceConnection.openLogWindow')"
+              >
+                <span class="material-icons text-xs">open_in_new</span>
+              </button>
+            </div>
           </div>
 
           <!-- 日志预览内容 -->
           <div class="text-xs">
-            <div v-if="logStore.messages.length === 0" class="text-base-content/60 italic text-center py-2">
+            <div v-if="filteredPreviewLogEntries.length === 0" class="text-base-content/60 italic text-center py-2">
               {{ t('deviceConnection.noLogMessages') }}
             </div>
             <div v-else class="space-y-1 max-h-32 overflow-y-auto">
               <!-- 只显示最近的3条日志 -->
               <div
-                v-for="(message, index) in recentLogMessages"
-                :key="index"
+                v-for="entry in recentLogPreviewEntries"
+                :key="entry.id"
                 class="text-xs p-2 rounded bg-base-100/50 border-l-2 transition-colors"
-                :class="getLogMessageClass(message)"
+                :class="getLogEntryFrameClass(entry)"
               >
-                {{ formatLogMessage(message) }}
+                {{ formatPreviewLogEntry(entry) }}
               </div>
-              <div v-if="logStore.messages.length > 3" class="text-center text-base-content/60 py-1">
-                {{ t('deviceConnection.moreMessages', { count: logStore.messages.length - 3 }) }}
+              <div v-if="filteredPreviewLogEntries.length > 3" class="text-center text-base-content/60 py-1">
+                {{ t('deviceConnection.moreMessages', { count: filteredPreviewLogEntries.length - 3 }) }}
               </div>
             </div>
           </div>
@@ -571,6 +595,7 @@ import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useLogStore } from '../stores/logStore';
+import { useUserStore } from '../stores/userStore';
 import { useDeviceStore } from '../stores/deviceStore';
 import type { ResetBeforeMode, ResetAfterMode } from '../stores/deviceStore';
 import { useOperationStatusStore } from '../stores/operationStatusStore';
@@ -579,10 +604,18 @@ import { WindowManager } from '../services/windowManager';
 import type { ChipModel, InterfaceType, MemoryType } from '../config/chips';
 import type { PortInfo, SerialPortsChangedEvent } from '../types/device';
 import { resolveDeviceStatus } from '../utils/statusDisplay';
+import type { LogEntry, LogLevelFilter } from '../types/log';
+import {
+  formatLogEntryForDisplay,
+  getLogEntryFrameClass,
+  getRecentLogPreviewEntries,
+  matchesLogLevelFilter,
+} from '../utils/logEntries';
 
 const { t } = useI18n();
 
 const logStore = useLogStore();
+const userStore = useUserStore();
 const deviceStore = useDeviceStore();
 const operationStatusStore = useOperationStatusStore();
 const stubConfigStore = useStubConfigStore();
@@ -1011,8 +1044,6 @@ const connectDevice = async () => {
 
 // 组件挂载时加载串口列表和设备设置
 onMounted(async () => {
-  operationStatusStore.clear();
-
   // 从存储加载设备设置
   await Promise.all([
     deviceStore.loadFromStorage(),
@@ -1040,40 +1071,26 @@ onUnmounted(() => {
 });
 
 // 日志相关方法
-const recentLogMessages = computed(() => {
-  return logStore.messages.slice(-3); // 只显示最近3条
+const previewLogLevel = ref<LogLevelFilter>(userStore.logLevelFilter);
+
+const filteredPreviewLogEntries = computed(() => {
+  return logStore.entries.filter(entry => matchesLogLevelFilter(entry, previewLogLevel.value));
 });
 
-const formatLogMessage = (message: string) => {
-  // 移除时间戳前缀，只显示消息内容
-  let cleaned = message.replace(/^\[[\d:]+\]\s*/, '');
-  // 如果消息太长，进行截断
+const recentLogPreviewEntries = computed(() => {
+  return getRecentLogPreviewEntries(logStore.entries, previewLogLevel.value, 3);
+});
+
+const setPreviewLogLevel = (level: LogLevelFilter) => {
+  previewLogLevel.value = level;
+};
+
+const formatPreviewLogEntry = (entry: LogEntry) => {
+  const cleaned = formatLogEntryForDisplay(entry).replace(/^\[[^\]]+\]\s*/, '');
   if (cleaned.length > 60) {
     return cleaned.substring(0, 57) + '...';
   }
   return cleaned;
-};
-
-const getLogMessageClass = (message: string) => {
-  const lowerMessage = message.toLowerCase();
-  if (
-    lowerMessage.includes('error') ||
-    lowerMessage.includes('failed') ||
-    lowerMessage.includes('错误') ||
-    lowerMessage.includes('失败')
-  ) {
-    return 'border-l-error text-error/90 bg-error/5';
-  } else if (
-    lowerMessage.includes('success') ||
-    lowerMessage.includes('completed') ||
-    lowerMessage.includes('成功') ||
-    lowerMessage.includes('完成')
-  ) {
-    return 'border-l-success text-success/90 bg-success/5';
-  } else if (lowerMessage.includes('warning') || lowerMessage.includes('warn') || lowerMessage.includes('警告')) {
-    return 'border-l-warning text-warning/90 bg-warning/5';
-  }
-  return 'border-l-info text-base-content/80 bg-base-100/50';
 };
 
 const resolvedDeviceStatus = computed(() =>
