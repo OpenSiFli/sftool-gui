@@ -38,22 +38,15 @@ an auto-update plugin supporting automatic updates.
 Current Version: v{{ version }}
 
 1. Windows
-    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_windows_x64.exe`">sftool_{{
-      version }}_windows_x64.exe</a>
-    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_windows_x64_portable.zip`">sftool_{{
-      version }}_windows_x64_portable.zip</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_windows_x64.exe`">sftool_{{ version }}_windows_x64.exe</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_windows_x64_portable.zip`">sftool_{{ version }}_windows_x64_portable.zip</a>
 2. macOS
-    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_macos_universal.dmg`">Windows:
-      `.exe` (NSIS installer) or `-portable.zip` (portable)</a>
-    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_macos_universal.app.tar.gz`">macOS:
-      `.dmg` (disk image) or `.app.tar.gz` (app archive)</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_macos_universal.dmg`">sftool_{{ version }}_macos_universal.dmg</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_macos_universal.app.tar.gz`">sftool_{{ version }}_macos_universal.app.tar.gz</a>
 3. Linux
-    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_amd64.AppImage`">sftool_{{
-      version }}_amd64.AppImage</a>
-    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_linux_amd64.rpm`">sftool_{{
-      version }}_linux_amd64.rpm</a>
-    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_linux_amd64.deb`">sftool_{{
-      version }}_linux_amd64.deb</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_amd64.AppImage`">sftool_{{ version }}_amd64.AppImage</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_linux_amd64.rpm`">sftool_{{ version }}_linux_amd64.rpm</a>
+    - <a :href="`https://downloads.sifli.com/sftool-gui/v${version}/sftool_${version}_linux_amd64.deb`">sftool_{{ version }}_linux_amd64.deb</a>
 
 #### Download from GitHub
 
