@@ -39,7 +39,6 @@ jobs:
       - name: Install dependencies
         run: |
           cd docs
-          corepack enable
           pnpm install --frozen-lockfile
 
       - name: Get version
