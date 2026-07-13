@@ -81,6 +81,7 @@ fn parse_chip_type(chip_type: &str) -> Result<ChipType, String> {
         "SF32LB52" => Ok(ChipType::SF32LB52),
         "SF32LB55" => Ok(ChipType::SF32LB55),
         "SF32LB56" => Ok(ChipType::SF32LB56),
+        "SF32LB57" => Ok(ChipType::SF32LB57),
         "SF32LB58" => Ok(ChipType::SF32LB58),
         _ => Err(format!("不支持的芯片型号: {}", chip_type)),
     }
@@ -289,4 +290,15 @@ pub fn create_tool_instance_with_progress(
     // 创建对应的工具实例
     let tool = create_sifli_tool_checked(chip_type, base)?;
     Ok(Box::new(ToolWithStubOwner::new(tool, temp_stub_file)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_chip_type;
+    use sftool_lib::ChipType;
+
+    #[test]
+    fn parses_sf32lb57() {
+        assert_eq!(parse_chip_type("SF32LB57"), Ok(ChipType::SF32LB57));
+    }
 }

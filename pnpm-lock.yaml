@@ -63,7 +63,7 @@ importers:
         specifier: ^3.5.32
         version: 3.5.32(typescript@5.6.3)
       vue-i18n:
-        specifier: 9.14.5
+        specifier: ^9.4.1
         version: 9.14.5(vue@3.5.32(typescript@5.6.3))
       vue-router:
         specifier: ^4.6.4
@@ -118,7 +118,7 @@ importers:
         specifier: ~5.6.2
         version: 5.6.3
       vite:
-        specifier: 6.4.1
+        specifier: ^6.0.3
         version: 6.4.1(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.3)
       vue-eslint-parser:
         specifier: ^10.2.0
@@ -794,7 +794,7 @@ packages:
     resolution: {integrity: sha512-bL3AxKuQySfk1iGcBsQnoRVexTPJq0Z/ixFVM8OhVJAP6ZXXXLtM7NFKWhLl30Kg7uTBqIaPXbh+nuQCuBDedg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: 6.4.1
+      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
       vue: ^3.2.25
 
   '@volar/language-core@2.4.13':
@@ -1031,7 +1031,7 @@ packages:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
-      picomatch: 4.0.4
+      picomatch: ^3 || ^4
     peerDependenciesMeta:
       picomatch:
         optional: true
@@ -1444,7 +1444,7 @@ packages:
       sugarss: '*'
       terser: ^5.16.0
       tsx: ^4.8.1
-      yaml: 2.8.3
+      yaml: ^2.4.2
     peerDependenciesMeta:
       '@types/node':
         optional: true
