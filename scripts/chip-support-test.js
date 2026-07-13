@@ -15,6 +15,10 @@ const expectedSupport = {
     memories: ['NOR'],
     interfaces: ['UART', 'USB'],
   },
+  SF32LB57: {
+    memories: ['NOR'],
+    interfaces: ['UART'],
+  },
   SF32LB58: {
     memories: ['NOR'],
     interfaces: ['UART', 'USB'],
@@ -22,6 +26,7 @@ const expectedSupport = {
 };
 
 for (const [chipId, support] of Object.entries(expectedSupport)) {
+  assert.ok(chips.CHIP_MODELS.some(chip => chip.id === chipId), `${chipId} should be selectable`);
   assert.deepEqual(chips.getSupportedMemoryTypes(chipId), support.memories, `${chipId} memory support mismatch`);
   assert.deepEqual(chips.getSupportedInterfaces(chipId), support.interfaces, `${chipId} interface support mismatch`);
 }
