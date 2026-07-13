@@ -31,6 +31,12 @@ export const CHIP_MODELS: ChipModel[] = [
     supportedInterfaces: ['UART', 'USB'],
   },
   {
+    id: 'SF32LB57',
+    name: 'SF32LB57',
+    supportedMemoryTypes: ['NOR'],
+    supportedInterfaces: ['UART'],
+  },
+  {
     id: 'SF32LB58',
     name: 'SF32LB58',
     supportedMemoryTypes: ['NOR'],

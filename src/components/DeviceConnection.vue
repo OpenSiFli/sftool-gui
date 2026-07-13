@@ -928,22 +928,6 @@ const toggleBaudRateDropdown = () => {
   }
 };
 
-// Promise 超时封装，防止连接调用卡住导致 UI 一直处于连接中状态
-const runWithTimeout = <T,>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('connect_timeout')), timeoutMs);
-    promise
-      .then(value => {
-        clearTimeout(timer);
-        resolve(value);
-      })
-      .catch(err => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
-};
-
 // 连接设备方法
 const connectDevice = async () => {
   if (isConnected.value) {
@@ -1022,8 +1006,7 @@ const connectDevice = async () => {
         connectParams.externalStubPath = externalStubPath.value;
       }
 
-      // 增加超时保护，防止调用异常时卡住连接中状态
-      const success = await runWithTimeout(invoke<boolean>('connect_device', connectParams));
+      const success = await invoke<boolean>('connect_device', connectParams);
 
       deviceStore.setConnected(success);
       if (!success) {

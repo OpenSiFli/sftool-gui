@@ -19,6 +19,7 @@ pub fn chip_key(chip_type: &ChipType) -> &'static str {
         ChipType::SF32LB52 => "sf32lb52",
         ChipType::SF32LB55 => "sf32lb55",
         ChipType::SF32LB56 => "sf32lb56",
+        ChipType::SF32LB57 => "sf32lb57",
         ChipType::SF32LB58 => "sf32lb58",
     }
 }
@@ -74,7 +75,7 @@ pub fn prepare_stub_path(
 
 #[cfg(test)]
 mod tests {
-    use super::prepare_stub_path;
+    use super::{chip_key, prepare_stub_path};
     use sftool_lib::ChipType;
     use std::io::Write;
     use std::path::Path;
@@ -89,6 +90,11 @@ mod tests {
 
         assert_eq!(path, external_stub_path);
         assert!(temp_owner.is_none());
+    }
+
+    #[test]
+    fn chip_key_supports_sf32lb57() {
+        assert_eq!(chip_key(&ChipType::SF32LB57), "sf32lb57");
     }
 
     #[test]
