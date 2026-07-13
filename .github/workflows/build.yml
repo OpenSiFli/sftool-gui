@@ -81,8 +81,10 @@ jobs:
 
       - name: Copy nsis bundle and signature to release assets
         run: |
-          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe"
-          cp "src-tauri/target/release/bundle/nsis/${{ env.REPO_NAME }}_${{ env.VERSION }}_x64-setup.exe.sig" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe.sig"
+          $bundle = Get-ChildItem "src-tauri/target/release/bundle/nsis" -Filter "*-setup.exe" | Select-Object -First 1
+          if ($null -eq $bundle) { throw "NSIS bundle not found" }
+          Copy-Item $bundle.FullName "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe"
+          Copy-Item "$($bundle.FullName).sig" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_windows_x64.exe.sig"
 
       - name: Zip portable to release assets
         run: |
@@ -148,16 +150,23 @@ jobs:
         run: mkdir -p artifacts
 
       - name: Copy deb to release assets
-        run: cp "src-tauri/target/release/bundle/deb/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.deb" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_linux_amd64.deb"
+        run: |
+          bundle=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)
+          test -n "$bundle"
+          cp "$bundle" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_linux_amd64.deb"
 
       - name: Copy rpm to release assets
-        run: cp "src-tauri/target/release/bundle/rpm/${{ env.REPO_NAME }}-${{ env.VERSION }}-1.x86_64.rpm" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_linux_amd64.rpm"
+        run: |
+          bundle=$(find src-tauri/target/release/bundle/rpm -maxdepth 1 -type f -name '*.rpm' -print -quit)
+          test -n "$bundle"
+          cp "$bundle" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_linux_amd64.rpm"
 
       - name: Copy appimage and signature to release assets
         run: |
-          cp "src-tauri/target/release/bundle/appimage/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage" \
-             "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage"
-          cp "src-tauri/target/release/bundle/appimage/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage.sig" \
+          bundle=$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          test -n "$bundle"
+          cp "$bundle" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage"
+          cp "$bundle.sig" \
              "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_amd64.AppImage.sig"
 
       - name: Zip portable to release assets
@@ -224,7 +233,10 @@ jobs:
         run: mkdir -p artifacts
 
       - name: Copy dmg to release assets
-        run: cp "src-tauri/target/universal-apple-darwin/release/bundle/dmg/${{ env.REPO_NAME }}_${{ env.VERSION }}_universal.dmg" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_universal.dmg"
+        run: |
+          bundle=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          test -n "$bundle"
+          cp "$bundle" "artifacts/${{ env.REPO_NAME }}_${{ env.VERSION }}_macos_universal.dmg"
 
       - name: Copy updater tarball and signature to release assets
         run: |
