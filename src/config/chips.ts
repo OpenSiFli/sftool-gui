@@ -33,7 +33,7 @@ export const CHIP_MODELS: ChipModel[] = [
   {
     id: 'SF32LB57',
     name: 'SF32LB57',
-    supportedMemoryTypes: ['NOR'],
+    supportedMemoryTypes: ['NOR', 'NAND', 'SD'],
     supportedInterfaces: ['UART'],
   },
   {

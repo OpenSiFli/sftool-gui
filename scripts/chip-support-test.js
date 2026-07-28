@@ -16,7 +16,7 @@ const expectedSupport = {
     interfaces: ['UART', 'USB'],
   },
   SF32LB57: {
-    memories: ['NOR'],
+    memories: ['NOR', 'NAND', 'SD'],
     interfaces: ['UART'],
   },
   SF32LB58: {
