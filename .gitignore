@@ -25,3 +25,5 @@ dist-ssr
 
 CHANGELOG.md
 .worktrees/
+.codegraph/
+.pnpm-store/

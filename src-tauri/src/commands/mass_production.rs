@@ -875,6 +875,7 @@ fn run_worker<R: tauri::Runtime>(
             memory_type: request.memory_type.clone(),
             port_name: port_name.clone(),
             baud_rate: request.baud_rate.unwrap_or(1_000_000),
+            compatibility_mode: false,
             stub_config_path: request.stub_config_path.clone(),
             external_stub_path: request.external_stub_path.clone(),
             before_operation: request.before_operation.clone(),

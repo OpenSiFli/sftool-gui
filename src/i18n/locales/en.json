@@ -478,6 +478,7 @@
     "refreshPorts": "Refresh Ports",
     "baudRate": "Baud Rate",
     "baudRatePlaceholder": "Select or enter baud rate",
+    "compatibilityMode": "Compatibility Mode",
     "connectDevice": "Connect",
     "disconnectDevice": "Disconnect",
     "connecting": "Connecting...",

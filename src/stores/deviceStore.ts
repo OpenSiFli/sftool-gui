@@ -55,6 +55,9 @@ export const useDeviceStore = defineStore('device', {
     tempBaudRateInput: '',
     baudRates: [1000000, 1500000, 3000000, 6000000],
 
+    // UART 兼容模式（降低传输块大小以兼容部分设备）
+    compatibilityMode: false,
+
     // 下载行为设置（保存到设备相关设置）
     downloadBehavior: {
       before: 'default_reset' as ResetBeforeMode,
@@ -256,6 +259,11 @@ export const useDeviceStore = defineStore('device', {
       this.saveToStorage();
     },
 
+    setCompatibilityMode(enabled: boolean) {
+      this.compatibilityMode = enabled;
+      this.saveToStorage();
+    },
+
     // 下载行为设置
     setDownloadBeforeBehavior(value: ResetBeforeMode) {
       this.downloadBehavior = { ...this.downloadBehavior, before: value };
@@ -374,6 +382,12 @@ export const useDeviceStore = defineStore('device', {
           this.baudRateInput = baudRateData.value;
         }
 
+        // 加载 UART 兼容模式
+        const compatibilityModeData = await storeInstance.get('compatibilityMode');
+        if (typeof compatibilityModeData?.value === 'boolean') {
+          this.compatibilityMode = compatibilityModeData.value;
+        }
+
         // 加载下载行为设置
         const downloadBehaviorData = await storeInstance.get('downloadBehavior');
         if (downloadBehaviorData?.value) {
@@ -419,6 +433,9 @@ export const useDeviceStore = defineStore('device', {
         // 保存波特率
         await storeInstance.set('baudRateInput', { value: this.baudRateInput });
 
+        // 保存 UART 兼容模式
+        await storeInstance.set('compatibilityMode', { value: this.compatibilityMode });
+
         // 保存下载行为设置
         await storeInstance.set('downloadBehavior', { value: this.downloadBehavior });
 
@@ -445,6 +462,8 @@ export const useDeviceStore = defineStore('device', {
       this.tempPortInput = '';
 
       this.baudRateInput = '1000000';
+
+      this.compatibilityMode = false;
 
       this.downloadBehavior = { before: 'default_reset', after: 'no_reset' };
 

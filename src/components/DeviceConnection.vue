@@ -286,6 +286,22 @@
               </transition>
             </div>
           </div>
+
+          <!-- 兼容模式 -->
+          <div class="form-control grow min-w-[120px]">
+            <label class="label py-1">
+              <span class="label-text flex items-center gap-1">
+                <span class="material-icons text-xs">tune</span>
+                {{ t('deviceConnection.compatibilityMode') }}
+              </span>
+              <input
+                type="checkbox"
+                v-model="compatibilityMode"
+                class="toggle toggle-sm toggle-primary"
+                :disabled="isConnected || isConnecting"
+              />
+            </label>
+          </div>
         </div>
       </template>
     </div>
@@ -702,6 +718,11 @@ const downloadAfter = computed<ResetAfterMode>({
   set: (v: ResetAfterMode) => deviceStore.setDownloadAfterBehavior(v),
 });
 
+const compatibilityMode = computed({
+  get: () => deviceStore.compatibilityMode,
+  set: (value: boolean) => deviceStore.setCompatibilityMode(value),
+});
+
 const {
   isConnected,
   isConnecting,
@@ -987,6 +1008,7 @@ const connectDevice = async () => {
       if (selectedInterface.value === 'UART') {
         connectParams.port = selectedPort.value!.name;
         connectParams.baudRate = parseInt(baudRateInput.value);
+        connectParams.compatibilityMode = compatibilityMode.value;
       }
 
       // 使用 Tauri 的路径和文件系统 API
